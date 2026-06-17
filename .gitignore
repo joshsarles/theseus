@@ -50,3 +50,8 @@ frontend/ui/dist/
 
 # UDS build output (throwaway demo cosign key + large signed package — never commit)
 deploy/uds/dist/
+deploy/mlflow-sync/shore/
+deploy/mlflow-sync/ship/
+deploy/mlflow-sync/transfer/
+deploy/mlflow-sync/*.log
+deploy/mlflow-sync/*.pid
