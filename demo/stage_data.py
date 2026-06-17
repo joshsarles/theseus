@@ -81,8 +81,29 @@ def _placeholder() -> list[dict]:
 
 
 def main() -> int:
+    import argparse
+    import shutil
+    ap = argparse.ArgumentParser(description="Stage operational data for the loop.")
+    ap.add_argument("--input", help="pre-normalized CSV (last column = target) from an ingest/ adapter")
+    a = ap.parse_args()
     DATA.mkdir(parents=True, exist_ok=True)
     print("THESEUS demo · STEP 1 — Stage Operational Data")
+
+    # Plug-in path: an ingest/ adapter (THESEUS lane) already normalized a dataset to the
+    # loop's data contract — copy it in and seal it. (Contract: numeric features + last col = target.)
+    if a.input:
+        src = Path(a.input)
+        if not src.exists():
+            print(f"  --input not found: {src}")
+            return 1
+        shutil.copyfile(src, STAGED)
+        sha = hashlib.sha256(STAGED.read_bytes()).hexdigest()
+        n = sum(1 for _ in STAGED.open()) - 1
+        seal(RECORD, "data_staged", "staged.csv",
+             {"source": f"ingest:{src.name}", "rows": n, "sha256": sha})
+        print(f"  staged from {src} · rows={n} · sha256={sha[:12]}…")
+        return 0
+
     rows = _fetch_real()
     source = "UCI #316 (real naval gas-turbine CBM)"
     if rows is None:
