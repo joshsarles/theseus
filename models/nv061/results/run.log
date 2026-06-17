@@ -1,0 +1,19 @@
+2026-06-17 12:34:53,468 === NV061 TrAISformer baseline | device=mps | torch=2.10.0 ===
+2026-06-17 12:34:53,468 Loading ct_dma ...
+2026-06-17 12:34:53,499   [train] raw=10605 kept=9144 used=2000
+2026-06-17 12:34:53,506   [test] raw=1593 kept=1453 used=384
+2026-06-17 12:34:53,920 number of parameters: 5.742055e+07
+2026-06-17 12:34:53,920 Model params: 57,420,547
+2026-06-17 12:34:54,201 [verified] device probe OK on mps; probe loss=19.4435
+2026-06-17 12:35:03,879 [verified] epoch 1 mean train loss = 14.38727
+2026-06-17 12:35:13,480 [verified] epoch 2 mean train loss = 9.00332
+2026-06-17 12:35:23,765 [verified] epoch 3 mean train loss = 5.92970
+2026-06-17 12:35:34,202 [verified] epoch 4 mean train loss = 4.19658
+2026-06-17 12:35:44,418 [verified] epoch 5 mean train loss = 3.17091
+2026-06-17 12:35:44,418 Evaluating: TrAISformer ensemble (n_samples=8) + CV floor ...
+2026-06-17 12:36:50,364 Saved metrics.json + error_curve.csv + run.log to /Users/force/Developer/Theseus/models/nv061/results
+2026-06-17 12:36:50,364 === RESULT (1h / 2h / 3h) ===
+2026-06-17 12:36:50,364 [published] TrAISformer (50 epochs):     0.48 / 0.94 / 1.64 nmi
+2026-06-17 12:36:50,364 [verified][pipeline-only] TrAISformer:   1.02 / 1.96 / 3.11 nmi
+2026-06-17 12:36:50,364 [verified] constant-velocity floor:      5.76 / 11.38 / 17.57 nmi
+2026-06-17 12:36:50,364 elapsed = 117.1s

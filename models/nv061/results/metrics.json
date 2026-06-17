@@ -1,0 +1,82 @@
+{
+  "device": "mps",
+  "torch": "2.10.0",
+  "n_params": 57420547,
+  "config": {
+    "epochs": 5,
+    "batch_size": 32,
+    "n_samples": 8,
+    "init_seqlen": 18,
+    "n_eval_steps": 24,
+    "max_train": 2000,
+    "max_test": 384,
+    "mode": "pos",
+    "sample_mode": "pos_vicinity"
+  },
+  "dataset": {
+    "train_used": 2000,
+    "test_used": 384
+  },
+  "run_type": "short-pipeline-verification",
+  "trAISformer_short_run": {
+    "1h": {
+      "km": 1.8922,
+      "nmi": 1.0217
+    },
+    "2h": {
+      "km": 3.6276,
+      "nmi": 1.9588
+    },
+    "3h": {
+      "km": 5.7603,
+      "nmi": 3.1103
+    }
+  },
+  "constant_velocity_floor": {
+    "1h": {
+      "km": 10.6631,
+      "nmi": 5.7576
+    },
+    "2h": {
+      "km": 21.0724,
+      "nmi": 11.3782
+    },
+    "3h": {
+      "km": 32.548,
+      "nmi": 17.5745
+    }
+  },
+  "published_scoreboard_nmi": {
+    "TrAISformer": {
+      "1h": 0.48,
+      "2h": 0.94,
+      "3h": 1.64
+    },
+    "GeoTrackNet": {
+      "1h": 0.72,
+      "2h": 1.59,
+      "3h": 2.67
+    },
+    "Clustering_LSTM_seq2seq_att": {
+      "1h": 0.78,
+      "2h": 1.93,
+      "3h": 3.66
+    },
+    "LSTM_seq2seq_att": {
+      "1h": 3.35,
+      "2h": 6.41,
+      "3h": 9.65
+    },
+    "Conv_seq2seq": {
+      "1h": 4.23,
+      "2h": 6.77,
+      "3h": 9.66
+    },
+    "LSTM_seq2seq": {
+      "1h": 5.83,
+      "2h": 8.39,
+      "3h": 11.64
+    }
+  },
+  "elapsed_sec": 117.1
+}
