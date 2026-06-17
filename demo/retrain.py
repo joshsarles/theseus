@@ -147,11 +147,13 @@ def main() -> int:
     if os.environ.get("MLFLOW_TRACKING_URI"):
         try:
             import mlflow
-            with mlflow.start_run(run_name=f"theseus-cbm-v{version}"):
-                mlflow.log_params({"framework": framework, "n_train": len(Xtr)})
+            mlflow.set_experiment(f"theseus-{target}")   # one experiment per dataset/target
+            with mlflow.start_run(run_name=f"v{version}"):
+                mlflow.log_params({"framework": framework, "n_train": len(Xtr),
+                                   "target": target, "n_features": len(feats)})
                 mlflow.log_metric("rmse", rmse)
                 mlflow.log_artifacts(str(vdir))
-            print(f"  logged to MLflow @ {os.environ['MLFLOW_TRACKING_URI']}")
+            print(f"  logged to MLflow experiment 'theseus-{target}' @ {os.environ['MLFLOW_TRACKING_URI']}")
         except Exception as e:
             print(f"  (MLflow log skipped: {e})")
 

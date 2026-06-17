@@ -12,7 +12,8 @@ import sys
 
 ALLOWED_ROOTS = (
     "referee/", "cot/", "console/", "tests/", "fixtures/", "scripts/", "docs/",
-    "zarf/", "lula/", "demo/", "deploy/", "Makefile", "README.md", "CONTRIBUTING.md",
+    "zarf/", "lula/", "demo/", "deploy/", "ingest/", "eval/", "models/", "frontend/",
+    "Makefile", "README.md", "CONTRIBUTING.md",
     "KANBAN.md", "ROADMAP.md", "pyproject.toml", ".gitignore", "LICENSE",
 )
 
