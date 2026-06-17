@@ -2,13 +2,14 @@
 *Jun 17 2026, sourced. Answers: "vLLM from Iron Bank? Is it FIPS compliant?" Short version: **no to Iron Bank vLLM (archived); yes to Triton-TensorRT-LLM for shore GPU + llama.cpp/GGUF for the edge**; FIPS covers the crypto boundary, not the model.*
 
 ## The two tiers (and what runs where)
+**Target = DDG/CG, which have real onboard compute, so the GPU tier is ON the ship** (emulated in dev by the NVIDIA Blackwell cloud) — see `../architecture/COMPUTE_TIERS.md`.
 | Tier | Job | Engine | GPU? | Image |
 |---|---|---|---|---|
-| **Ashore / GPU** | the LLM explainer at scale; retrain-ashore | **Triton + TensorRT-LLM** | yes | **Iron Bank, actively maintained** (e.g. `server-24-tensorrt-llm`, v26.02) |
-| **Shipboard / edge (Pi)** | single-user, latency-critical, DDIL | **llama.cpp + GGUF** (or llamafile) | no | FIPS-mode UBI base; static/CPU |
-| Local dev only | model iteration | vLLM ok on a laptop | yes | not for hardened Navy deploy |
+| **Ship Tier-1 / GPU** (DDG/CG central compute; Blackwell-emulated in dev) | LLM explainer at scale; **onboard** retrain; fusion/anomaly | **Triton + TensorRT-LLM** | yes | **Iron Bank, actively maintained** (e.g. `server-24-tensorrt-llm`, v26.02) |
+| **Ship Tier-2 / Pi components** | per-subsystem local detection, latency-critical, DDIL | **llama.cpp + GGUF** (or llamafile) | no | FIPS-mode UBI base; static/CPU |
+| Shore / dev only | model iteration | vLLM ok on a laptop | yes | not for hardened Navy deploy |
 
-DU's own LeapfrogAI uses exactly this split (vLLM/Triton on GPU, llama.cpp on edge).
+Both tiers are aboard the ship (the ship is its own data center + sensor mesh). DU's LeapfrogAI uses the same GPU+CPU split.
 
 ## Why NOT Iron Bank vLLM
 - The two Iron Bank vLLM images are **archived / read-only**: `darksaber/niprgpt/vllm` (Jan 2024) and `opensource/defenseunicorns/leapfrogai/vllm` (Aug 2024). No recent hardening updates.

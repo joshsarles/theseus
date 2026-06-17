@@ -34,6 +34,12 @@
 ## LOG — update as we go (newest on top)
 *Append Slack decisions / progress here. Format: `### <date> — <topic>` then bullets.*
 
+### Jun 17 — platform + compute clarified (founder)
+- Target = **big surface combatants (DDG/CG)** with real onboard compute — NOT compute-starved edge.
+- **Two-tier compute** (both aboard): Tier-1 ship GPU brain (fusion + explainer + onboard retrain + record) and Tier-2 Pi system-components (per-subsystem sensing/detection). Pi cluster = the sensing subset, not the whole brain. → `../architecture/COMPUTE_TIERS.md`.
+- **Emulation:** founder's **NVIDIA Blackwell cloud** stands in for the ship's Tier-1 compute; real Pis are the Tier-2 components.
+- Inference corrected: GPU (Triton-TRT-LLM, `iron-bank` flavor) runs ON the ship Tier-1; GGUF/llama.cpp on the Pi components. vLLM Iron Bank is out (archived). FIPS = crypto boundary only. → `../integration/INFERENCE_AND_FIPS.md`.
+
 ### Jun 17 — team formed + stack locked
 - team-theseus channel created; ~12 members (NAVSEA/NIWC engineers + analysts). KanBan stood up (Carolina Hatch, Juan Pineda).
 - Stack decided: MLflow 3.13 central server + Podman + Pi cluster. CVE-aware (MLflow ≥3.11, Podman >5.8.1).

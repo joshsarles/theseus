@@ -24,7 +24,8 @@
 - **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild); the build-now choices that keep it cheap.
 
 ## Architecture
-- **`architecture/`** — detailed design docs as they mature (the spine is `referee/` etc. in the repo root, being reframed imagery→ship-systems).
+- **`architecture/COMPUTE_TIERS.md`** — target = DDG/CG (real onboard compute). Two tiers: ship GPU brain (Blackwell-emulated) + Pi system-components. The Pi cluster is the sensing subset, not the whole brain.
+- **`architecture/`** — more design docs as they mature (the spine is `referee/` etc. in the repo root, being reframed imagery→ship-systems).
 
 ## The rails (everywhere)
 Human-in-command · decision-support not autonomous control · SWAN-side only (combat air-gapped) · integrate-not-replace · real not mock.
