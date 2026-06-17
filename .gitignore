@@ -45,3 +45,5 @@ deploy/uds/pepr/node_modules/
 deploy/uds/pepr/dist/
 deploy/uds/pepr/insecure-tls-*
 deploy/**/*.gz
+frontend/ui/node_modules/
+frontend/ui/dist/

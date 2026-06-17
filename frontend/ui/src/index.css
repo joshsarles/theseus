@@ -1,0 +1,134 @@
+@font-face {
+  font-family: "Geist";
+  src: url("./fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background-color: #0a0e27;
+    color: #e8eef7;
+    font-family: "Geist", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  /* slim, dark scrollbars */
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.3);
+  }
+}
+
+@layer components {
+  /* Glass surface — the core premium primitive */
+  .glass {
+    background: linear-gradient(
+      160deg,
+      rgba(28, 40, 66, 0.55) 0%,
+      rgba(16, 24, 44, 0.4) 100%
+    );
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+      0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+
+  .glass-hover {
+    transition:
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+  .glass-hover:hover {
+    border-color: rgba(0, 217, 255, 0.35);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+      0 0 0 1px rgba(0, 217, 255, 0.12),
+      0 24px 50px -28px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Panel section label */
+  .eyebrow {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8a92a8;
+  }
+
+  .num {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+@layer utilities {
+  .text-glow-cyan {
+    text-shadow: 0 0 12px rgba(0, 217, 255, 0.6);
+  }
+  .text-glow-danger {
+    text-shadow: 0 0 14px rgba(230, 57, 70, 0.7);
+  }
+  .box-glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.45);
+  }
+  .box-glow-danger {
+    box-shadow: 0 0 22px rgba(230, 57, 70, 0.55);
+  }
+  .box-glow-nominal {
+    box-shadow: 0 0 18px rgba(26, 186, 69, 0.4);
+  }
+  /* fine engineering grid */
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+  .hairline-b {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
