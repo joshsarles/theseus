@@ -1,0 +1,61 @@
+{
+  "protocol": "leave-one-failure-out CV (4 folds; nearest-failure temporal segments)",
+  "n_windows": 25515,
+  "window_s": 600,
+  "micro": {
+    "precision": 0.363,
+    "recall": 0.207,
+    "f1": 0.263,
+    "false_alarm_rate": 0.0072,
+    "tp": 103,
+    "fp": 181,
+    "fn": 395,
+    "tn": 24836
+  },
+  "per_fold": [
+    {
+      "fold": 1,
+      "n_test": 11766,
+      "pos_test": 144,
+      "tp": 7,
+      "fp": 42,
+      "fn": 137,
+      "tn": 11580,
+      "precision": 0.143,
+      "recall": 0.049
+    },
+    {
+      "fold": 2,
+      "n_test": 2831,
+      "pos_test": 39,
+      "tp": 38,
+      "fp": 130,
+      "fn": 1,
+      "tn": 2662,
+      "precision": 0.226,
+      "recall": 0.974
+    },
+    {
+      "fold": 3,
+      "n_test": 3005,
+      "pos_test": 288,
+      "tp": 58,
+      "fp": 1,
+      "fn": 230,
+      "tn": 2716,
+      "precision": 0.983,
+      "recall": 0.201
+    },
+    {
+      "fold": 4,
+      "n_test": 7913,
+      "pos_test": 27,
+      "tp": 0,
+      "fp": 8,
+      "fn": 27,
+      "tn": 7878,
+      "precision": 0.0,
+      "recall": 0.0
+    }
+  ]
+}
