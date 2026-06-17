@@ -1,135 +1,136 @@
-import { useCallback, useState } from "react";
-import { motion } from "framer-motion";
+import { useCallback, useMemo, useState } from "react";
 import { useShipState } from "./hooks/useShipState";
-import { GradientMesh } from "./components/GradientMesh";
-import { CommandBar } from "./components/CommandBar";
-import { HeroShip } from "./components/HeroShip";
-import { TacticalPicture } from "./components/TacticalPicture";
-import { SystemCard } from "./components/SystemCard";
+import { CommandHeader } from "./components/CommandHeader";
+import { SystemsColumn } from "./components/SystemsColumn";
 import { MachineryPanel } from "./components/MachineryPanel";
-import { AlertFeed } from "./components/AlertFeed";
-import { RecordPanel } from "./components/RecordPanel";
-import { Panel } from "./components/Panel";
-import type { ReviewVerdict } from "./components/ContactAlert";
+import { TacticalPicture } from "./components/TacticalPicture";
+import { ContactsPanel } from "./components/ContactsPanel";
+import { RecordSpine } from "./components/RecordSpine";
+import { mintDecisionLeaf, parseRecordMessage } from "./lib/format";
+import type { Leaf, Verdict } from "./lib/types";
 
 export function App() {
   const { state, conn } = useShipState();
-  const [reviews, setReviews] = useState<Record<string, ReviewVerdict>>({});
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [localLeaves, setLocalLeaves] = useState<Leaf[]>([]);
 
-  const handleReview = useCallback((id: string, verdict: ReviewVerdict) => {
-    setReviews((prev) => ({ ...prev, [id]: verdict }));
-  }, []);
+  const merkleSeed = useMemo(() => {
+    const { merkle, head } = parseRecordMessage(state?.record.message ?? "");
+    return (merkle ?? head ?? "theseus").slice(0, 12);
+  }, [state?.record.message]);
 
-  if (!state) {
-    return (
-      <>
-        <GradientMesh />
-        <div className="flex h-full w-full items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-3"
-          >
-            <span className="text-2xl">⚓</span>
-            <span className="num animate-softPulse text-[12px] tracking-[0.28em] text-cyan/80">
-              ESTABLISHING LINK TO THESEUS…
-            </span>
-          </motion.div>
-        </div>
-      </>
-    );
-  }
-
-  const liveCount = state.systems.filter((s) => s.live).length;
-  const pending = Object.keys(reviews).length;
-  const remaining = state.human_in_command.pending - pending;
+  const onDecision = useCallback(
+    (contactId: string, verdict: Verdict, serverSealed: boolean) => {
+      setLocalLeaves((prev) => {
+        const prevTotal = (state?.record.leaf_count ?? 0) + prev.length;
+        const leaf = mintDecisionLeaf(prevTotal, contactId, verdict, merkleSeed);
+        leaf.local = !serverSealed;
+        return [...prev, leaf];
+      });
+    },
+    [state?.record.leaf_count, merkleSeed],
+  );
 
   return (
     <>
-      <GradientMesh />
-      <div className="flex h-full w-full flex-col">
-        <CommandBar state={state} conn={conn} />
+      <div className="vignette" />
+      <div className="grain" />
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--base)",
+        }}
+      >
+        {state ? <CommandHeader state={state} conn={conn} /> : null}
 
-        {/* main 3-column ops grid */}
-        <main className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_390px] gap-3 p-3">
-          {/* LEFT RAIL — ship systems + machinery */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-            <Panel
-              title="Ship Systems"
-              meta={`${liveCount}/${state.systems.length} LIVE`}
-              className="min-h-0 flex-1"
-              bodyClassName="flex flex-col gap-2"
-              scroll
-              delay={0.05}
+        {state ? (
+          <main
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "grid",
+              // asymmetric, content-driven: instrument rail · tactical theatre · record spine
+              gridTemplateColumns: "320px minmax(0, 1fr) 340px",
+            }}
+          >
+            {/* LEFT — ship instruments (systems over machinery) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateRows: "1fr auto",
+                borderRight: "1px solid var(--hair-lit)",
+                minHeight: 0,
+                background: "var(--panel)",
+              }}
             >
-              {state.systems.map((s, i) => (
-                <SystemCard key={s.key} system={s} index={i} />
-              ))}
-            </Panel>
-
-            <Panel
-              title="Machinery · HM&E"
-              meta="CBM"
-              className="shrink-0"
-              delay={0.12}
-            >
-              <MachineryPanel machinery={state.machinery} />
-            </Panel>
-          </div>
-
-          {/* CENTER — hero ship + tactical */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-            <HeroShip systems={state.systems} />
-
-            <Panel
-              title="Tactical Picture · Pattern-of-Life"
-              meta={`${state.contacts.length} CONTACTS`}
-              className="min-h-0 flex-1"
-              bodyClassName="p-0"
-              delay={0.1}
-            >
-              <div className="h-full min-h-[220px] w-full p-1">
-                <TacticalPicture contacts={state.contacts} />
+              <div style={{ borderBottom: "1px solid var(--hair-lit)", minHeight: 0, overflow: "hidden", display: "flex" }}>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <SystemsColumn systems={state.systems} />
+                </div>
               </div>
-            </Panel>
-          </div>
+              <MachineryPanel machinery={state.machinery} />
+            </div>
 
-          {/* RIGHT RAIL — contact alerts + record */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-            <Panel
-              title="Contacts · Recommend → Decide"
-              meta={`${remaining > 0 ? remaining : 0} PENDING`}
-              className="min-h-0 flex-1"
-              scroll
-              delay={0.08}
+            {/* CENTER — tactical theatre over the human-in-command queue */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateRows: "minmax(300px, 1.2fr) minmax(0, 1fr)",
+                minHeight: 0,
+              }}
             >
-              <AlertFeed
-                contacts={state.contacts}
-                reviews={reviews}
-                onReview={handleReview}
-              />
-            </Panel>
+              <div
+                style={{
+                  borderBottom: "1px solid var(--hair-lit)",
+                  minHeight: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <TacticalPicture
+                  contacts={state.contacts}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                />
+              </div>
+              <div style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
+                <ContactsPanel
+                  contacts={state.contacts}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onDecision={onDecision}
+                />
+              </div>
+            </div>
 
-            <Panel
-              title="Tamper-Evident Record"
-              meta="MERKLE LOG"
-              className="shrink-0"
-              delay={0.14}
-            >
-              <RecordPanel record={state.record} />
-            </Panel>
-          </div>
-        </main>
-
-        {/* doctrine footer */}
-        <footer className="shrink-0 px-4 py-1.5 text-center">
-          <p className="num text-[9px] tracking-[0.18em] text-faint">
-            DECISION-SUPPORT · HUMAN-IN-COMMAND — THESEUS RECOMMENDS, THE WATCH
-            OFFICER DECIDES · NOTHING IS AUTO-ACTIONED · SWAN-SIDE / UNCLASSIFIED
-            · TAMPER-EVIDENT
-          </p>
-        </footer>
+            {/* RIGHT — the differentiator: tamper-evident record spine */}
+            <RecordSpine record={state.record} localLeaves={localLeaves} />
+          </main>
+        ) : (
+          <Booting />
+        )}
       </div>
     </>
+  );
+}
+
+function Booting() {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div className="mono" style={{ fontSize: 12, color: "var(--muted)", letterSpacing: "0.16em" }}>
+        LINKING TO THESEUS …
+      </div>
+    </div>
   );
 }

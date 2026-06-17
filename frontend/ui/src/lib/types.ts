@@ -2,6 +2,14 @@ export type Severity = "nominal" | "warning" | "critical" | "standby";
 
 export type ContactType = "loiter" | "dark_gap" | "position_jump" | "overspeed";
 
+export type LeafType =
+  | "data_staged"
+  | "model_trained"
+  | "model_promoted"
+  | "ais_anomaly"
+  | "human_decision"
+  | "explained_alert";
+
 export interface ShipSystem {
   key: string;
   label: string;
@@ -16,7 +24,7 @@ export interface Machinery {
   rmse: number;
   framework: string;
   status?: string;
-  promotions: number;
+  promotions?: number;
 }
 
 export interface Contact {
@@ -29,20 +37,25 @@ export interface Contact {
   recommended_action: string;
   lat: number | null;
   lon: number | null;
-  status: string;
+  status?: string;
 }
 
 export interface HumanInCommand {
   pending: number;
-  note: string;
+  note?: string;
 }
 
+/**
+ * The live API delivers `record.events` either as an array of leaf-type
+ * strings or as a {type: count} map. The union keeps the reader honest about
+ * both shapes; deriveLeaves() normalises them.
+ */
 export interface RecordState {
   verify_ok: boolean;
-  first_bad_leaf: string | null;
+  first_bad_leaf?: string | null;
   message: string;
   leaf_count: number;
-  events: Record<string, number>;
+  events: string[] | Record<string, number>;
 }
 
 export interface ShipState {
@@ -54,3 +67,17 @@ export interface ShipState {
   human_in_command: HumanInCommand;
   record: RecordState;
 }
+
+/** A single sealed entry materialised for the ledger spine. */
+export interface Leaf {
+  seq: number;
+  type: LeafType;
+  hash: string;
+  label: string;
+  detail: string;
+  /** locally-sealed decisions are flagged so the climax reads as live */
+  local?: boolean;
+  contactId?: string;
+}
+
+export type Verdict = "accepted" | "overridden";

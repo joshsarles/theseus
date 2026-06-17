@@ -1,114 +1,84 @@
-# THESEUS · Ship-Brain Operations Console
+# THESEUS · Combat Information Center
 
-A premium, futuristic operations dashboard for **THESEUS** — a self-controlled
-warship "ship brain." Dark mission-control aesthetic in the spirit of Anduril
-Lattice / Palantir / SpaceX mission control / Linear.
+An instrument-grade operations interface for **THESEUS** — the ship-brain
+decision-support system. Built in the spirit of Palantir Gotham, Anduril
+Lattice, *The Martian* mission control (Territory Studio), Linear, and Teenage
+Engineering: the "wow" is craft, density, real data, and a point of view — not
+effects.
 
-This is a standalone Vite + React 19 + TypeScript app. It does **not** touch the
-existing `frontend/cic.html` or `demo/api.py`; it consumes the same live API.
-
----
-
-## What it shows
-
-| Region | Content |
-| --- | --- |
-| **Top command bar** | ⚓ THESEUS wordmark, posture tagline, pulsing `COMMS · DDIL / AIR-GAP` badge, `HULL` status, `RECORD ✓` chip, live `LINK` state, ticking UTC clock |
-| **Hero center** | A procedural low-poly **warship in 3D** (react-three-fiber, built from primitives — hull, tumblehome superstructure, mast, funnel, VLS, gun; no external `.glb`), slowly rotating, with the **7 ship-system nodes** glowing on the hull, color-coded by severity |
-| **Tactical picture** | A **deck.gl** contact plot on a dark-ocean canvas (no MapLibre basemap — offline-clean) at real lat/lon: own-ship reticle + ~50–100 contacts color-coded by anomaly type, spoof/jump in glowing red, radar sweep, hover tooltip showing *why* + *recommended action* |
-| **Left rail** | The 7 ship systems as glass cards (live = cyan/severity accent + glow; standby = dim — honest, no fake greens) |
-| **Machinery / HM&E** | A Recharts telemetry panel: RMSE-driven health gauge + gas-turbine decay-coefficient trend |
-| **Right rail** | Flagged-contact feed sorted with `position_jump` first; each a glass card with `RECOMMEND →` and **ACCEPT / OVERRIDE** buttons (human-in-command — clicking records the watch-officer verdict in place) |
-| **Tamper-evident record** | `CHAIN VERIFIED · PASS` (green) or `SNAP` (red), leaf count, Merkle root, chain head, logged-event tape |
-
-### Doctrine rails honored in the UI copy
-
-decision-support · human-in-command (THESEUS recommends, the watch officer
-decides, nothing is auto-actioned) · SWAN-side / unclassified ·
-tamper-**evident** (not tamper-proof).
+Standalone Vite + React 19 + TypeScript. Consumes the live API at
+`http://localhost:8501/api/state` (polls every 4s; falls back to a small
+realistic mock if unreachable).
 
 ---
 
-## Stack
+## Design system — "restraint = premium"
 
-- **Vite 6 + React 19 + TypeScript** (strict)
-- **Tailwind CSS 3** — glassmorphism, animated gradient-mesh background, neon-cyan accent system
-- **Framer Motion** — spring/fade entrance on cards, button feedback, layout transitions
-- **react-three-fiber + drei** — the hero 3D warship + glowing system nodes
-- **deck.gl** (`ScatterplotLayer` / `LineLayer` / `TextLayer` on an `OrthographicView`) — the tactical contact picture
-- **Recharts** — machinery telemetry
-- **Geist Sans / Geist Mono** — vendored as woff2 (sans/mono) + ttf (3D labels); **no runtime CDN**, fully offline
+- **Color.** Warm off-black base `#0a0c10`. ONE owned accent — **command amber
+  `#D4A000`** — used only for live / action / focus / own-ship. Status colors
+  carry meaning only: green `#3fb950` nominal, amber caution, red `#e5484d`
+  critical (spoof / position-jump). No cyan, neon, gradients, purple, or glow.
+- **Type.** Display = **Space Grotesk** (tight negative tracking, authority).
+  Data = **JetBrains Mono** with tabular figures for EVERY number — bearings,
+  RMSE, leaf counts, coordinates, NM ranges, times, hashes. Both fonts are
+  vendored to `src/fonts/*.woff2` (no runtime CDN).
+- **Texture.** ~6% SVG fractal-noise film grain over the base (`.grain`).
+- **Geometry.** 1px hairlines, sharp orthogonal containers. No glass blur, no
+  drop shadows, no uniform rounded corners. No Tailwind — hand-authored CSS.
+- **Motion.** GSAP, snap/instant, custom-eased — only on real events (a sealed
+  leaf snapping into the spine, a leaf-count count-up). No looping decoration.
 
----
+## Layout (asymmetric, content-driven)
 
-## Data
+```
+┌ command header — ship · posture · live readouts · UTC · link ───────────────┐
+├ 01 SHIP SYSTEMS  │ 03 TACTICAL PICTURE (deck.gl AIS plot) │ TAMPER-EVIDENT  │
+│    (7 instruments)│    range rings · bearings · graticule │ RECORD          │
+│ ─────────────────│ ─────────────────────────────────────│ CHAIN VERIFIED  │
+│ 02 MACHINERY     │ 04 CONTACTS · HUMAN-IN-COMMAND         │ · PASS          │
+│    RMSE + trend  │    RECOMMEND → ACCEPT / OVERRIDE       │ growing ledger  │
+└──────────────────┴───────────────────────────────────────┴─────────────────┘
+```
 
-Polls `http://localhost:8501/api/state` every **4 seconds** (CORS-enabled).
-If the API is unreachable on first load, it falls back to a realistic mock that
-matches the live contract so the console is never empty; the `LINK` chip shows
-`LIVE` / `STALE` / `OFFLINE` accordingly.
+- **Tactical picture** (`deck.gl` WebGL2, OrthographicView): real AIS contacts
+  plotted at their lat/lon in an equirectangular projection — clean vector
+  symbology (hollow rings = routine, amber chevrons = flagged, **red diamonds +
+  `SPOOF?` = position-jump**), own-ship reference with NM range rings and
+  bearing ticks. Accuracy over prettiness.
+- **The differentiator — the tamper-evident record spine** (right edge): the
+  hash chain rendered as a precise growing ledger. Header `CHAIN VERIFIED ·
+  PASS` (green) with leaf count + merkle root + head; each sealed leaf
+  (`data_staged · model_trained · model_promoted · ais_anomaly ·
+  human_decision`) shown with its short hash, in chain order.
+- **Human-in-command climax:** each contact carries a RECOMMEND line plus
+  `ACCEPT` / `OVERRIDE`. On click the app POSTs to `/api/decision`
+  `{contact_id, verdict, by:"WATCH"}` and seals a `human_decision` leaf into the
+  spine (GSAP snap-in + count-up). If the endpoint is not yet live the leaf
+  seals locally and is flagged `LOCAL` — tamper-EVIDENT, never silently
+  presented as server truth.
 
-Override the endpoint with an env var:
+## Serve
 
 ```bash
-VITE_THESEUS_API="http://some-host:8501/api/state" npm run dev
+cd frontend/ui
+npm install          # (already installed; vendors fonts + deck.gl + gsap)
+npm run build        # tsc -b && vite build — clean
+npm run preview      # http://localhost:5173  (vite preview, host)
+# or: npm run dev    # http://localhost:5173  (HMR)
 ```
 
-Contract (abridged):
+Point at a different API with `VITE_THESEUS_API=http://host:port`.
 
-```ts
-{
-  ship, posture,
-  systems: [{ key, label, live, severity, detail }],          // 7
-  machinery: { model, version, rmse, framework, promotions },
-  contacts: [{ id, mmsi, type, vessel_class, confidence,
-               why, recommended_action, lat, lon, status }],   // ~50–100
-  human_in_command: { pending, note },
-  record: { verify_ok, first_bad_leaf, message, leaf_count, events }
-}
-```
-
----
-
-## Develop / build / serve
-
-From `frontend/ui/`:
+## Self-verify (headless Playwright, isolated profile)
 
 ```bash
-npm install          # one-time
-
-npm run dev          # dev server with HMR  -> http://localhost:5173
-# or, production:
-npm run build        # type-check + bundle into dist/
-npm run preview      # serve the built dist/ -> http://localhost:5173
+node scripts/shoot.mjs                       # → /tmp/theseus-shot.png + probe JSON
+SHOOT_ACT="ACCEPT:0,OVERRIDE:0" node scripts/shoot.mjs   # exercise the climax
 ```
 
-Make sure the THESEUS API is running on `:8501` first (the existing
-`demo/api.py`), or the console will render with mock data.
+The script launches its own temp `--user-data-dir` (never touches any shared
+profile), waits for deck.gl + GSAP to settle, screenshots, and reports console
+errors, the body font, canvas size, and live leaf-row count.
 
-Requires Node 20+ (built and verified on Node 25).
-
----
-
-## Self-verification
-
-The `scripts/` folder contains Playwright helpers used during development to
-screenshot the running app, assert **zero console/page errors**, confirm the
-3D + deck.gl canvases mount, and exercise the ACCEPT/OVERRIDE + tactical-hover
-interactions:
-
-```bash
-node scripts/shoot.mjs      # screenshot + console-error report  -> /tmp/theseus-shot.png
-node scripts/interact.mjs   # click ACCEPT/OVERRIDE, hover tooltip
-```
-
----
-
-## Notes
-
-- The 3D warship is **procedural** — every surface is a three.js primitive
-  (extruded hull profile, 4-sided cylinder frustums for the tumblehome
-  superstructure, mast, funnel, VLS cells, gun). No model files are fetched.
-- The ocean canvas deliberately has **no map basemap** to stay offline-clean;
-  contacts are projected equirectangularly and fit to the viewport.
-- Severity colors are honest: standby systems are dim, never shown as green.
+Rails: decision-support · human-in-command · SWAN-side / unclassified ·
+tamper-EVIDENT (not tamper-proof).
