@@ -34,6 +34,10 @@
 ## LOG — update as we go (newest on top)
 *Append Slack decisions / progress here. Format: `### <date> — <topic>` then bullets.*
 
+### Jun 17 — hardware confirmed + master roadmap
+- Real edge hardware: **2× Raspberry Pi 5, 4GB**. Maps to **2 organs** — Pi-1 MACHINERY (CBM), Pi-2 CONTACTS (AIS PoL). 4GB ⇒ small models only on the edge; heavy reasoning on Tier-1 (Blackwell).
+- Master **`ROADMAP.md`** created at repo root (living; phases 0–3). Tactical board stays `KANBAN.md`.
+
 ### Jun 17 — platform + compute clarified (founder)
 - Target = **big surface combatants (DDG/CG)** with real onboard compute — NOT compute-starved edge.
 - **Two-tier compute** (both aboard): Tier-1 ship GPU brain (fusion + explainer + onboard retrain + record) and Tier-2 Pi system-components (per-subsystem sensing/detection). Pi cluster = the sensing subset, not the whole brain. → `../architecture/COMPUTE_TIERS.md`.

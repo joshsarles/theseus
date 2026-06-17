@@ -2,6 +2,7 @@
 *The map. Start at the top.*
 
 ## Start here
+- **`../ROADMAP.md`** — the master plan (phases 0–3, hardware, status); living doc.
 - **`TEAM_LANES.md`** — who owns what + the TODAY/TOMORROW execute plan (run in your lane).
 - **`../demo/README.md`** — the runnable loop: `bash demo/run.sh` (Stage → Retrain → Update, all sealed).
 - **`vision/TEAM_OBJECTIVES_AND_LOG.md`** — what we're building + the stack + the living log (update as Slack evolves).

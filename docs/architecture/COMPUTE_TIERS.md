@@ -8,7 +8,9 @@
 | Tier | What it is | Runs | Hardware (real) | Dev/emulation |
 |---|---|---|---|---|
 | **Tier 1 — Ship central compute** | the ship's "data center" / the brain | fusion + correlation, the **anomaly/PoL models**, the **LLM explainer (Triton-TRT-LLM, GPU)**, **MLflow** registry, **retraining onboard**, the tamper-evident record | GPU-class server(s) in a ship compartment | **NVIDIA Blackwell cloud box** (emulates the ship's central compute) |
-| **Tier 2 — System-component nodes** | the distributed sensing/subsystem layer (the "organs") | per-subsystem tap (power / propulsion / nav / DC / readiness), **lightweight local detection** (ONNX / GGUF), publish to Tier 1 over the ship LAN | **Raspberry Pi cluster** (+ AI HAT+2) as real system components | real Pis on a switch |
+| **Tier 2 — System-component nodes** | the distributed sensing/subsystem layer (the "organs") | per-subsystem tap, **lightweight local detection** (ONNX / small GGUF), publish to Tier 1 over the ship LAN | **2× Raspberry Pi 5 (4GB)** — the real hardware we have | 2 Pis on a switch |
+
+**Demo hardware mapping (real):** we have **2× Pi 5, 4GB** → **2 organs**: **Pi-1 = MACHINERY** (runs `update_model.py` serving the CBM gas-turbine model) · **Pi-2 = CONTACTS** (runs `ais_pol.py`, the AIS Pattern-of-Life). 4GB ⇒ small models only on the edge (CBM is tiny ✓, AIS PoL is light Python ✓, GGUF ≤~1.5B Q4 if an edge LLM is needed). A real DDG/CG scales this to more organ-nodes; the 2-Pi demo proves the pattern. Heavy reasoning stays on Tier-1 (Blackwell).
 
 The **Pi cluster is a SUBSET** — the edge sensing layer, not the whole brain. The brain is Tier 1 (ship GPU). Tier 2 feeds Tier 1; Tier 1 reasons, recommends, and seals the record.
 

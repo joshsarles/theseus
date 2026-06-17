@@ -13,7 +13,7 @@ import sys
 ALLOWED_ROOTS = (
     "referee/", "cot/", "console/", "tests/", "fixtures/", "scripts/", "docs/",
     "zarf/", "lula/", "demo/", "deploy/", "Makefile", "README.md", "CONTRIBUTING.md",
-    "KANBAN.md", "pyproject.toml", ".gitignore", "LICENSE",
+    "KANBAN.md", "ROADMAP.md", "pyproject.toml", ".gitignore", "LICENSE",
 )
 
 # Retained-IP import roots (production capability arrives via wheels at the event;
