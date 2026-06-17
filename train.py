@@ -33,10 +33,27 @@ mlflow.set_experiment("UAV Anomaly Detection")
 
 # --- Loaders ---
 def load_json(pattern):
+    """Load one or more JSON files matching a glob pattern into a DataFrame."""
     files = glob.glob(pattern)
     if not files:
         return pd.DataFrame()
-    return pd.concat([pd.DataFrame(json.load(open(f))) for f in files], ignore_index=True)
+    frames = []
+    for f in files:
+        with open(f) as fh:
+            data = json.load(fh)
+        # Support both array of records and {data: [...]} wrapper formats
+        if isinstance(data, list):
+            frames.append(pd.DataFrame(data))
+        elif isinstance(data, dict):
+            # Try common wrapper keys
+            for key in ["data", "records", "results", "items"]:
+                if key in data and isinstance(data[key], list):
+                    frames.append(pd.DataFrame(data[key]))
+                    break
+            else:
+                # Flat dict — wrap as single row
+                frames.append(pd.DataFrame([data]))
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
 def build_dataset(prefix):
@@ -68,10 +85,10 @@ def explain_anomalies(model, df_model, df_context, feature_cols, top_n=3):
     """For each anomaly, show which features are most out of range."""
     results = []
 
-    df_model  = df_model.select_dtypes(include=[np.number])
-    means     = df_model.mean()
-    stds      = df_model.std().replace(0, 1)
-    z_scores  = (df_model - means) / stds
+    df_model   = df_model.select_dtypes(include=[np.number])
+    means      = df_model.mean()
+    stds       = df_model.std().replace(0, 1)
+    z_scores   = (df_model - means) / stds
 
     df_model   = df_model.reset_index(drop=True)
     df_context = df_context.reset_index(drop=True)
@@ -107,15 +124,21 @@ def explain_anomalies(model, df_model, df_context, feature_cols, top_n=3):
 
 # --- Train and log ---
 def train_and_log(df, run_name, feature_cols):
-    """Train IsolationForest on df and log everything to MLflow."""
+    """
+    Train IsolationForest on df, log everything to MLflow,
+    and return the trained model.
+
+    Returns:
+        model: trained IsolationForest (or None if skipped)
+    """
     df_model = df[[c for c in feature_cols if c in df.columns]].copy()
     df_model = df_model.fillna(df_model.median(numeric_only=True))
 
     if df_model.shape[0] < 2:
         print(f"  Skipping {run_name} — not enough rows ({df_model.shape[0]})")
-        return
+        return None
 
-    scaler  = StandardScaler()
+    scaler   = StandardScaler()
     X_scaled = scaler.fit_transform(df_model)
 
     with mlflow.start_run(run_name=run_name):
@@ -141,11 +164,11 @@ def train_and_log(df, run_name, feature_cols):
         n_anomalies = (predictions == -1).sum()
         anomaly_pct = n_anomalies / len(predictions) * 100
 
-        mlflow.log_metric("n_anomalies",        int(n_anomalies))
-        mlflow.log_metric("anomaly_pct",         round(anomaly_pct, 2))
-        mlflow.log_metric("mean_anomaly_score",  round(scores.mean(), 4))
+        mlflow.log_metric("n_anomalies",       int(n_anomalies))
+        mlflow.log_metric("anomaly_pct",        round(anomaly_pct, 2))
+        mlflow.log_metric("mean_anomaly_score", round(scores.mean(), 4))
 
-        # Basic anomalies CSV with context
+        # Basic anomalies CSV
         context_cols_present = [c for c in CONTEXT_COLS if c in df.columns]
         df_results = df[context_cols_present].copy().reset_index(drop=True)
         df_results["anomaly_score"] = scores
@@ -155,7 +178,7 @@ def train_and_log(df, run_name, feature_cols):
         mlflow.log_artifact("anomalies_found.csv")
         os.remove("anomalies_found.csv")
 
-        # Detailed anomaly explanation — which features are causing it
+        # Detailed anomaly explanation
         context_df      = df[context_cols_present].copy()
         anomaly_details = explain_anomalies(model, df_model, context_df, list(df_model.columns))
         if not anomaly_details.empty:
@@ -169,21 +192,27 @@ def train_and_log(df, run_name, feature_cols):
 
         mlflow.sklearn.log_model(model, f"model-{run_name.replace(' ', '_')}")
 
+        run_id = mlflow.active_run().info.run_id
         print(f"\n  {run_name}: {n_anomalies} anomalies ({anomaly_pct:.1f}%) from {df_model.shape[0]} rows")
+        print(f"  Run ID: {run_id}")
+
+    return model
 
 
 # --- Main ---
+trained_models = {}
+
 print("=== Fleet-wide models ===")
 fleet_df = build_dataset("fleet")
 if not fleet_df.empty:
-    train_and_log(fleet_df, "fleet-all-sensors",    [c for c in ALL_FEATURE_COLS  if c in fleet_df.columns])
-    train_and_log(fleet_df, "fleet-sensors-only",   [c for c in SENSOR_COLS       if c in fleet_df.columns])
-    train_and_log(fleet_df, "fleet-telemetry-only", [c for c in TELEMETRY_COLS    if c in fleet_df.columns])
-    train_and_log(fleet_df, "fleet-c2-only",        [c for c in C2_COLS           if c in fleet_df.columns])
+    trained_models["fleet-all-sensors"]    = train_and_log(fleet_df, "fleet-all-sensors",    [c for c in ALL_FEATURE_COLS  if c in fleet_df.columns])
+    trained_models["fleet-sensors-only"]   = train_and_log(fleet_df, "fleet-sensors-only",   [c for c in SENSOR_COLS       if c in fleet_df.columns])
+    trained_models["fleet-telemetry-only"] = train_and_log(fleet_df, "fleet-telemetry-only", [c for c in TELEMETRY_COLS    if c in fleet_df.columns])
+    trained_models["fleet-c2-only"]        = train_and_log(fleet_df, "fleet-c2-only",        [c for c in C2_COLS           if c in fleet_df.columns])
 
 print("\n=== Per-vehicle models ===")
-all_files        = glob.glob(f"{DATA_FOLDER}*.json")
-prefixes         = set()
+all_files = glob.glob(f"{DATA_FOLDER}*.json")
+prefixes  = set()
 for f in all_files:
     name = os.path.basename(f)
     for suffix in ["-c2.json", "-sensors.json", "-telemetry.json",
@@ -200,18 +229,24 @@ for prefix in sorted(vehicle_prefixes):
         print(f"  No data found for {prefix}")
         continue
 
-    train_and_log(vehicle_df, f"{prefix}-all",       [c for c in ALL_FEATURE_COLS if c in vehicle_df.columns])
+    trained_models[f"{prefix}-all"] = train_and_log(
+        vehicle_df, f"{prefix}-all", [c for c in ALL_FEATURE_COLS if c in vehicle_df.columns])
 
     tel_cols = [c for c in TELEMETRY_COLS if c in vehicle_df.columns]
     if tel_cols:
-        train_and_log(vehicle_df, f"{prefix}-telemetry", tel_cols)
+        trained_models[f"{prefix}-telemetry"] = train_and_log(vehicle_df, f"{prefix}-telemetry", tel_cols)
 
     sen_cols = [c for c in SENSOR_COLS if c in vehicle_df.columns]
     if sen_cols:
-        train_and_log(vehicle_df, f"{prefix}-sensors", sen_cols)
+        trained_models[f"{prefix}-sensors"] = train_and_log(vehicle_df, f"{prefix}-sensors", sen_cols)
 
     c2_cols = [c for c in C2_COLS if c in vehicle_df.columns]
     if c2_cols:
-        train_and_log(vehicle_df, f"{prefix}-c2", c2_cols)
+        trained_models[f"{prefix}-c2"] = train_and_log(vehicle_df, f"{prefix}-c2", c2_cols)
 
-print("\nDone! View results at http://localhost:5000")
+print(f"\nDone! Trained {len(trained_models)} models.")
+print(f"View results at http://localhost:5000")
+
+# trained_models dict is available for use in other scripts or notebooks:
+# e.g. model = trained_models["fleet-all-sensors"]
+#      predictions = model.predict(X_new)
