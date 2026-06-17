@@ -10,6 +10,7 @@
 → In Theseus terms: this is the **edge model-delivery & lifecycle spine** — exactly the "Airgap Native Model Delivery" problem, made DDIL-native. It's the substrate; the **anomaly cell** (NV063 — AIS/ADS-B/radar Pattern-of-Life) is the showcase model that rides on it; the **tamper-evident record** is the moat (every model load/update/decision sealed).
 
 ## Stack (team-decided in Slack)
+- **Python 3.14.4** — the runtime (stdlib spine + ML). Verify MLflow 3.13 / PyTorch wheels resolve on 3.14 before pinning the container base; if a wheel lags, run a 3.13 base image + 3.14 where it's clean.
 - **MLflow 3.13** (latest; ≥3.11 avoids the high-sev CVE) — central server in a container = **model registry + tracking + monitoring** of models running on other containers / the Pi nodes. This is objectives #2/#3/#4.
 - **Podman** (latest; >5.8.1 avoids CVE) — rootless/daemonless OCI container build + runtime. *No Docker.*
 - **Raspberry Pi cluster** — the edge nodes (resource-limited, shipboard-analog). Deploy models here; test save/update.

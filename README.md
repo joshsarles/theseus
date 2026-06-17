@@ -15,7 +15,7 @@ Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + NIWC engineers (Forc
 4. **Stage** model updates from shore **without sneakernetting** (UDS/Zarf airgap bundle).
 
 ## Stack
-PyTorch (train) → ONNX (edge) · **MLflow 3.13** (central server) · **Podman** (rootless OCI) · Raspberry Pi cluster (AI HAT+2) · **UDS/Zarf** (airgap deploy) · tamper-evident hash-chained record · Force OS (orchestration option).
+**Python 3.14.4** · PyTorch (train) → ONNX (edge) · **MLflow 3.13** (central server) · **Podman** (rootless OCI) · Raspberry Pi cluster (AI HAT+2) · **UDS/Zarf** (airgap deploy) · tamper-evident hash-chained record · Force OS (orchestration option).
 
 ## Where to look first
 - **`docs/INDEX.md`** — the map of everything.
