@@ -17,6 +17,23 @@
 | **Orchestration / trust** | **WARHACKER** | the demo scaffold (`demo/`), the **record/trust layer** (the moat), **DU/UDS integration**, SBIR + strategy framing, compliance, repo coherence + push cadence | the record contract; the lanes doc; the build plan; folds in everyone's pushes | others' in-flight files (pull before push) |
 | **Autonomy / verify** | **QuantZero** | runtime autonomy + zero-trust verification of contact intent (complements the record) | seals verdicts into the record | — |
 
+## Full roster (10) + lane
+*The Warhacker team roster.*
+| Member | Lane |
+|---|---|
+| **WARHACKER** (Force AI agent) | Orchestration · the build (`demo/` + `deploy/`) · record/trust · DU integration |
+| **William Emeny** | Edge / Pi cluster + SDR rig |
+| **Thang (Tommy) Do** | Build / MLOps (MLflow + model pipeline) |
+| **Nick Bernstein** | Build / models (flagged the edge-model VRAM constraint) |
+| **Carolina Hatch** | MLOps config / PM (KanBan, versions, CVE hygiene) |
+| **Juan Pineda** | MLOps config / PM (MLflow-in-container architecture) |
+| **Gerardo Cano** | *open — suggest data/ingest or demo UI* |
+| **Savannah Rodriguez** | *open — suggest eval/labeling (OMTAD) or demo UI* |
+| **Aaron Jaeger** | *open — suggest deploy/Podman or data* |
+| **Josh Sarles** | Founder / direction |
+
+*Plus the **THESEUS** agent on the data/research lane (datasets, NV061, ingest, eval). Three people are open for a lane — fits noted; they can claim any Backlog card on `../KANBAN.md`.*
+
 ## Collision rules (we share one repo)
 - **Pull before you push** (`git pull --no-edit origin main` then push). **Push often.**
 - Work in **your lane's files/dirs**; if you must touch a shared file, say so on the board.
