@@ -13,6 +13,8 @@ import sys
 ALLOWED_ROOTS = (
     "referee/", "cot/", "console/", "tests/", "fixtures/", "scripts/", "docs/",
     "zarf/", "lula/", "demo/", "deploy/", "ingest/", "eval/", "models/", "frontend/",
+    "analytics/",  # team analytics container (Tommy/Juan)
+    "train.py", "inspect_data.py", "docker-compose.yml", "requirements.txt",  # team root files (Nick/Juan)
     "Makefile", "README.md", "CONTRIBUTING.md",
     "KANBAN.md", "ROADMAP.md", "pyproject.toml", ".gitignore", "LICENSE",
 )
