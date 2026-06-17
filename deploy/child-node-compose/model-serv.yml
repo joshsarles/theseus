@@ -1,0 +1,44 @@
+services:
+  # Resolves the remote MLflow tracking server as a host alias
+  # so containers can reach it by name instead of raw IP.
+  mlflow-remote:
+    image: alpine:3
+    container_name: mlflow-remote-proxy
+    command: ["sh", "-c", "echo 'mlflow-remote alias running'; sleep infinity"]
+    extra_hosts:
+      - "mlflow-server:${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}"
+    networks:
+      - model-net
+
+  # Example: vLLM model server. Swap image/command for Ollama, TGI, etc.
+  model-server:
+    image: vllm/vllm-openai:latest
+    container_name: model-server
+    restart: unless-stopped
+    runtime: nvidia           # remove if not using GPU
+    ports:
+      - "8000:8000"
+    environment:
+      # Point experiment tracking at the remote MLflow server
+      MLFLOW_TRACKING_URI: http://${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}:${MLFLOW_SERVER_PORT:-5000}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-default}
+      # Model config
+      MODEL_NAME: ${MODEL_NAME:-meta-llama/Llama-3-8b-instruct}
+    volumes:
+      - model_cache:/root/.cache/huggingface
+    command: >
+      --model ${MODEL_NAME:-meta-llama/Llama-3-8b-instruct}
+      --host 0.0.0.0
+      --port 8000
+    extra_hosts:
+      # Gives this container direct access to the remote MLflow host by name
+      - "mlflow-server:${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}"
+    networks:
+      - model-net
+
+networks:
+  model-net:
+    driver: bridge
+
+volumes:
+  model_cache:
