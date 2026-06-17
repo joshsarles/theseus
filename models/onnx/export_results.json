@@ -1,0 +1,39 @@
+{
+  "cbm_regressor": {
+    "model": "cbm_regressor",
+    "source_framework": "sklearn",
+    "onnx_path": "models/onnx/cbm_regressor.onnx",
+    "onnx_size_kb": 54.3,
+    "int8_path": "models/onnx/cbm_regressor_int8.onnx",
+    "int8_size_kb": 54.3,
+    "parity_ok": true,
+    "parity_max_abs_diff": 5.960464477539063e-08,
+    "latency_p50_ms": 0.012,
+    "latency_p95_ms": 0.013,
+    "latency_p99_ms": 0.014,
+    "int8_latency_p50_ms": 0.009,
+    "int8_latency_p95_ms": 0.02,
+    "int8_vs_fp32_output_diff": 0.0,
+    "train_rmse": 0.003823,
+    "n_features": 14
+  },
+  "autoencoder": {
+    "model": "autoencoder",
+    "source_framework": "pytorch",
+    "arch": "15-7-3-7-15",
+    "onnx_path": "models/onnx/autoencoder.onnx",
+    "onnx_size_kb": 2.0,
+    "int8_path": "models/onnx/autoencoder_int8.onnx",
+    "int8_size_kb": 4.8,
+    "parity_ok": true,
+    "parity_max_abs_diff": 5.960464477539063e-08,
+    "latency_p50_ms": 0.003,
+    "latency_p95_ms": 0.004,
+    "latency_p99_ms": 0.004,
+    "int8_latency_p50_ms": 0.004,
+    "int8_latency_p95_ms": 0.006,
+    "int8_vs_fp32_recon_diff": 0.001969,
+    "roc_auc": 0.9781,
+    "n_features": 15
+  }
+}
