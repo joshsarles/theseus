@@ -15,6 +15,13 @@ Run it again → a new version trains, promotes, the previous is kept for **roll
 - `export MLFLOW_TRACKING_URI=http://<server>:5000` → logs to Tommy's central MLflow.
 - Real data: `demo/data/staged.csv` is the **real UCI #316** naval gas-turbine CBM set (see `data/SOURCE.md`). RMSE ~0.0038 predicting compressor decay.
 
+## The AIS Pattern-of-Life cell (the NV063 beat) — `ais_pol.py`
+```bash
+python3 demo/ais_pol.py            # runs on real MarineCadastre AIS (data/datasets/, gitignored)
+python3 demo/ais_pol.py --box 25,31,-82,-79   # bound to an OPAREA (e.g. Florida Straits)
+```
+**Cold-start, no historical DB** (NV063's hardest requirement): the "normal" speed envelope is learned **in-situ** from the op-area's own traffic, then deviations are flagged with a plain-language **why + recommended action** and sealed into the record. Detects **loiter / AIS-dark-gap / position-jump (spoof) / overspeed**. ~1.5M real AIS rows in ~4s, fully explainable. *(Loiter thresholds are tunable — busy ferry terminals still dwell; tighten per OPAREA.)* This is the 2nd model on the same delivery spine, proving it's model-agnostic.
+
 ## The three contracts (so every lane plugs in without colliding)
 1. **Data** — `stage_data.py` writes `demo/data/staged.csv` (last column = target `gt_compressor_decay`). Swap in ship HM&E telemetry or a live SDR AIS capture; keep the CSV shape.
 2. **Model** — `retrain.py` registers `theseus-cbm/v{N}` (local registry + MLflow). The edge pulls the latest.

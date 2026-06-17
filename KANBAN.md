@@ -26,9 +26,10 @@ A central **MLflow** server (Podman) manages models deployed to a **Raspberry Pi
 - [ ] Rollback-to-last-good on a node under DDIL (local, no shore).
 
 ## 📋 Backlog — the model + the moat
-- [ ] Train the **gas-turbine decay/RUL** model on UCI #316 → register → deploy to a Pi.
-- [ ] **AIS Pattern-of-Life** anomaly model (NOAA MarineCadastre train / OMTAD eval); live AIS via SDR at venue → explainable alert (NV063).
-- [ ] Wire the **tamper-evident record**: seal every model promotion/rollback + every alert/decision (the moat).
+- [x] Train the **gas-turbine decay/RUL** model on UCI #316 → register → promote (`demo/`, real data, RMSE ~0.0038).
+- [x] **AIS Pattern-of-Life** anomaly cell — cold-start, no historical DB, explainable, on real MarineCadastre (`demo/ais_pol.py`). *(loiter thresholds still tuning; add OMTAD eval + live SDR)*
+- [x] Wire the **tamper-evident record**: every model promotion/rollback + every AIS alert sealed; offline verify PASS (the moat).
+- [ ] Add **OMTAD labeled eval** + **live SDR AIS** at the venue.
 - [ ] **Console**: live ship-state + the recommend → human accept/override beat.
 
 ## 📋 Backlog — deploy + demo
