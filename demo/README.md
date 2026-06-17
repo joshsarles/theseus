@@ -22,6 +22,12 @@ python3 demo/ais_pol.py --box 25,31,-82,-79   # bound to an OPAREA (e.g. Florida
 ```
 **Cold-start, no historical DB** (NV063's hardest requirement): the "normal" speed envelope is learned **in-situ** from the op-area's own traffic, then deviations are flagged with a plain-language **why + recommended action** and sealed into the record. Detects **loiter / AIS-dark-gap / position-jump (spoof) / overspeed**. ~1.5M real AIS rows in ~4s, fully explainable. *(Loiter thresholds are tunable — busy ferry terminals still dwell; tighten per OPAREA.)* This is the 2nd model on the same delivery spine, proving it's model-agnostic.
 
+## The autoencoder anomaly detector — `autoencoder.py` (PyTorch, unsupervised)
+```bash
+python3 ingest/metropt.py && python3 demo/autoencoder.py     # trains on real MetroPT-3
+```
+The "ship's doctor": trains a PyTorch autoencoder on **normal machinery data only** (no anomaly labels at train time — the cold-start story), scores reconstruction error, and flags failures. Validated against MetroPT-3's **real labeled compressor failures**: **ROC-AUC 0.978** (strong separability). The alert threshold is a tunable operating point (precision/recall trade) — `--target-far` sets it. Registers `theseus-ae`, logs to MLflow, seals to the record. Complements Nick's IsolationForest (`train.py`) and the regression loop (`retrain.py`) — three model families on one platform.
+
 ## The watchstander board — `show.py`
 ```bash
 bash demo/run.sh && python3 demo/ais_pol.py && python3 demo/show.py
