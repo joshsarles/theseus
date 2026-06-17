@@ -22,6 +22,12 @@ python3 demo/ais_pol.py --box 25,31,-82,-79   # bound to an OPAREA (e.g. Florida
 ```
 **Cold-start, no historical DB** (NV063's hardest requirement): the "normal" speed envelope is learned **in-situ** from the op-area's own traffic, then deviations are flagged with a plain-language **why + recommended action** and sealed into the record. Detects **loiter / AIS-dark-gap / position-jump (spoof) / overspeed**. ~1.5M real AIS rows in ~4s, fully explainable. *(Loiter thresholds are tunable — busy ferry terminals still dwell; tighten per OPAREA.)* This is the 2nd model on the same delivery spine, proving it's model-agnostic.
 
+## The watchstander board — `show.py`
+```bash
+bash demo/run.sh && python3 demo/ais_pol.py && python3 demo/show.py
+```
+Renders the human-in-command surface from what's sealed in the record: machinery (CBM) model health, flagged contacts as **RECOMMEND → ACCEPT/OVERRIDE** cards (why + recommended action), and record integrity (verify PASS). *Theseus recommends; the watch officer decides; nothing is actioned automatically* — the rails, made visible. This is the demo's closing view.
+
 ## The three contracts (so every lane plugs in without colliding)
 1. **Data** — `stage_data.py` writes `demo/data/staged.csv` (last column = target `gt_compressor_decay`). Swap in ship HM&E telemetry or a live SDR AIS capture; keep the CSV shape.
 2. **Model** — `retrain.py` registers `theseus-cbm/v{N}` (local registry + MLflow). The edge pulls the latest.
