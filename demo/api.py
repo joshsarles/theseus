@@ -165,7 +165,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def _send_html(self):
@@ -198,6 +199,32 @@ class Handler(BaseHTTPRequestHandler):
             self._send({"ok": True, "record_verifies": state["record"]["verify_ok"], "leaves": state["record"]["leaf_count"]})
         else:
             self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health"]}, 404)
+
+    def do_POST(self):
+        """Seal a watch-officer decision into the tamper-evident record (the human-in-command beat)."""
+        path = self.path.split("?")[0].rstrip("/")
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            body = json.loads(self.rfile.read(length) or b"{}") if length else {}
+        except Exception:
+            self._send({"error": "bad json"}, 400)
+            return
+        if path == "/api/decision":
+            cid = str(body.get("contact_id", "")).strip()
+            verdict = str(body.get("verdict", "")).strip()
+            by = str(body.get("by", "WATCH")).strip() or "WATCH"
+            if verdict not in ("accepted", "overridden") or not cid:
+                self._send({"error": "need contact_id + verdict (accepted|overridden)"}, 400)
+                return
+            import sys as _sys
+            _sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from _record import seal
+            leaf = seal(self.record_dir, "human_decision", f"{verdict}:{cid}",
+                        {"contact_id": cid, "verdict": verdict, "by": by})
+            self._send({"ok": True, "sealed": "human_decision", "verdict": verdict,
+                        "contact_id": cid, "leaf_hash": leaf})
+        else:
+            self._send({"error": "not found", "routes": ["POST /api/decision"]}, 404)
 
     def log_message(self, *a):  # quiet
         pass
