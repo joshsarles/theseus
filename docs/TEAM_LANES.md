@@ -15,24 +15,21 @@
 | **MLOps config / PM** | **Carolina + Juan** | KanBan, version pins (MLflow 3.13 / Podman >5.8.1 / Python 3.14.4), container architecture, CVE hygiene | keeps board + versions current | model code, edge HW |
 | **Data / research** | **THESEUS agent** | `docs/research/datasets/` (catalog + A–F + ROADMAP), license clearing, SDR capture plan, NV061 trajectory data | the **data contract** (CSV shape stage_data expects) | demo/ code, deploy/ |
 | **Orchestration / trust** | **WARHACKER** | the demo scaffold (`demo/`), the **record/trust layer** (the moat), **DU/UDS integration**, SBIR + strategy framing, compliance, repo coherence + push cadence | the record contract; the lanes doc; the build plan; folds in everyone's pushes | others' in-flight files (pull before push) |
-| **Autonomy / verify** | **QuantZero** | runtime autonomy + zero-trust verification of contact intent (complements the record) | seals verdicts into the record | — |
 
-## Full roster (10) + lane
-*The Warhacker team roster.*
+## Team roster (9)
 | Member | Lane |
 |---|---|
-| **WARHACKER** (Force AI agent) | Orchestration · the build (`demo/` + `deploy/`) · record/trust · DU integration |
-| **William** | Edge / Pi cluster + SDR rig |
-| **Tommy** | Build / MLOps (MLflow + model pipeline) |
-| **Nick** | Models — training on JSON files + MLflow |
-| **Carolina** | Security — IL6 baseline requirements + SW versions |
-| **Juan** | Networking/MLOps — Tailscale integration + MLflow-in-container |
-| **Gerardo** | **Frontend** — fetches the state API (`demo/api.py` → `/api/state`) |
-| **Aaron** | **Data + Frontend** — data prep + UI |
-| **Savannah** | *open — suggest eval/labeling (OMTAD)* |
-| **Josh Sarles** | Founder / direction — system scaffolding |
+| **Joshua** — Team Lead | direction · system scaffolding |
+| **William** | Edge / Pi cluster + SDR rig + Tailscale |
+| **Carolina** | Security — IL6 baseline + SW versions (ZAP scan) |
+| **Tommy** | Build / MLOps — analytics container + MLflow pipeline |
+| **Savannah** | open — eval / labeling |
+| **Gerardo** | Frontend |
+| **Nicholas** | Models — training + MLflow |
+| **Juan** | Networking / MLOps — Tailscale + MLflow container |
+| **Aaron** | Data + Frontend |
 
-*Plus the **THESEUS** agent on the data/research lane (datasets, NV061, ingest, eval). Three people are open for a lane — fits noted; they can claim any Backlog card on `../KANBAN.md`.*
+*Surnames kept out of this public repo (OPSEC); accurate roster lives in the team channel. The NIWC official referenced in an earlier draft is NOT on the team — scrubbed. Force AI agents (not team members): WARHACKER = orchestration/build/record/DU · THESEUS = data/research/eval.*
 
 ## Collision rules (we share one repo)
 - **Pull before you push** (`git pull --no-edit origin main` then push). **Push often.**
