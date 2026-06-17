@@ -4,7 +4,7 @@
 ## Why this matters (it kills 2 of our 3 kill-risks)
 The Red Team's top kill-risks were **(1) no ATO sponsor / ATO is the long pole** and **(2) no path onto a hull**. Riding UDS attacks both:
 - **ATO inheritance:** the **UDS Army model (Feb 2026)** deploys apps into pre-authorized gov environments that **inherit the existing authorization** — ~**18 months → ~2 weeks**, >70% doc-cost reduction, via automated DevSecOps scanning + continuous SBOM/compliance artifacts. We inherit the NIST 800-53 technical baseline; we only write the Theseus *delta* body-of-evidence.
-- **Path onto a hull:** **Navy + Leidos shipboard delivery OTA (Apr 2026)** — selected by **NIWC Atlantic's Rapid Capabilities Cell** to prototype remote containerized software delivery to ships (replacing pier-side disk-loading). **🔑 Justin Hodges (on our team) is Deputy Director of that exact cell.** That's the literal rail Theseus rides onto a ship — and we have an inside relationship to it.
+- **Path toward a hull:** the publicly-reported **Navy + Leidos shipboard delivery OTA (Apr 2026)** — a NIWC Atlantic Rapid Capabilities Cell effort to prototype remote containerized software delivery to ships. Per Breaking Defense it is a **lab-based prototype trial**, not yet shipboard. It's a credible delivery rail to ride *toward* a hull — **deployable; accreditation is the gate (not "fielded").** (No personnel relationships claimed; engage through proper channels.)
 Plus CANES NextGen (DU joined Oct 2025), DU's **"Bubble"** ruggedized DDIL edge compute, **UDS Fleet** (Jun 2026), and the **UDS Registry** (IL6+ airgap "app store") as the discoverability on-ramp. Navy containerization is now DON policy (Jul 2025).
 
 ## What we get for FREE (inherit) vs. BUILD (our differentiation)
@@ -51,7 +51,7 @@ DISCONNECTED HULL (SWAN-side, airgap)
 2. Define the Theseus **UDS `Package` CR** (Istio routes, default-deny egress, Keycloak client, Prometheus scrape).
 3. Write the **custom Pepr policy module** (no-egress explainer, append-only records, human-in-command gate) — highest-leverage, lowest-cost differentiator + safety artifact.
 4. Wrap the explainer in an **OpenAI-compatible API**; default llama-cpp/GGUF CPU.
-5. **Verify with DU directly:** current maintained AI offering (post-LeapfrogAI-archive), UDS Core's actual IL/ATO status, path to list in the UDS Registry / ride the Leidos OTA shipboard test. **Use the Justin Hodges (NIWC Atlantic RCC) relationship.**
+5. **Verify with DU directly:** current maintained AI offering (post-LeapfrogAI-archive), UDS Core's actual IL/ATO status, path to list in the UDS Registry / engage the Leidos OTA shipboard track through proper channels.
 
 ## Caveats
 High confidence: UDS Core composition, Zarf/Pepr mechanics, CANES + Navy/Leidos OTA, UDS Army ATO-inheritance, Warhacker. **Flagged (build-side / verify with DU):** LeapfrogAI maintenance post-archive; ONNX in LeapfrogAI; distributed edge vector-DB reference; a discrete IL5/IL6 ATO for UDS Core itself (the pitch is *control inheritance + 800-53 coverage + auto artifacts*, not a turnkey IL stamp).

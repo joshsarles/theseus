@@ -1,6 +1,6 @@
 # THESEUS
 
-**The self-controlled ship brain — onboard analytics + edge model-management under DDIL.**
+**Onboard ship-systems analytics & edge model-management under DDIL — decision-support, human always in command.**
 
 When a warship loses its link to shore (DDIL: denied, degraded, intermittent, limited), its systems data is on its own — scattered across stovepiped systems, watched by a handful of sailors. Theseus deploys, manages, and runs AI models **at the edge** on a resource-limited shipboard-analog cluster: it fuses available (SWAN-side) systems data into one live picture, flags what's failing or off-normal, and drafts the call for a human to approve — running fully disconnected, from one signed bundle, with **every model update and decision sealed in a tamper-evident, offline-verifiable record.** Human always commands. Integrate, never replace.
 

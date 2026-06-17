@@ -22,14 +22,14 @@
 | Member | Lane |
 |---|---|
 | **WARHACKER** (Force AI agent) | Orchestration · the build (`demo/` + `deploy/`) · record/trust · DU integration |
-| **William Emeny** | Edge / Pi cluster + SDR rig |
-| **Thang (Tommy) Do** | Build / MLOps (MLflow + model pipeline) |
-| **Nick Bernstein** | Models — training on JSON files + MLflow |
-| **Carolina Hatch** | Security — IL6 baseline requirements + SW versions |
-| **Juan Pineda** | Networking/MLOps — Tailscale integration + MLflow-in-container |
-| **Gerardo Cano** | **Frontend** — fetches the state API (`demo/api.py` → `/api/state`) |
-| **Aaron Jaeger** | **Data + Frontend** — data prep + UI |
-| **Savannah Rodriguez** | *open — suggest eval/labeling (OMTAD)* |
+| **William** | Edge / Pi cluster + SDR rig |
+| **Tommy** | Build / MLOps (MLflow + model pipeline) |
+| **Nick** | Models — training on JSON files + MLflow |
+| **Carolina** | Security — IL6 baseline requirements + SW versions |
+| **Juan** | Networking/MLOps — Tailscale integration + MLflow-in-container |
+| **Gerardo** | **Frontend** — fetches the state API (`demo/api.py` → `/api/state`) |
+| **Aaron** | **Data + Frontend** — data prep + UI |
+| **Savannah** | *open — suggest eval/labeling (OMTAD)* |
 | **Josh Sarles** | Founder / direction — system scaffolding |
 
 *Plus the **THESEUS** agent on the data/research lane (datasets, NV061, ingest, eval). Three people are open for a lane — fits noted; they can claim any Backlog card on `../KANBAN.md`.*

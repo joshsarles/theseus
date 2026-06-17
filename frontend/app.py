@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """THESEUS — Combat Information Center display (Streamlit).
 
-A live-demo dashboard for THESEUS, the Navy shipboard "self-controlled ship brain":
+A live-demo dashboard for THESEUS, the Navy shipboard "onboard ship-systems decision-support":
 decision-support, human-in-command. Two perspectives via the sidebar switch:
 
   • Shipboard Edge (Raspberry Pi)  — the watchstander's CIC board on the node
@@ -294,7 +294,7 @@ def _stamp() -> str:
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("## ⚓ THESEUS")
-    st.caption("Self-controlled ship brain · decision-support")
+    st.caption("onboard ship-systems decision-support · decision-support")
     st.divider()
     perspective = st.radio(
         "PERSPECTIVE",

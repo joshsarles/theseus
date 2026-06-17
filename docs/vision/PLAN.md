@@ -1,4 +1,4 @@
-# THESEUS — the self-controlled ship brain
+# THESEUS — the onboard ship-systems decision-support
 ### Warhacker · Team Force AI + NAVSEA · Jun 16–19 2026 · *living plan, we evolve as we go*
 
 ---

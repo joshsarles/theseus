@@ -1,7 +1,7 @@
 # THESEUS — Team Objectives & Living Log
 *The single source of truth for what the team is building. Update the LOG section as the Slack convo evolves.*
 
-## Team objectives (pinned by Tommy Do, team-theseus Slack)
+## Team objectives (pinned by Tommy, team-theseus Slack)
 1. **Deploy AI models at the edge** (resource-limited, shipboard-like environment)
 2. **Centrally manage models at the edge**
 3. **Allow live model updates via training from users at the edge**
@@ -18,9 +18,9 @@
 - **Tamper-evident record** — every model version + update + decision sealed (the trust layer / accreditation evidence).
 - **PyTorch** (train) → **ONNX** (edge inference). **Force OS** = agent orchestration option (APOLLO proving on Blackwell + Kimi 2.7).
 
-**Hardware reality (Nick Bernstein, Slack):** EdgeRunner Light needs ~8GB VRAM — unrealistic for our nodes. Use small/edge models instead: **BitNet** (~8 tok/s, tiny footprint), Gemma 3 1B, Qwen2.5 1.5B, or **distributed inference** (exo / distributed-llama) across the cluster. Pi 5 + AI HAT+2 (40 TOPS) raises the per-node ceiling.
+**Hardware reality (Nick, Slack):** EdgeRunner Light needs ~8GB VRAM — unrealistic for our nodes. Use small/edge models instead: **BitNet** (~8 tok/s, tiny footprint), Gemma 3 1B, Qwen2.5 1.5B, or **distributed inference** (exo / distributed-llama) across the cluster. Pi 5 + AI HAT+2 (40 TOPS) raises the per-node ceiling.
 
-**Offline-build note (Tommy Do):** can't pull the MLflow ghcr image before the venue internet dies → **pre-stage** the image, or build from `python-slim` (Dockerfile.full). Pre-staging models/images is the *whole point* of objective #4.
+**Offline-build note (Tommy):** can't pull the MLflow ghcr image before the venue internet dies → **pre-stage** the image, or build from `python-slim` (Dockerfile.full). Pre-staging models/images is the *whole point* of objective #4.
 
 ## How the team build maps to the strategy (so we stay aligned)
 - **What the team is building (v1 demo):** MLflow central server (Podman) ↔ models deployed on the Pi cluster ↔ live update from the edge ↔ staged from "shore" via a UDS bundle, no sneakernet. Demoable + maps to the "Airgap Native Model Delivery" use case.
@@ -45,8 +45,8 @@
 - Inference corrected: GPU (Triton-TRT-LLM, `iron-bank` flavor) runs ON the ship Tier-1; GGUF/llama.cpp on the Pi components. vLLM Iron Bank is out (archived). FIPS = crypto boundary only. → `../integration/INFERENCE_AND_FIPS.md`.
 
 ### Jun 17 — team formed + stack locked
-- team-theseus channel created; ~12 members (NAVSEA/NIWC engineers + analysts). KanBan stood up (Carolina Hatch, Juan Pineda).
+- team-theseus channel created; ~12 members (NAVSEA/NIWC engineers + analysts). KanBan stood up (Carolina, Juan).
 - Stack decided: MLflow 3.13 central server + Podman + Pi cluster. CVE-aware (MLflow ≥3.11, Podman >5.8.1).
-- Architecture sketch (Juan Pineda / Tommy Do): MLflow container as central server monitoring models on other containers/Pis; deploy a model to the Pis; test save + update; stage updates shore-side.
+- Architecture sketch (Juan / Tommy): MLflow container as central server monitoring models on other containers/Pis; deploy a model to the Pis; test save + update; stage updates shore-side.
 - Repo live + public: github.com/joshsarles/theseus. Working dir: /Developer/Theseus.
 - *(next: pick the first model to deploy on the Pis; pre-stage MLflow image before internet dies; wire the record.)*

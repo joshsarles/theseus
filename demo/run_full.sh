@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 PY="${PYTHON:-python3}"
 rule(){ printf "\n\033[1m%s\033[0m\n" "════════════════════════════════════════════════════════════"; }
 
-rule; echo "  THESEUS — self-controlled ship brain (decision-support · human-in-command)"
+rule; echo "  THESEUS — onboard ship-systems decision-support (decision-support · human-in-command)"
 
 rule; echo "  1 · MACHINERY / HM&E  — Stage → Retrain → Update (real UCI #316)"
 $PY demo/stage_data.py

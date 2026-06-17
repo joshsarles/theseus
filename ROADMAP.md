@@ -1,7 +1,7 @@
 # THESEUS — Roadmap
 *The master plan. Living doc — updated as we go (newest status on top). Tactical board: `KANBAN.md`. Lanes: `docs/TEAM_LANES.md`.*
 
-**Mission:** the self-controlled ship brain — onboard analytics + edge model-delivery under DDIL, decision-support with human-in-command, on big surface combatants (DDG/CG). Real on real, every decision sealed in a tamper-evident record.
+**Mission:** onboard ship-systems analytics + edge model-delivery under DDIL — decision-support with human-in-command, on big surface combatants (DDG/CG). Real on real, every decision sealed in a tamper-evident record.
 
 ## Hardware we have (real)
 - **2× Raspberry Pi 5, 4GB** — Tier-2 nodes. **Pi-1 = MACHINERY** (CBM, 500GB SSD) · **Pi-2 = CONTACTS** (AIS PoL, 1TB SSD). On Tailscale (William). **Disk is ample → RAM (4GB) is the only constraint** (store big, but inference RAM-bound). Tommy has a container built on a Pi.
