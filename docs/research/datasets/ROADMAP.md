@@ -29,6 +29,19 @@
 | E | `E_TRAJECTORY_PREDICTION_REPORT.md` | Vessel/maritime trajectory forecasting (NV061) |
 | F | `F_SIM_SYNTH_STANDARDS_REPORT.md` | Simulators + synthetic generators + gov open-data portals + standards corpora |
 
-**Deliverable:** `THESEUS_DATASETS.md` — master catalog, ranked, license-flagged, mapped to build beats + NV topics.
+**Deliverable:** `DATASETS.md` — master catalog, ranked, license-flagged, mapped to build beats + NV topics. **SHIPPED.**
 
-**Disposition:** TBD on fleet return.
+**Status:** COMPLETE.
+**Deliverables shipped:**
+- `DATASETS.md` — master catalog: §1 BLUF · §2 license tiers (commercial-clean / licensed-or-verify / research-only / gated) · §3 by build beat · §4 Warhacker demo data plan · §5 honest gaps + mitigations · §6 action checklist · §7 report index
+- 6 category reports (`A_…`–`F_…_REPORT.md`), all URL-verified, license-first, HONESTY-FIRST.
+
+**Headline findings:**
+- **Commercial-clean spine exists** end-to-end (MarineCadastre + Ushant AIS · UCI CBM Naval + MetroPT-3 + C-MAPSS machinery · TrAISformer ct_dma trajectory · MIT/Apache tool layer: MSS, Stone Soup, pyais, OpenDDS, SDR capture).
+- **Cold-start = own-capture:** RTL-SDR + Pi (AIS-catcher + dump1090-fa) → real airgapped AIS+ADS-B picture. The Warhacker money shot.
+- **3 honest gaps:** (a) no open AIS+ADS-B+radar fusion GT → synthesize (Stone Soup) + self-fuse; (b) no open in-situ naval HM&E telemetry → sim-naval + real-adjacent transfer; (c) no open *naval* TP benchmark → commercial AIS-TP + simulated naval maneuvers.
+- **⚠️ License conflict:** Piraeus AIS read as CC BY 4.0 (Cat A) vs CC BY-NC-SA (Cat E) — treated NON-COMMERCIAL until the Zenodo field is confirmed.
+
+**Verify-before-SBIR list:** Piraeus license · Brest/Ray-2019 CC tag · DMA reuse string · xView3 T&C · OpenSky §6 joint-IP clause.
+
+**Disposition:** Catalog is the working source of truth for the build team + the NV063/NV061 proposals. Next candidate iterations (not started): (1) actually pull the Tier-1 commercial-clean sets + wire a maritime ingest adapter; (2) stand up the SDR own-capture rig; (3) resolve the 5 verify-before-SBIR license items.
