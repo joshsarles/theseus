@@ -27,10 +27,14 @@ services:
     image: ghcr.io/ggml-org/llama.cpp:server
     container_name: theseus-llm-server
     restart: unless-stopped
-    # Stay inside a 4GB Pi's budget: the 3B (Q4_K_M) + KV cache lands ~2.2GB;
-    # cap leaves room for the OS + the Goose process running alongside.
-    mem_limit: ${LLM_MEM_LIMIT:-3g}
-    cpus: "${LLM_CPUS:-4.0}"
+    # NOTE: mem_limit/cpus are intentionally omitted. Rootless podman on the Pi has
+    # no cgroup memory delegation by default, so a hard cap makes the container fail
+    # to start (crun: cannot write memory.max). CPU is bounded at the app level by
+    # `-t ${LLM_THREADS}`; the 3B (Q4_K_M)+KV footprint is ~2.2GB, well inside 4GB.
+    # On a node WITH cgroup v2 memory delegation (rootful, or delegated rootless),
+    # uncomment to enforce caps:
+    #   mem_limit: ${LLM_MEM_LIMIT:-3g}
+    #   cpus: "${LLM_CPUS:-4.0}"
     ports:
       # host:container — the server always listens on 8080 inside the container.
       - "${LLM_PORT:-8080}:8080"
@@ -38,13 +42,18 @@ services:
       # The GGUF weights live on the host (gitignored); mounted read-only — the
       # server only reads them. Swap models by changing LLM_MODEL_FILE + restart.
       - ${MODELS_DIR:-../../models}:/models:ro
-    command: >
-      -m /models/${LLM_MODEL_FILE:-qwen2.5-3b-instruct-q4_k_m.gguf}
-      -c ${LLM_CTX:-8192}
-      -t ${LLM_THREADS:-4}
-      --jinja
-      --host 0.0.0.0
-      --port 8080
+    command:
+      - "-m"
+      - "/models/${LLM_MODEL_FILE:-qwen2.5-3b-instruct-q4_k_m.gguf}"
+      - "-c"
+      - "${LLM_CTX:-8192}"
+      - "-t"
+      - "${LLM_THREADS:-4}"
+      - "--jinja"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
     healthcheck:
       # --jinja + the OpenAI-compatible /health endpoint; image ships curl.
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
