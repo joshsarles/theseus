@@ -44,4 +44,17 @@
 
 **Verify-before-SBIR list:** Piraeus license · Brest/Ray-2019 CC tag · DMA reuse string · xView3 T&C · OpenSky §6 joint-IP clause.
 
-**Disposition:** Catalog is the working source of truth for the build team + the NV063/NV061 proposals. Next candidate iterations (not started): (1) actually pull the Tier-1 commercial-clean sets + wire a maritime ingest adapter; (2) stand up the SDR own-capture rig; (3) resolve the 5 verify-before-SBIR license items.
+**Disposition:** Catalog is the working source of truth for the build team + the NV063/NV061 proposals.
+
+---
+
+## Iteration 2 (Jun 17) — download Tier-1 sets into the repo
+**Goal:** pull the commercial-clean / public-domain datasets onto disk, in-repo, without committing bytes to git or touching NC/gated sets.
+**Status:** COMPLETE.
+**Deliverables shipped:**
+- **~2.2 GB downloaded** to `data/datasets/` (gitignored; NOT committed — per CONTRIBUTING.md + license-redistribution discipline). 6 sets:
+  - UCI #316 CBM Naval Propulsion (CC BY 4.0) · UCI #791 MetroPT-3 (CC BY 4.0) · NASA C-MAPSS (US-Gov) · Ushant TSS AIS (CC BY 4.0) · TrAISformer `ct_dma` (CeCILL-C) · MarineCadastre US AIS 2024-01-01 (public domain, 7.3M rows).
+- `DOWNLOADS.md` — tracked manifest: per-dataset license, source URL, sha256/commit, extracted contents, reproduce script, and the deliberately-skipped (NC/gated) list.
+**Discipline held:** only Tier-1 commercial-clean/public-domain pulled; NC + license-unstated + gated sets deliberately skipped; all bytes gitignored (verified `git status` shows nothing under `data/`); checksums recorded; mac cruft removed.
+**Notes:** C-MAPSS NASA direct URL now serves HTML (repo moved) → used `edwardzjl/CMAPSSData` mirror. Unrelated pre-existing staged file `demo/data/staged.csv` observed (not THESEUS's; left untouched).
+**Next candidate iterations (not started):** (1) wire a maritime ingest adapter that replays MarineCadastre/Ushant AIS through the correlation engine; (2) stand up the SDR own-capture rig (AIS-catcher + dump1090-fa on a Pi); (3) resolve the 5 verify-before-SBIR license items; (4) optional adds (Mendeley GPS-spoofing, TartanAviation, more MarineCadastre days).
