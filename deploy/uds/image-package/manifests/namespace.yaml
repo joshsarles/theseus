@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    # When deployed over UDS Core, the UDS Operator (Pepr) reconciles default-deny egress and
+    # Istio sidecar injection for this namespace from the Package CR (manifests/uds-package.yaml).
+    istio-injection: enabled

@@ -1,0 +1,55 @@
+# Zarf package — THESEUS edge (REAL-IMAGE airgap variant)
+# =============================================================================
+# Packages the hardened, already-built theseus-edge:0.1.0 image (from
+# deploy/Containerfile) PLUS the namespace + the real-image in-cluster Job. This
+# is the "most-real" airgap artifact: the image is a real OCI image with the
+# demo/ loop + referee/ tamper-evident record + real UCI #316 data baked in.
+#
+# `zarf package create` pulls the named image INTO the package tarball and
+# generates a CycloneDX SBOM for it (the ATO artifact). On a connected
+# host the image comes from the local Docker daemon (it is already built);
+# `zarf package deploy` then seeds it into the cluster's registry. For the pure
+# side-load airgap path used in this environment we instead `k3d image import`
+# the same image and apply the manifests directly (see deploy/UDS_DEPLOY.md) —
+# the package + SBOM remain the death-proof artifacts.
+#
+# Build : zarf package create deploy/uds/image-package -o deploy/uds/dist \
+#           --sbom-out deploy/uds/dist/sbom --confirm
+# Deploy: zarf package deploy deploy/uds/dist/zarf-package-theseus-edge-*.tar.zst --confirm
+#
+# RAILS: human-in-command (decision-support, NOT autonomous control) ·
+# SWAN-side/unclassified (real public CC-BY data) · tamper-EVIDENT not
+# tamper-proof · deployable; ATO is the gate (NOT fielded).
+kind: ZarfPackageConfig
+metadata:
+  name: theseus-edge
+  description: "THESEUS edge model-delivery — hardened single-image airgap package: stage->retrain->update with a SHA-256 tamper-evident record + offline verify. Decision-support, advisory-only."
+  version: 0.1.0
+components:
+  - name: theseus-edge-loop
+    required: true
+    description: "Namespace + in-cluster Job that runs the baked theseus-edge image: stage (real UCI #316) -> retrain (sklearn) -> promote -> sealed hash-chain record -> offline verify PASS. No registry pull at deploy time."
+    images:
+      # The real hardened artifact. Zarf pulls this from the local Docker daemon
+      # into the package tarball and SBOMs it. (Pin by digest in production:
+      # theseus-edge@sha256:9daa93923264d911e18374a8f67bbde30227d31712c7e27df006ff8562ca331a)
+      - theseus-edge:0.1.0
+    manifests:
+      - name: theseus-edge
+        namespace: theseus
+        files:
+          - manifests/namespace.yaml
+          - manifests/theseus-job-image.yaml
+    actions:
+      onDeploy:
+        after:
+          - description: "Wait for the in-cluster model-delivery loop to complete (3 sealed leaves + offline verify PASS)"
+            maxTotalSeconds: 300
+            wait:
+              cluster:
+                kind: job
+                name: theseus-loop
+                namespace: theseus
+                condition: complete
+          - description: "Show the loop output (sealed record + verify PASS)"
+            cmd: ./zarf tools kubectl -n theseus logs job/theseus-loop --tail=60

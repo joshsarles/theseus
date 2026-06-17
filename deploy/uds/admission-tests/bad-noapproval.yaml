@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-noapproval
+  namespace: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    theseus.forceos.ai/action: model-promote
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+    - name: promoter
+      image: theseus-edge:0.1.0
+      command: ["sleep","3600"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }

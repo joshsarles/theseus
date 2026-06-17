@@ -47,3 +47,6 @@ deploy/uds/pepr/insecure-tls-*
 deploy/**/*.gz
 frontend/ui/node_modules/
 frontend/ui/dist/
+
+# UDS build output (throwaway demo cosign key + large signed package — never commit)
+deploy/uds/dist/

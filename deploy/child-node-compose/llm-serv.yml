@@ -1,0 +1,60 @@
+# THESEUS child (edge / ship) node — LLM serving (the edge agent's brain).
+# =============================================================================
+# Runs Qwen2.5 on llama.cpp as an OpenAI-compatible server on the child node:
+# CPU-only, RAM-light, fits a Raspberry Pi 5 (4GB). This is the LOCAL model the
+# Goose harness (the edge agent) and the NV063 explainer drive — fully airgapped,
+# no cloud, no API key. Sibling of model-serv.yml: that one serves the CBM/ML
+# model (serve/model_server.py); THIS one serves the LLM.
+#
+# NO GPU on purpose — CPU-only edge inference. Qwen2.5-3B (Q4_K_M) is the smallest
+# model that reliably drives Goose's tool-calls on this box (~4 tok/s); the 1.5B
+# is a faster chat-only fallback (set LLM_MODEL_FILE in the .env).
+#
+# Run (the model GGUF must already be on the host at $MODELS_DIR — fetch it with
+# scripts/fetch_llm_model.sh; *.gguf is gitignored, never committed):
+#   podman compose -f deploy/child-node-compose/llm-serv.yml --env-file deploy/child-node-compose/llm.env up -d
+#   curl http://localhost:8080/health
+#   curl http://localhost:8080/v1/models
+#
+# Point the agent at it:  OPENAI_HOST=http://<host>:${LLM_PORT}  GOOSE_MODEL=qwen2.5-3b
+#
+# PORT NOTE: defaults to :8080 — the SAME default as model-serv.yml. Run one per
+# node, or override LLM_PORT (e.g. 8081) in llm.env to run both side by side.
+# =============================================================================
+
+services:
+  llm-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: theseus-llm-server
+    restart: unless-stopped
+    # Stay inside a 4GB Pi's budget: the 3B (Q4_K_M) + KV cache lands ~2.2GB;
+    # cap leaves room for the OS + the Goose process running alongside.
+    mem_limit: ${LLM_MEM_LIMIT:-3g}
+    cpus: "${LLM_CPUS:-4.0}"
+    ports:
+      # host:container — the server always listens on 8080 inside the container.
+      - "${LLM_PORT:-8080}:8080"
+    volumes:
+      # The GGUF weights live on the host (gitignored); mounted read-only — the
+      # server only reads them. Swap models by changing LLM_MODEL_FILE + restart.
+      - ${MODELS_DIR:-../../models}:/models:ro
+    command: >
+      -m /models/${LLM_MODEL_FILE:-qwen2.5-3b-instruct-q4_k_m.gguf}
+      -c ${LLM_CTX:-8192}
+      -t ${LLM_THREADS:-4}
+      --jinja
+      --host 0.0.0.0
+      --port 8080
+    healthcheck:
+      # --jinja + the OpenAI-compatible /health endpoint; image ships curl.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    networks:
+      - model-net
+
+networks:
+  model-net:
+    driver: bridge
