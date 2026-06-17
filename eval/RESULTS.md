@@ -1,51 +1,50 @@
 # NV063 anomaly eval — results (HONEST)
 
-*Run Jun 17 2026 on real MarineCadastre US AIS (2024-01-01, first 1.5M rows, national).
-Reproduce: `python3 demo/ais_pol.py --predictions eval/out/ais_pol_preds.csv && python3 eval/make_weak_labels.py --out eval/out/weak_labels.csv && python3 eval/score.py --pred eval/out/ais_pol_preds.csv --labels eval/out/weak_labels.csv`.*
+*Updated Jun 17 2026 on real MarineCadastre US AIS (2024-01-01, first 1.5M rows, national).*
 
 ## TL;DR
-- **The eval harness works** (selftest passes; the plumbing — predictions → labels → P/R/FAR — is correct).
-- **There is no anomaly ground truth yet**, so the precision/recall below are a **circular sanity check** (ais_pol vs same-family rules), **NOT a detection-skill claim**. Real NV063 P/R needs **OMTAD** (pending; harness is ready).
-- **The honest, ground-truth-free, decision-relevant number is the alert VOLUME**: ais_pol fires **1,029 alerts across 11,898 tracks (8.6%)** over a 14.4 h national window = **71.6 alerts/hour**. That is too high for a single watch as-is → **tuning recommendations below** (loiter + dark-gap are 85% of the volume).
+- **We now have a real, non-circular NV063 signal** from a small **analyst-curated** eval set (OMTAD turned out to be unusable — see §6): on a stratified n=50 sample, **ais_pol precision ≈ 0.36** (9 of 25 random flags adjudicated true), **recall ≈ 1.0** (0 missed anomalies in 25 unflagged tracks, small-n). Estimated **population false-alarm rate ≈ 5–6%**.
+- **The dominant false-positive causes are concrete and fixable:** (1) **a real bug** — ais_pol reads the AIS **SOG = 102.3 "not available" sentinel** (value 1023) as a 102 kn overspeed; (2) **loiter over-fires** on ferries dwelling at terminals, working tugs, and fishing vessels.
+- Honest framing: this is **analyst-curated, pending NAVSEA SME validation**, n=50, anomaly-enriched sample. It is the first non-circular number; the production number needs more labeled tracks (and ideally a GFW commercial grant).
 
 ## 1. Harness validation `[verified]`
-`python3 eval/score.py --selftest` → passes (TP/FP/FN/TN, precision, recall, false-alarm rate, F1 all correct). The scorer joins `(track_id, is_anomaly)` predictions against a labeled universe; unlisted/0 predictions count as not-flagged; `false_alarm_rate = FP/(FP+TN)`.
+`python3 eval/score.py --selftest` passes. Scorer joins `(track_id, is_anomaly)` predictions vs a labeled universe; `false_alarm_rate = FP/(FP+TN)`.
 
-## 2. Circular sanity check — ais_pol vs weak rules `[pipeline-only]`
-Scoring ais_pol's predictions against `make_weak_labels.py` (transparent PoL rules, **same family** as ais_pol):
+## 2. Analyst-curated eval — the real (non-circular) number `[verified, SME-pending]`
+**Method (breaks the circularity):** `eval/curate_oparea.py` drew a **stratified** sample — 25 of ais_pol's flags + 25 random un-flagged tracks (eligible pool 11,773, ≥6 fixes). Each was adjudicated to `is_anomaly` in `eval/curated_labels.csv` **from the track's own evidence** (declared AIS NavigationStatus + vessel type + full kinematic profile) — a basis **independent of ais_pol's fixed thresholds**. Scored ais_pol's predictions against it:
 
-| metric | value |
-|---|---|
-| n_labeled tracks | 11,898 |
-| precision | **0.962** |
-| recall | **0.882** |
-| false-alarm rate | **0.0036** |
-| F1 | **0.921** |
-| TP / FP / FN / TN | 990 / 39 / 132 / 10,737 |
+| metric | value | note |
+|---|---|---|
+| n_labeled | 50 | 25 flagged + 25 clean (stratified) |
+| TP / FP / FN / TN | 9 / 16 / 0 / 25 | |
+| **precision** | **0.36** | of 25 random flags, 9 true → unbiased est. of ais_pol precision (95% CI ≈ 0.18–0.57, n=25) |
+| **recall** | **1.0** | 0 missed in 25 unflagged — small-n, wide CI (not "perfect") |
+| false-alarm rate (sample) | 0.39 | **enriched** sample; **population FAR ≈ 5–6%** (≈64% of ~1029 flags are FP / ~10.9k true-neg) |
+| F1 (sample) | 0.53 | enriched; not a population F1 |
 
-> ⚠ **NOT a performance metric.** Both sides are rule-based, so this measures *agreement between two rule implementations* (~92%), not detection skill against truth. The 39 FP / 132 FN come from a deliberate threshold difference (ais_pol's in-situ-envelope overspeed vs the labels' fixed 60 kn) — i.e., it quantifies **threshold sensitivity**, not error. It exists only to prove the eval path runs end-to-end on real data. **Do not quote as an NV063 result.**
+**The 16 false positives break down as:**
+- **SOG=102.3 "not available" sentinel misread as overspeed** (e.g. 368119660 moored, 367402250 ferry) — a genuine ais_pol bug, see §5.1.
+- **Ferries** dwelling at terminals flagged loiter (367362520, 368249350, 367090270, 367324580 — passenger type 60).
+- **Working tugs / fishing vessels** flagged loiter (367164240, 368005880, 367080670, 367430810).
 
-## 3. Alert volume / false-alarm proxy `[verified]` — the honest number
-No ground truth needed; this is just counting what the watchstander would see:
+**The 9 true positives:** stationary tugs/towing declared "underway" for 5+ h (366946850, 367352250, …), a transited-then-loitered HSC (338519000), and genuine multi-hour **AIS dark gaps** on transiting cargo/pleasure (563033500 75 min, 636016824 6.3 h, 367731170 6.2 h).
 
-| | |
-|---|---|
-| tracks (≥4 fixes) | 11,898 |
-| ais_pol alerts (deduped/track) | **1,029 (8.6% of tracks)** · raw 1,072 |
-| by kind | loiter 574 · dark_gap 303 · overspeed 129 · position_jump 23 |
-| data window | 14.4 h → **71.6 alerts/hour**, 86.5 per 1,000 tracks |
+> **Caveats (loud):** n=50, analyst-curated **pending NAVSEA SME validation**; the precision estimate is sensitive to the "is a stationary tug anomalous?" calls (SME-dependent) — if those flip to normal, precision drops further. Stratified/anomaly-enriched, so the sample FAR ≠ population FAR. This is a pilot signal, not a production metric.
 
-**Reading:** NV063's bar is a *watch-tolerable* rate (≈ **< 1 nuisance/watch**). 71.6/hour is a **national** feed (all US waters); the real deployment is **per-OPAREA** — bound `ais_pol --box <lat,lat,lon,lon>` to the area around a ship and the rate collapses. But even per-OPAREA, **loiter (56%) + dark_gap (29%) = 85% of volume** are the levers; they over-fire on benign behavior (anchorages; coastal AIS-coverage dropouts).
+## 3. Circular weak-label sanity check `[pipeline-only]` (kept for completeness)
+ais_pol vs `make_weak_labels.py` (same rule family): P 0.962 / R 0.882 / FAR 0.0036 / F1 0.921 over 11,898 tracks. **Not a performance metric** — measures rule-implementation agreement (~92%), validated only that the eval path runs. Superseded by §2 as the real signal.
 
-## 4. Tuning recommendations for `ais_pol.py` (WARHACKER applies — I don't edit it)
-Grounded in the current thresholds (`demo/ais_pol.py::detect`):
-1. **loiter (biggest driver, 574).** Current: `0.4 < still_frac < 0.95` and `max(sog) > 3 kn`. This flags normal anchored/fishing dwell. → Raise the still-fraction floor (`0.4 → ~0.6`), add an **absolute** still-duration gate (e.g. ≥ 30 min, not just a fraction), and **exclude `Status == 1` (at anchor)** explicitly. Expect a large volume drop with little real-signal loss.
-2. **dark_gap (303).** Current: any gap `> 30 min` while `sog > 1 kn`. Coastal terrestrial-AIS coverage routinely drops > 30 min — that's a coverage artifact, not AIS-off. → Raise to **45–60 min**, lower confidence for shorter gaps, and (when available) suppress in known low-coverage ranges / corroborate with a second sensor before alerting.
-3. **overspeed (129).** Current: `> 1.5× in-situ envelope`, single-fix. Bad GPS fixes spike this. → Require **N consecutive** over-envelope fixes (not one), and gate on fix quality.
-4. **position_jump (23).** Precise and low-volume — **keep as is** (highest-value, lowest-noise alert).
-5. **Cross-cutting:** make `--box` (per-OPAREA scoping) the default operating mode for the watch-tolerance number; add an alert **confidence floor** for emission; consider an explicit **"alerts per watch" budget** that the cell tunes to.
+## 4. Alert volume / false-alarm proxy `[verified]`
+ais_pol fires **1,029 alerts over 11,898 tracks (8.6%)** in a 14.4 h national window = **71.6/hour** (loiter 574 · dark_gap 303 · overspeed 129 · jump 23). NV063's bar is watch-tolerable (≈ <1 nuisance/watch) → bound to `--box` per-OPAREA; §2 shows ~64% of flags are FP, so tuning (§5) is the lever.
 
-## 5. Honest gap + next step
-- **No ground truth.** §2 is circular; §3 is volume, not accuracy. The only path to a real NV063 precision/recall/false-alarm number is **labeled data**: pursue **OMTAD** acquisition (license UNVERIFIED — `docs/research/datasets/DATASETS.md` §6). The harness is **label-source-agnostic** and ready the moment labels land.
-- **GFW** dark-vessel/loitering labels are richer but **NON-COMMERCIAL** → internal validation only, never a deliverable number.
-- After tuning (§4), re-run §3 per-OPAREA to show a watch-tolerable rate — that is the demo-credible number we *can* state honestly today.
+## 5. Tuning recommendations for `ais_pol.py` (WARHACKER applies — I don't edit it)
+**5.1 NEW — fix the SOG=102.3 sentinel bug (highest priority, it's a bug not a threshold).** AIS encodes "speed not available" as 1023 → SOG = **102.3 kn**. ais_pol's overspeed (`max(sogs) > 1.5×envelope`) treats 102.3 as a real 102 kn → false overspeed on any track with a missing-SOG record. **Filter `SOG >= 102.2` (and 102.3) out of all speed logic** before detection. (Several §2 false positives were purely this.)
+**5.2 loiter (biggest volume driver).** Raise still-fraction floor 0.4→~0.6, add an absolute still-duration gate (≥30 min), exclude `Status==1` (anchor) **and** down-weight known dwellers (passenger/ferry type 60; working tugs type 52; fishing type 30) — §2 shows these dominate the loiter FPs.
+**5.3 dark_gap.** 30→45–60 min; lower confidence for short gaps; suppress in known low-coverage ranges. (The real TPs in §2 had gaps of 75 min–6.3 h.)
+**5.4 overspeed.** Require N consecutive over-envelope fixes (after the 5.1 sentinel fix).
+**5.5 position_jump.** Keep — precise, low-volume, was a clean TP source.
+
+## 6. Ground-truth status + next step
+- **OMTAD is unusable.** It contains **only normal trajectories, no anomaly labels** (confirmed verbatim by its NeurIPS'25 extension), and has no license file. The arXiv extension's labels are synthetic + unreleased + CC BY-NC-ND. **Do not ship on OMTAD.**
+- **Global Fishing Watch** has *real* dark-vessel/loitering/rendezvous labels but is **CC BY-NC** (non-commercial). **Action:** pursue a GFW commercial-use grant (`info@globalfishingwatch.org`) to unlock them for benchmarking.
+- **Primary path:** grow the §2 analyst-curated set (more tracks, more OPAREAs, NAVSEA SME sign-off) → a defensible, license-clean NV063 precision/recall. The harness + curation tooling are built and ready.
