@@ -1,7 +1,47 @@
+# --- Python ---
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+
+# --- MLflow / Tommy's tracking (kept from merge) ---
 mlruns/
 *.db
 *.tar
-__pycache__/
-venv/
-*.pyc
-.envdemo/data/.target
+
+# --- OS noise ---
+.DS_Store
+
+# --- datasets + derived data (NEVER commit; CONTRIBUTING.md: no dataset files in git) ---
+data/
+out/
+out_guardian/
+out_ped/
+out_apprentice/
+out_apprentice_test/
+*.gguf
+*.mp4
+*.pt
+models/nv061/results/*.log
+
+# --- demo runtime artifacts (generated; staged.csv is force-added where intended) ---
+demo/data/.target
+demo/registry/
+demo/models/
+demo/out/
+
+# --- fixtures (generated) ---
+fixtures/smoke_25.jsonl
+fixtures/detections.jsonl
+fixtures/detections_real.jsonl
+
+# --- zarf init package (376MB, fetched on demand, never committed) ---
+zarf-init-*.tar.zst
+zarf/dist/zarf-init-*.tar.zst
+
+# --- deploy/ Pepr build artifacts + node deps (regenerated) ---
+deploy/uds/pepr/node_modules/
+deploy/uds/pepr/dist/
+deploy/uds/pepr/insecure-tls-*
+deploy/**/*.gz
