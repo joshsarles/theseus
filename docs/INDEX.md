@@ -20,6 +20,7 @@
 
 ## Integration & compliance
 - **`integration/DEFENSE_UNICORNS.md`** — Theseus-on-UDS: inherit the ATO (18mo→2wk) + the DU+Leidos hull on-ramp; UDS Core / Zarf / Pepr / LeapfrogAI.
+- **`integration/INFERENCE_AND_FIPS.md`** — explainer engine: **Triton-TRT-LLM (Iron Bank, shore GPU) + llama.cpp/GGUF (edge)**; NOT archived vLLM. FIPS = crypto boundary, not the model.
 - **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild); the build-now choices that keep it cheap.
 
 ## Architecture
