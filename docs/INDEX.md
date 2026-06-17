@@ -2,6 +2,8 @@
 *The map. Start at the top.*
 
 ## Start here
+- **`TEAM_LANES.md`** — who owns what + the TODAY/TOMORROW execute plan (run in your lane).
+- **`../demo/README.md`** — the runnable loop: `bash demo/run.sh` (Stage → Retrain → Update, all sealed).
 - **`vision/TEAM_OBJECTIVES_AND_LOG.md`** — what we're building + the stack + the living log (update as Slack evolves).
 - **`../KANBAN.md`** — the board.
 - **`vision/BUILD_VISION.md`** — the build decision (council synthesis): what to build first, the moat, the architecture, the honest framing.
@@ -16,8 +18,9 @@
 - **`research/council/COUNCIL_BRIEFS.md`** — the 4-lens design council (Architect / Visionary / Strategist / Red Team), raw.
 - **`research/sota/`**, **`research/naming/`** — landscape + naming (key findings folded into COUNCIL_BRIEFS; expand as needed).
 
-## Integration
+## Integration & compliance
 - **`integration/DEFENSE_UNICORNS.md`** — Theseus-on-UDS: inherit the ATO (18mo→2wk) + the DU+Leidos hull on-ramp; UDS Core / Zarf / Pepr / LeapfrogAI.
+- **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild); the build-now choices that keep it cheap.
 
 ## Architecture
 - **`architecture/`** — detailed design docs as they mature (the spine is `referee/` etc. in the repo root, being reframed imagery→ship-systems).

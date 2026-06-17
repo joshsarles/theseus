@@ -8,9 +8,11 @@ A central **MLflow** server (Podman) manages models deployed to a **Raspberry Pi
 
 ## ✅ Done
 - Team formed (~12: NAVSEA/NIWC engineers + analysts); team-theseus Slack + KanBan up.
-- Stack decided: MLflow 3.13 + Podman (latest) + Pi cluster + UDS/Zarf.
+- Stack decided: MLflow 3.13 + Podman (latest) + Pi cluster + UDS/Zarf + Python 3.14.4.
 - Repo live + public: github.com/joshsarles/theseus → cloned to /Developer/Theseus.
-- Research documented: build vision, SBIR (NV063), datasets, MLflow/Podman runbook.
+- Research documented: build vision, SBIR (NV063), **datasets (full A–F catalog)**, MLflow/Podman runbook, DU integration, IL roadmap.
+- **🟢 DEMO LOOP RUNS** — `bash demo/run.sh`: Stage→Retrain→Update on **real UCI #316** (RMSE ~0.0038), every step sealed, record verify PASS, rollback kept.
+- **Lanes mapped** (`docs/TEAM_LANES.md`) — everyone has a lane + a today/tomorrow plan.
 
 ## �� In progress
 - MLflow central server in a Podman container (runbook: `docs/setup/MLFLOW_PODMAN.md`).

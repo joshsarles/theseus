@@ -15,3 +15,7 @@ data/
 # zarf init package (376MB, fetched on demand by `make deploy-local`, never committed)
 zarf-init-*.tar.zst
 zarf/dist/zarf-init-*.tar.zst
+# demo runtime artifacts (generated); demo/data/staged.csv is force-added (real, pre-staged)
+demo/registry/
+demo/models/
+demo/out/
