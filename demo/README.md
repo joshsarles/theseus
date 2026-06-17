@@ -22,6 +22,13 @@ python3 demo/ais_pol.py --box 25,31,-82,-79   # bound to an OPAREA (e.g. Florida
 ```
 **Cold-start, no historical DB** (NV063's hardest requirement): the "normal" speed envelope is learned **in-situ** from the op-area's own traffic, then deviations are flagged with a plain-language **why + recommended action** and sealed into the record. Detects **loiter / AIS-dark-gap / position-jump (spoof) / overspeed**. ~1.5M real AIS rows in ~4s, fully explainable. *(Loiter thresholds are tunable — busy ferry terminals still dwell; tighten per OPAREA.)* This is the 2nd model on the same delivery spine, proving it's model-agnostic.
 
+## The explainable-alert layer — `explainer.py` (NV063, local LLM)
+```bash
+python3 demo/explainer.py --n 3                      # Tier-1: uses any loaded ollama model
+python3 demo/explainer.py --model qwen2.5:1.5b       # the Pi edge model (team's pick)
+```
+Turns a **deterministic** detection (from `ais_pol`, sealed in the record) into a concise watch-station **alert + recommended action**, written by a small local LLM — **qwen2.5:1.5b**, the model the team runs on the Pis. The LLM is a *narrator over deterministic findings*: grounded only in the evidence, never inventing positions/identities/causes, never deciding. Runs against any OpenAI-compatible endpoint (Ollama on Tier-1; the Pi's llama.cpp server in the field); falls back to the deterministic template if no LLM. Verified producing real grounded alerts (qwen3.6 on Tier-1). Each explained alert is sealed. *Decision-support, human-in-command.*
+
 ## The autoencoder anomaly detector — `autoencoder.py` (PyTorch, unsupervised)
 ```bash
 python3 ingest/metropt.py && python3 demo/autoencoder.py     # trains on real MetroPT-3
