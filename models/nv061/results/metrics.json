@@ -3,47 +3,47 @@
   "torch": "2.10.0",
   "n_params": 57420547,
   "config": {
-    "epochs": 5,
+    "epochs": 15,
     "batch_size": 32,
-    "n_samples": 8,
+    "n_samples": 16,
     "init_seqlen": 18,
     "n_eval_steps": 24,
-    "max_train": 2000,
-    "max_test": 384,
+    "max_train": 100000,
+    "max_test": 100000,
     "mode": "pos",
     "sample_mode": "pos_vicinity"
   },
   "dataset": {
-    "train_used": 2000,
-    "test_used": 384
+    "train_used": 9144,
+    "test_used": 1453
   },
   "run_type": "short-pipeline-verification",
   "trAISformer_short_run": {
     "1h": {
-      "km": 1.8922,
-      "nmi": 1.0217
+      "km": 0.8961,
+      "nmi": 0.4839
     },
     "2h": {
-      "km": 3.6276,
-      "nmi": 1.9588
+      "km": 1.6641,
+      "nmi": 0.8986
     },
     "3h": {
-      "km": 5.7603,
-      "nmi": 3.1103
+      "km": 2.7447,
+      "nmi": 1.482
     }
   },
   "constant_velocity_floor": {
     "1h": {
-      "km": 10.6631,
-      "nmi": 5.7576
+      "km": 11.6541,
+      "nmi": 6.2927
     },
     "2h": {
-      "km": 21.0724,
-      "nmi": 11.3782
+      "km": 22.8575,
+      "nmi": 12.3421
     },
     "3h": {
-      "km": 32.548,
-      "nmi": 17.5745
+      "km": 34.941,
+      "nmi": 18.8666
     }
   },
   "published_scoreboard_nmi": {
@@ -78,5 +78,5 @@
       "3h": 11.64
     }
   },
-  "elapsed_sec": 117.1
+  "elapsed_sec": 1156.0
 }

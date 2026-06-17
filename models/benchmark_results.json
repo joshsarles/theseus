@@ -1,0 +1,36 @@
+[
+  {
+    "dataset": "UCI #316 CBM (naval gas turbine)",
+    "task": "regression: gt_compressor_decay",
+    "n": 11934,
+    "features": 14,
+    "metric": "RMSE",
+    "value": 0.00382,
+    "mean_baseline_RMSE": 0.0147,
+    "split": "random 80/20",
+    "note": "cross-checks loop registry RMSE 0.003823"
+  },
+  {
+    "dataset": "NASA C-MAPSS FD001",
+    "task": "regression: RUL (cycles)",
+    "n": 20631,
+    "metric": "RMSE(cycles)",
+    "value": 50.88,
+    "mean_baseline_RMSE": 78.93,
+    "split": "unit-split (train units 1-80 / test 81-100)",
+    "note": "internal split on train file; not the official test-set/RUL leaderboard protocol"
+  },
+  {
+    "dataset": "MetroPT-3 (air compressor)",
+    "task": "classification: is_anomaly (real air-leak windows)",
+    "n": 25515,
+    "base_rate": 0.0195,
+    "features": 15,
+    "precision": 0.931,
+    "recall": 0.949,
+    "f1": 0.94,
+    "false_alarm_rate": 0.0014,
+    "split": "random 80/20 (time-split left a class empty)",
+    "note": "supervised baseline; unsupervised autoencoder (Tommy's direction) is the deeper anomaly model"
+  }
+]
