@@ -99,18 +99,22 @@ def detect(tracks, envelope):
         # --- loiter: a vessel that DEMONSTRABLY transited (>3kn) then sat near-zero ---
         # require real movement first, else we just flag berthed ships with bad status (false alarms)
         if span_h >= 1.0 and max(sogs) > 3.0:
-            still = sum(1 for f in fixes if f[3] < 0.5 and f[4] == 0)
+            still = sum(1 for f in fixes if f[3] < 0.5 and f[4] == 0)   # f[4]==0 underway (excl. at-anchor)
             frac = still / len(fixes)
-            if 0.4 < frac < 0.95:  # moved, then loitered a meaningful stretch (not fully berthed)
+            if 0.6 < frac < 0.95 and still >= 20:  # tuned (THESEUS): higher floor + absolute dwell gate → fewer nuisance alerts
                 alerts.append((mmsi, "loiter", b, 0.7,
                     f"transited then loitered: {still}/{len(fixes)} fixes <0.5kn over {span_h:.1f}h (peak {max(sogs):.0f}kn)",
                     "verify intent; flag for watch — possible surveillance/rendezvous"))
-        # --- overspeed vs in-situ envelope ---
+        # --- overspeed: require N consecutive over-envelope fixes (not a single bad fix) ---
         cap = max(envelope.get(b, 40), 8)
-        if max(sogs) > cap * 1.5:
+        run = best = 0
+        for s in sogs:
+            run = run + 1 if s > cap * 1.5 else 0
+            best = max(best, run)
+        if best >= 3:   # tuned (THESEUS): 3 consecutive → reject lone bad fixes
             alerts.append((mmsi, "overspeed", b, 0.6,
-                f"SOG {max(sogs):.1f}kn exceeds 1.5x in-situ {b} envelope ({cap:.0f}kn)",
-                "verify track quality; possible bad fix or anomalous transit"))
+                f"SOG over 1.5x in-situ {b} envelope ({cap:.0f}kn) for {best} consecutive fixes (max {max(sogs):.0f}kn)",
+                "verify track quality; possible anomalous transit"))
         # --- per-segment: dark gap + position jump (spoof) ---
         for (t0, la0, lo0, s0, *_), (t1, la1, lo1, s1, *_) in zip(fixes, fixes[1:]):
             dt = t1 - t0
@@ -118,7 +122,7 @@ def detect(tracks, envelope):
                 continue
             dist = _haversine_nm((la0, lo0), (la1, lo1))
             implied = dist / (dt / 3600)
-            if dt > 1800 and s0 > 1.0:
+            if dt > 2700 and s0 > 1.0:   # tuned (THESEUS): 45 min — coastal AIS coverage drops aren't AIS-off
                 alerts.append((mmsi, "dark_gap", b, 0.65,
                     f"AIS gap {dt/60:.0f} min while underway ({s0:.0f}kn) — possible AIS-off",
                     "cue another sensor; flag possible dark-vessel behavior"))
