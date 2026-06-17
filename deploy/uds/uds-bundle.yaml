@@ -1,0 +1,25 @@
+# UDS bundle — THESEUS model-delivery loop
+# Create : zarf package create deploy/uds/ -o deploy/uds/dist --confirm   (package first)
+#          uds create deploy/uds/ -o deploy/uds/dist --confirm
+# Deploy : uds deploy deploy/uds/dist/uds-bundle-theseus-*.tar.zst --confirm
+#
+# Standalone bundle for the package-only walkthrough (the light demo path). For the FULL UDS story
+# — STRICT mTLS, default-deny egress, Keycloak SSO/RBAC (human-in-command authn), Falco, Loki/Vector,
+# Prometheus/Grafana, the Pepr-based UDS Operator that reconciles the Package CR — prepend uds-core
+# (slim-dev for k3d local; full core for cloud/edge Pi) to `packages:`. The UDS Package CR in
+# manifests/uds-package.yaml is what the Operator consumes to wire Istio routes, default-deny egress,
+# and monitoring scrape for the theseus namespace.
+kind: UDSBundle
+metadata:
+  name: theseus
+  description: "THESEUS — airgap-deployable edge model-delivery loop with a tamper-evident record. Decision-support, advisory-only."
+  version: 0.1.0
+
+packages:
+  # --- For the full UDS story, uncomment uds-core ahead of theseus (kept out to keep the demo light): ---
+  # - name: core-slim-dev          # k3d local; use full `core` for cloud/edge
+  #   repository: ghcr.io/defenseunicorns/packages/uds/core
+  #   ref: 0.x.x-upstream          # pin to the event's vetted uds-core release
+  - name: theseus
+    path: dist
+    ref: 0.1.0

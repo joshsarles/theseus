@@ -1,0 +1,42 @@
+# THESEUS model-delivery loop — kustomize packer (mirrors zarf/kustomize/kustomization.yaml)
+#
+# Packs the ACTUAL repo source into ConfigMaps at `zarf package create` time — no source
+# duplication, no image build required (same proven pattern as the referee package). Requires
+# kustomizeAllowAnyDirectory: true in zarf.yaml (the files live outside this kustomization root).
+#
+# Three ConfigMaps:
+#   theseus-demo-src  — the 5 demo loop scripts (stage -> retrain -> update + _record + run.sh)
+#   referee-chain-src — the tamper-evident record primitive the loop seals into (referee/chain.py)
+#   theseus-data      — the REAL UCI #316 staged data, GZIPPED.  staged.csv is 3.0MB and a single
+#                       ConfigMap value caps at 1MiB; staged.csv.gz is ~540KB and rides in
+#                       `binaryData` (kustomize base64-encodes binary files automatically). The
+#                       Job gunzips it into demo/data/ before STEP 1. This keeps STEP 1 fully
+#                       offline (the cached-data branch in stage_data.py) — no ucimlrepo, no network.
+#
+# Regenerate the gz before packaging:  gzip -9 -c demo/data/staged.csv > deploy/uds/staged.csv.gz
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: theseus
+resources:
+  - ../manifests/namespace.yaml
+  - ../manifests/theseus-job.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/part-of: theseus
+configMapGenerator:
+  - name: theseus-demo-src
+    files:
+      - ../../../demo/_record.py
+      - ../../../demo/stage_data.py
+      - ../../../demo/retrain.py
+      - ../../../demo/update_model.py
+      - ../../../demo/run.sh
+  - name: referee-chain-src
+    files:
+      - ../../../referee/__init__.py
+      - ../../../referee/chain.py
+  - name: theseus-data
+    # binary -> lands in ConfigMap.binaryData (base64). The Job gunzips it at start.
+    files:
+      - staged.csv.gz=../staged.csv.gz

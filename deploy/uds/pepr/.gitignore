@@ -1,0 +1,6 @@
+# Pepr build + dev artifacts — never commit
+node_modules/
+dist/
+insecure-tls.*
+.pepr/
+*.tgz

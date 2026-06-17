@@ -1,0 +1,155 @@
+# THESEUS deploy proof: run the model-delivery loop INSIDE the cluster, from the airgapped
+# package. Analog of zarf/manifests/job.yaml's referee-smoke. Source + real staged data arrive
+# as ConfigMaps (see ../kustomize/kustomization.yaml); the only image is the digest-pinned
+# python base — no registry pull at deploy time. Job green ==
+#   STEP 1 stage (cached real UCI #316) -> STEP 2 retrain (stdlib-OLS; sklearn if image carries it)
+#   -> STEP 3 promote to demo/models/current (rollback kept) -> print sealed record -> offline verify PASS,
+# all in-cluster.
+#
+# RAILS honored here:
+#   - human-in-command: this is decision-support model delivery, NOT autonomous ship control.
+#   - SWAN-side / unclassified: real public CC-BY data (UCI #316), no combat-system reach.
+#   - tamper-EVIDENT not tamper-proof: the printed record is a SHA-256 hash chain, offline-verifiable.
+#   - deployable; ATO is the gate: this proves airgap-deployability, not fielding.
+#
+# Image choice: ConfigMap-over-base-image (NOT a custom deploy/Containerfile image). Justification —
+#   (a) matches the proven referee securityContext + airgap shape exactly (one shared, digest-pinned
+#       base across both packages = smaller bundle, one SBOM surface, one thing to patch);
+#   (b) the loop is stdlib-graceful: retrain.py falls back to a pure-stdlib OLS fit when sklearn is
+#       absent, so the base python image runs the WHOLE loop offline with zero wheels to vendor;
+#   (c) no Containerfile exists in the repo yet — referencing one would be an overclaim. When a
+#       digest-pinned theseus image (sklearn baked in, RMSE ~0.0038) is built, swap `image:` below
+#       + the zarf.yaml images entry to that ref and drop the source ConfigMap mounts; the Job body
+#       is otherwise unchanged.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: theseus-loop
+  namespace: theseus
+  labels:
+    app.kubernetes.io/name: theseus-loop
+    app.kubernetes.io/part-of: theseus
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: theseus-loop
+        app.kubernetes.io/part-of: theseus
+    spec:
+      restartPolicy: Never
+      securityContext:                # AC-6: non-root, no escalation, RO source mounts (matches referee)
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: loop
+          # linux/arm64 digest — keep in sync with zarf.yaml images (see comment there).
+          # Same base image as the referee package (one digest to pin/patch across both).
+          image: python:3.12-slim@sha256:9bde4953fa9a7abb6db6669bb1b3f10aac83cf38d69a7bfc4941313ccd4c9686
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              # Lay out the repo shape the loop expects: demo/ (cwd) beside referee/ (importable).
+              # _record.py does `from referee.chain import ...` after inserting the repo root on
+              # sys.path (parents[1]); demo scripts do top-level `from _record import seal`. So we
+              # need cwd=/work/demo with /work on PYTHONPATH (for `referee`) and /work/demo too.
+              mkdir -p /work/demo /work/referee /work/demo/data
+              cp /src/demo/*.py /work/demo/
+              cp /src/demo/run.sh /work/demo/
+              cp /src/referee/*.py /work/referee/
+              # The real UCI #316 staged data rides gzipped (ConfigMap 1MiB cap); restore it so
+              # STEP 1 takes stage_data.py's cached-data branch — fully offline, no ucimlrepo.
+              gunzip -c /src/data/staged.csv.gz > /work/demo/data/staged.csv
+              echo "staged rows (incl header): $(wc -l < /work/demo/data/staged.csv)"
+
+              cd /work/demo
+              export PYTHONPATH=/work:/work/demo
+
+              echo "================ THESEUS model-delivery loop (in-cluster) ================"
+              python stage_data.py        # STEP 1 — seals data_staged (cached real UCI #316)
+              echo
+              python retrain.py           # STEP 2 — seals model_trained (stdlib-OLS offline)
+              echo
+              python update_model.py      # STEP 3 — seals model_promoted, then offline verify
+              echo "========================================================================="
+
+              # Print the sealed tamper-evident record (the moat), then an explicit offline verify.
+              echo "----- sealed record: out/record/bundle.json -----"
+              cat out/record/bundle.json
+              echo
+              echo "----- record leaves (kind:obs_id) -----"
+              python - <<'PY'
+              import json, pathlib
+              for line in pathlib.Path("out/record/chain.jsonl").read_text().splitlines():
+                  if line.strip():
+                      r = json.loads(line)
+                      print(f"  [{r['idx']}] {r['kind']}:{r['obs_id']}")
+              PY
+              echo
+              echo "----- offline verify (third-party-runnable, no trust in us) -----"
+              python - <<'PY'
+              import sys, pathlib
+              sys.path.insert(0, "/work")
+              from referee.chain import verify_dir
+              ok, bad, msg = verify_dir(pathlib.Path("out/record"))
+              print("VERIFY:", "PASS" if ok else "FAIL", "—", msg)
+              sys.exit(0 if ok else 2)
+              PY
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: TMPDIR
+              value: /work
+            - name: HOME
+              value: /work
+            # Airgap: no MLFLOW_TRACKING_URI -> retrain.py skips the (optional) MLflow log.
+            # To log to Tommy's central MLflow, set this and add an Istio egress entry in the
+            # Package CR (manifests/uds-package.yaml) — default-deny blocks it otherwise.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi          # GradientBoosting on 11934 rows headroom; OLS needs far less
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: theseus-demo-src
+              mountPath: /src/demo
+              readOnly: true
+            - name: referee-chain-src
+              mountPath: /src/referee
+              readOnly: true
+            - name: theseus-data
+              mountPath: /src/data
+              readOnly: true
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 256Mi          # writable tree: source copies + gunzipped 3MB csv + registry/models/record
+        - name: theseus-demo-src
+          configMap:
+            name: theseus-demo-src
+            defaultMode: 0444
+        - name: referee-chain-src
+          configMap:
+            name: referee-chain-src
+            defaultMode: 0444
+        - name: theseus-data
+          configMap:
+            name: theseus-data        # binaryData: staged.csv.gz
+            defaultMode: 0444

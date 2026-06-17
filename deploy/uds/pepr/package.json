@@ -1,0 +1,47 @@
+{
+  "name": "theseus-policies",
+  "version": "0.1.0",
+  "description": "THESEUS rails as cluster-enforced Pepr admission controls: human-in-command, contained (no-egress) posture, append-only/hardened workloads. Decision-support only — never autonomous ship control. AGPL-3.0-only.",
+  "keywords": ["pepr", "uds", "theseus", "admission-policy", "human-in-command"],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "AGPL-3.0-only",
+  "pepr": {
+    "uuid": "17ecd300-cc52-4e4d-929d-cb306db1e5a3",
+    "onError": "reject",
+    "webhookTimeout": 10,
+    "customLabels": {
+      "namespace": {
+        "app.kubernetes.io/part-of": "theseus"
+      }
+    },
+    "alwaysIgnore": {
+      "namespaces": []
+    },
+    "admission": {
+      "alwaysIgnore": {
+        "namespaces": ["kube-system", "pepr-system", "istio-system", "uds-policy-exemptions"]
+      }
+    },
+    "watch": {
+      "alwaysIgnore": {
+        "namespaces": ["kube-system", "pepr-system"]
+      }
+    },
+    "includedFiles": [],
+    "env": {}
+  },
+  "scripts": {
+    "build": "pepr build",
+    "format:check": "pepr format --validate-only",
+    "format:fix": "pepr format",
+    "deploy": "pepr deploy"
+  },
+  "dependencies": {
+    "pepr": "1.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

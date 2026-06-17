@@ -1,0 +1,93 @@
+# THESEUS — edge model-delivery loop, as ONE rootless OCI image.
+# =============================================================================
+# Packages the verified demo/ loop (stage_data -> retrain -> update_model, plus
+# the AIS Pattern-of-Life cell) + the referee/ tamper-evident record + the
+# pre-staged REAL UCI #316 naval gas-turbine CBM data. This is the artifact that
+# runs on a Raspberry Pi edge node: pull a staged/registered model, swap it in,
+# prove the swap — no shore round-trip.
+#
+# Build (BOTH engines — pure OCI, no Docker-only syntax):
+#   podman build -f deploy/Containerfile -t theseus-edge:0.1.0 .     # rootless, preferred
+#   docker build -f deploy/Containerfile -t theseus-edge:0.1.0 .     # OCI-compatible
+#   (run from the REPO ROOT so demo/ referee/ cot/ are in the build context)
+#
+# Run a step (rootless; hardened flags match zarf/manifests/job.yaml):
+#   podman run --rm \
+#     --read-only --tmpfs /work --security-opt no-new-privileges \
+#     --cap-drop ALL --user 65534:65534 theseus-edge:0.1.0 loop
+#   ... or one step:  ... theseus-edge:0.1.0 retrain
+#   ... AIS cell:     -v $PWD/data:/work/data:ro ... theseus-edge:0.1.0 ais_pol --rows 200000
+#
+# Pin by digest in airgap (mirror the zarf.yaml pattern):
+#   FROM python:3.14-slim@sha256:<arch-digest>
+# Resolve per-arch:  docker buildx imagetools inspect python:3.14-slim
+# (the multi-arch INDEX digest for python:3.14-slim at build time was
+#  sha256:44dd04494ee8f3b538294360e7c4b3acb87c8268e4d0a4828a6500b1eff50061;
+#  swap to the platform-specific digest for the smallest airgap package, exactly
+#  as zarf.yaml does for the referee base.)
+#
+# Rails honored: human-in-command (decision-support, NOT autonomous control) ·
+# SWAN-side/unclassified data only · integrate-not-replace · tamper-EVIDENT not
+# tamper-proof · deployable; ATO is the gate (NOT "fielded").
+# =============================================================================
+
+FROM python:3.14-slim
+
+# OCI provenance (queryable: podman/docker inspect)
+LABEL org.opencontainers.image.title="theseus-edge" \
+      org.opencontainers.image.description="THESEUS edge model-delivery loop (CBM retrain/promote + AIS PoL) with tamper-evident record. Decision-support; unclassified data; deployable, ATO is the gate." \
+      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.source="https://github.com/joshsarles/theseus"
+
+# Deterministic, quiet, no pip cache layer bloat.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_ROOT_USER_ACTION=ignore \
+    THESEUS_SRC=/opt/theseus \
+    THESEUS_WORK=/work \
+    HOME=/work \
+    TMPDIR=/work
+
+# Python deps. scikit-learn upgrades retrain from stdlib-OLS to GradientBoosting
+# (RMSE ~0.0038 on real UCI #316); the loop degrades gracefully without it, but we
+# ship it so the image is the "good" path. mlflow is OPTIONAL (only used when
+# MLFLOW_TRACKING_URI is set) and is installed via a build arg to keep the default
+# image lean and the layer cacheable.
+#   build full:  --build-arg WITH_MLFLOW=1
+ARG SKLEARN_VERSION="1.7.*"
+ARG WITH_MLFLOW="0"
+# hadolint ignore=DL3013,DL3042
+RUN python3 -m pip install --no-cache-dir "scikit-learn==${SKLEARN_VERSION}" \
+    && if [ "${WITH_MLFLOW}" = "1" ]; then python3 -m pip install --no-cache-dir "mlflow>=3.0,<4"; fi \
+    && python3 -c "import sklearn, numpy, scipy; print('sklearn', sklearn.__version__)"
+
+# Bake the source tree READ-ONLY at $THESEUS_SRC, preserving the demo/ <-> referee/
+# relative layout that _record.py depends on (it walks parents[1] from demo/ to
+# import referee.chain). demo/data/staged.csv (the real, force-added UCI #316 data,
+# 11934 rows) rides along so the node works fully offline — no sneakernet, no DB.
+WORKDIR /opt/theseus
+COPY demo/    /opt/theseus/demo/
+COPY referee/ /opt/theseus/referee/
+COPY cot/     /opt/theseus/cot/
+COPY deploy/entrypoint.sh /usr/local/bin/theseus
+
+# Strip any runtime cruft that may have ridden in from the build context, make the
+# entrypoint executable, and pre-create the world-writable work mountpoint so the
+# image runs as an arbitrary non-root uid against a read-only root FS.
+RUN chmod +x /usr/local/bin/theseus \
+    && rm -rf /opt/theseus/demo/__pycache__ /opt/theseus/referee/__pycache__ \
+              /opt/theseus/demo/registry /opt/theseus/demo/models /opt/theseus/demo/out \
+    && mkdir -p /work \
+    && chmod 0777 /work
+
+# AC-6 posture (matches zarf/manifests/job.yaml securityContext): run as the
+# unprivileged "nobody" uid; the orchestrator adds no-new-privileges, drop ALL caps,
+# seccomp=RuntimeDefault, readOnlyRootFilesystem + an emptyDir at /work.
+USER 65534:65534
+
+# step name -> python module. Default = the full stage->retrain->promote loop.
+ENTRYPOINT ["/usr/local/bin/theseus"]
+CMD ["loop"]

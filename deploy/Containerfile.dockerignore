@@ -1,0 +1,23 @@
+# Build context = repo root (so demo/ referee/ cot/ are reachable). Keep it lean:
+# only the three source dirs + the staged data + the entrypoint need to ship.
+# Engines read this when -f deploy/Containerfile is built from repo root with
+# --ignorefile deploy/.dockerignore (podman) or via a root-level .dockerignore.
+*
+!demo/
+!referee/
+!cot/
+!deploy/entrypoint.sh
+
+# Re-exclude generated/runtime cruft even within the kept dirs.
+**/__pycache__/
+**/*.pyc
+demo/registry/
+demo/models/
+demo/out/
+# Large gitignored datasets never belong in the image (AIS data is mounted at run).
+data/
+demo/data/datasets/
+.git/
+.venv/
+.pytest_cache/
+.DS_Store

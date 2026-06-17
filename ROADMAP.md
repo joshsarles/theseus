@@ -4,9 +4,10 @@
 **Mission:** the self-controlled ship brain — onboard analytics + edge model-delivery under DDIL, decision-support with human-in-command, on big surface combatants (DDG/CG). Real on real, every decision sealed in a tamper-evident record.
 
 ## Hardware we have (real)
-- **2× Raspberry Pi 5, 4GB** — the Tier-2 system-component nodes. Maps cleanly to **2 organs**: **Pi-1 = MACHINERY** (CBM gas-turbine model) · **Pi-2 = CONTACTS** (AIS Pattern-of-Life).
-- **NVIDIA Blackwell cloud** — emulates the ship's **Tier-1** central GPU compute (fusion + explainer + onboard retrain + MLflow).
-- 4GB/Pi ⇒ small models only on the edge: the CBM model is tiny ✓, AIS PoL is light Python ✓, GGUF ≤~1.5B Q4 if an edge LLM is needed. Heavy reasoning lives on Tier-1 (Blackwell). Architecture: `docs/architecture/COMPUTE_TIERS.md`.
+- **2× Raspberry Pi 5, 4GB** — Tier-2 system-component nodes. Maps to **2 organs**: **Pi-1 = MACHINERY** (CBM) · **Pi-2 = CONTACTS** (AIS PoL). On Tailscale (William).
+- **Gigabyte Ryzen, 32GB** — local on-prem **Tier-1** node (MLflow central server + heavier compute + retrain). The "ship data center" stand-in.
+- **NVIDIA Blackwell cloud** — **Tier-1 GPU** (Triton-TRT-LLM explainer; the heaviest reasoning).
+- 4GB/Pi ⇒ small models on the edge (CBM ✓, AIS PoL ✓, GGUF ≤~1.5B Q4). Heavy reasoning on Tier-1 (Ryzen/Blackwell). Architecture: `docs/architecture/COMPUTE_TIERS.md`.
 
 ## Status snapshot (Jun 17)
 **Runnable today, on real data, all sealed + verified:**
@@ -31,8 +32,8 @@
 - [x] Two-tier architecture defined (ship GPU brain + 2-Pi components; Blackwell emulation).
 - [ ] **Tier-2 on the 2 Pis:** flash 2× Pi 5 4GB (Pi OS 64-bit) + Podman + Python 3.14; Pi-1 runs `update_model.py` (machinery), Pi-2 runs `ais_pol.py` (contacts). *(William)* → runbook ready: `docs/setup/PI_NODES.md`
 - [ ] **Tier-1 on Blackwell:** MLflow central server + retrain + (optional) Triton-TRT-LLM explainer; emulates the ship data center. *(Tommy + WARHACKER)*
-- [ ] **UDS/Podman packaging** — Containerfile + Zarf package + UDS bundle + Pepr human-in-command policy. *(WARHACKER — in flight)*
-- [ ] **DDIL beat** — cut shore: both Pis keep serving last-good, record holds, rollback works. *(WARHACKER)*
+- [x] **UDS/Podman packaging** — `deploy/`: Containerfile (builds + runs hardened, verified), Zarf package + UDS bundle + UDS Package CR, Pepr human-in-command policy (compiles). *(WARHACKER)*
+- [x] **DDIL beat** — `deploy/ddil_beat.sh`: cord-pull→local promote, bad-update→local rollback, tamper→record snaps (single-node, verified). *Multi-node failover across the 2 Pis over Tailscale = the live mesh demo (William).*
 - [ ] **Live demo run** — the 4 beats + the watchstander board; 60s recorded fallback.
 - [ ] Pre-stage all images/models offline before venue internet dies.
 
@@ -51,5 +52,6 @@
 ---
 
 ## Update log (newest on top)
+- **Jun 17 (pm)** — **`deploy/` tree landed + verified:** Containerfile builds + runs hardened (real data, verify PASS), DDIL beat runs, Pepr policy compiles, YAML valid. Added **Gigabyte Ryzen 32GB** as local Tier-1. **Team active:** Carolina=IL6 baseline+SW versions, Thang=Pi analytics Dockerfile, William=Pis+Tailscale, Juan=Tailscale integration, Nick=MLflow. *(SSH to the Pis/Ryzen: I can't authenticate with passwords — see chat; key-based or team-run.)*
 - **Jun 17** — Hardware confirmed: **2× Pi 5 4GB** (Tier-2, 2 organs) + Blackwell (Tier-1). Master roadmap created. Watchstander board + two-tier architecture + vLLM/FIPS verdict shipped. UDS packaging workflow landing.
 - **Jun 17** — Demo is a runnable 3-step story (loop + AIS PoL + board) on real data; THESEUS lanes assigned; datasets pulled.

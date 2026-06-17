@@ -1,0 +1,76 @@
+# UDS Package Custom Resource (CR) — THESEUS  [STUB — slots into UDS Core]
+#
+# This CR is consumed by the UDS Operator (a Pepr TypeScript admission+operator framework running in
+# uds-core). When this package is deployed OVER uds-core, the Operator reconciles the spec below into
+# concrete cluster policy for the `theseus` namespace:
+#   - default-DENY egress (NetworkPolicy) with ONLY the explicit `allow` rules opened;
+#   - Istio VirtualService/Gateway routes for any UI (STRICT mTLS in-mesh by default);
+#   - a Keycloak SSO client (human-in-command authn/RBAC via Authservice) when a UI needs login;
+#   - Prometheus scrape config for the loop's metrics.
+#
+# To activate: add this manifest to a component in zarf.yaml (e.g. a `theseus-uds-policy` component
+# with `manifests: [{name: uds-package, files: [manifests/uds-package.yaml]}]`) AND deploy over
+# uds-core (uncomment core-slim-dev in uds-bundle.yaml). Standalone (no uds-core) the `Package` CRD
+# is absent and this CR is inert — the loop still runs as the plain Job. Kept as a stub so the light
+# demo path does not require uds-core.
+#
+# RAILS: human-in-command (SSO/RBAC = a human authenticates; the loop is advisory decision-support,
+# never autonomous ship control) · SWAN-side/unclassified · default-deny egress keeps the package
+# airgap-honest (no silent phone-home) · deployable, ATO is the gate.
+apiVersion: uds.dev/v1alpha1
+kind: Package
+metadata:
+  name: theseus
+  namespace: theseus
+spec:
+  # ---- Istio service-mesh routes (for any UI; the headless Job needs none) -------------------------
+  # The hackathon loop is a batch Job with no service. When a model-delivery / record-viewer UI lands,
+  # expose it here. STRICT mTLS + default-deny are inherited from uds-core; this only opens the route.
+  network:
+    expose:
+      - service: theseus-ui            # k8s Service name of the UI (none yet — present for when it lands)
+        selector:
+          app.kubernetes.io/name: theseus-ui
+        host: theseus                  # -> theseus.<uds-domain>, e.g. theseus.admin.uds.dev
+        gateway: admin                 # admin gateway (operator surface); use `tenant` for end-user UIs
+        port: 8080
+        targetPort: 8080
+        # advancedHTTP / Authservice (Keycloak SSO) attaches here -> human-in-command authn for the UI.
+
+    # ---- default-DENY egress; only what's named below is allowed ---------------------------------
+    # Airgap default: the loop needs NO egress (data is staged in-package, MLflow is optional/off).
+    # These are the seams to open if/when needed — commented so the airgap default stays closed.
+    allow:
+      - direction: Ingress             # let uds-core Prometheus scrape the loop's /metrics (see monitor)
+        remoteGenerated: IntraNamespace
+      # - direction: Egress            # OPTIONAL: log to Tommy's central MLflow server
+      #   description: "MLflow tracking (set MLFLOW_TRACKING_URI on the Job to use)"
+      #   selector:
+      #     app.kubernetes.io/name: theseus-loop
+      #   remoteNamespace: mlflow
+      #   remoteSelector:
+      #     app.kubernetes.io/name: mlflow-server
+      #   port: 5000
+
+  # ---- monitoring scrape (Prometheus/Grafana from uds-core) --------------------------------------
+  # Present so a metrics-emitting UI/service is scraped under default-deny without hand-rolled
+  # ServiceMonitors. The batch Job itself emits to logs + the sealed record, not /metrics; this slots
+  # in when the long-running edge service (Pi node agent) exposes metrics.
+  monitor:
+    - selector:
+        app.kubernetes.io/name: theseus-ui
+      portName: metrics
+      targetPort: 8080
+      description: "Theseus edge service metrics (when a long-running UI/agent replaces the batch Job)"
+
+  # ---- Keycloak SSO client (human-in-command) ----------------------------------------------------
+  # Uncomment when a UI needs login. Authservice fronts the route; only authenticated, RBAC-authorized
+  # humans reach the decision-support surface. The loop NEVER acts on the ship autonomously.
+  # sso:
+  #   - name: Theseus UI
+  #     clientId: uds-theseus-ui
+  #     redirectUris:
+  #       - "https://theseus.admin.uds.dev/login/generic/callback"
+  #     groups:
+  #       anyOf:
+  #         - /UDS Core/Admin
