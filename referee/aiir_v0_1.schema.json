@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forceos.ai/schemas/aiir/v0.1/aiir_incident_record.schema.json",
+  "title": "AIIR — AI Incident Record v0.1",
+  "description": "Vendor-neutral, tamper-evident, replayable record of a single AI incident on a fielded military AI system. DRAFT v0.1, awaiting ratification. Incident = policy gate HALT_DEFER_TO_HUMAN and/or any BREACH-severity violation. Maps to draft 10 U.S.C. 2224b ('covered AI incidents', H.R. 8800 Sec. 1501 — committee print, not enacted law). Plain JSON; emittable with the Python stdlib alone. Tamper-EVIDENT, not tamper-proof.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aiir_schema_version",
+    "record_id",
+    "incident_class",
+    "incident_time_utc",
+    "report_time_utc",
+    "system",
+    "observation",
+    "policy",
+    "violations",
+    "gate_outcome",
+    "integrity",
+    "verify",
+    "classification"
+  ],
+  "properties": {
+    "aiir_schema_version": {
+      "const": "aiir-incident-record-v0.1",
+      "description": "Schema identity pin (literal-string convention shared with Crucible packet schema_version)."
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^aiir-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Globally unique record id: 'aiir-' + UUIDv4 (stdlib uuid)."
+    },
+    "incident_class": {
+      "type": "string",
+      "enum": ["GUARDRAIL_BREACH", "MATERIAL_DEGRADATION", "FAIL_CLOSED_UNEVALUABLE"],
+      "description": "Statutory prong mapping per draft 2224b: outside approved guardrails | materially degraded performance | rule unevaluable, failed closed (reportable per fail-closed doctrine; founder decision pending on keeping this distinct)."
+    },
+    "incident_time_utc": { "$ref": "#/$defs/utc_timestamp" },
+    "report_time_utc": { "$ref": "#/$defs/utc_timestamp" },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor", "model_id"],
+      "properties": {
+        "vendor": { "type": "string", "minLength": 1, "description": "Emitting vendor identifier. Vendor-neutral: any vendor can populate." },
+        "model_id": { "type": "string", "minLength": 1, "description": "Vendor's model/system identifier (referee: source_model_id)." },
+        "model_fingerprint": { "type": ["string", "null"], "description": "Optional model/weights fingerprint or attestation reference (referee: model_fingerprint)." },
+        "deployment_context": { "type": ["string", "null"], "description": "Optional deployment/site label. No proprietary telemetry required." }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obs_id", "ts_emitted_utc", "ts_observed_utc", "decision_type", "confidence", "ddil_profile", "upstream_provenance", "payload_sha256"],
+      "properties": {
+        "obs_id": { "type": "string", "minLength": 1, "description": "Observation id; joins this record to chain leaves (referee: obs_id)." },
+        "ts_emitted_utc": { "$ref": "#/$defs/utc_timestamp", "description": "When the vendor system emitted the decision." },
+        "ts_observed_utc": { "$ref": "#/$defs/utc_timestamp", "description": "When the monitor observed it (latency = observed - emitted)." },
+        "decision_type": { "type": "string", "minLength": 1, "description": "Vendor decision type, e.g. detection | track | recommendation | llm_summary | malformed. Open string: vendor-neutral." },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "Vendor-reported confidence; null if not provided (null is itself evaluable under fail-closed rules)." },
+        "ddil_profile": { "type": "string", "minLength": 1, "description": "Comms/degradation profile in effect at observation time (e.g. nominal, satellite_link)." },
+        "upstream_provenance": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Opaque provenance references for inputs (sensor frames, upstream model outputs). May be empty — absence is policy-evaluable."
+        },
+        "payload_sha256": { "$ref": "#/$defs/sha256_hex", "description": "SHA-256 of the exact observed raw bytes. Raw payload is NOT in this record (classification hygiene); it lives in the referenced chain leaf for replay." }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "policy_version", "policy_sha256"],
+      "properties": {
+        "policy_id": { "type": "string", "minLength": 1, "description": "Identifier of the authorized-parameters policy in force (the 'approved guardrails')." },
+        "policy_version": { "type": "string", "minLength": 1 },
+        "policy_sha256": { "$ref": "#/$defs/sha256_hex", "description": "SHA-256 of the exact policy document evaluated — pins which guardrails were 'approved' at incident time." }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["clause_id", "severity", "detail", "taxonomy_tags"],
+        "properties": {
+          "clause_id": { "type": "string", "minLength": 1, "description": "Policy clause violated (referee field name: rule), e.g. geofence, confidence_floor, latency_sla, classification_ceiling, ddil_profile, forbidden_class_adjacency, forbidden_decision_type, provenance_missing, stale_decision, malformed, unevaluable_rule." },
+          "severity": { "type": "string", "enum": ["INFO", "WARN", "BREACH"] },
+          "detail": { "type": "string", "minLength": 1, "description": "Human-readable detail; display-only, carries no machine semantics." },
+          "taxonomy_tags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Machine taxonomy tags (e.g. authorized-parameters, spatial, fail-closed)." }
+        }
+      }
+    },
+    "gate_outcome": {
+      "type": "string",
+      "enum": ["PASS", "HALT_DEFER_TO_HUMAN"],
+      "description": "Policy gate result (referee: PolicyDecision.gate). Advisory-only: the gate signals; it never commands the vendor system. An incident record normally carries HALT_DEFER_TO_HUMAN; PASS appears only when BREACH-severity violations were logged without a halt."
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hash_algorithm", "chain_head", "merkle_root", "leaf_index", "leaf_hash", "prev_hash", "rfc3161_timestamp", "tamper_evident_not_tamper_proof"],
+      "properties": {
+        "hash_algorithm": { "const": "sha256" },
+        "chain_head": { "$ref": "#/$defs/sha256_hex", "description": "Head hash of the tamper-evident chain at record-emit time. Consumers verify offline by replaying the chain file (reference impl: referee chain.verify_dir, ~40 lines stdlib)." },
+        "merkle_root": { "$ref": "#/$defs/sha256_hex", "description": "Merkle root over all leaf hashes at record-emit time." },
+        "leaf_index": { "type": "integer", "minimum": 0, "description": "Index of the violation leaf this record corresponds to." },
+        "leaf_hash": { "$ref": "#/$defs/sha256_hex" },
+        "prev_hash": { "$ref": "#/$defs/sha256_hex", "description": "Previous leaf hash (genesis = 64 zeros)." },
+        "rfc3161_timestamp": { "type": ["string", "null"], "description": "Optional RFC 3161 timestamp token (base64) anchoring the chain head to an external time authority; null when not yet anchored." },
+        "tamper_evident_not_tamper_proof": { "const": true, "description": "Honesty marker carried in-band, verbatim from the reference bundle format." }
+      }
+    },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "message", "first_bad_leaf", "verifier"],
+      "properties": {
+        "status": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN"], "description": "Result of the most recent offline chain verification. Whitelist only — AIIR never asserts 'COMPLIANT' or 'CERTIFIED'; integrity of the record is the only claim." },
+        "message": { "type": "string", "description": "Verifier output message; display-only." },
+        "first_bad_leaf": { "type": ["integer", "null"], "minimum": 0, "description": "Index of first failing leaf when status=FAIL; null otherwise." },
+        "verifier": { "type": "string", "minLength": 1, "description": "Identifier/version of the verification tool used." }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "banner"],
+      "properties": {
+        "level": { "type": "string", "enum": ["UNCLASSIFIED", "CUI", "SECRET", "TOPSECRET"], "description": "Record-level classification (order per referee CLASSIFICATION_ORDER). The record carries hashes, not payloads, so it may ride below the source-data marking." },
+        "banner": { "type": ["string", "null"], "description": "Optional full banner/caveat marking line." }
+      }
+    },
+    "ext": {
+      "type": "object",
+      "description": "Extension namespace. Vendor- or program-specific fields go here, never in core. Keys MUST be namespaced '<ns>/<key>' (e.g. 'vendor.example/track_quality'). Values are unconstrained JSON.",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*$" }
+    }
+  },
+  "$defs": {
+    "sha256_hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 digest."
+    },
+    "utc_timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "description": "ISO-8601 UTC timestamp, 'Z' suffix mandatory (machine-checkable; stdlib datetime emittable)."
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Built packages/bundles are large binary artifacts — keep them out of the event repo.
+dist/

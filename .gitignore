@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+out/
+out_guardian/
+out_ped/
+out_apprentice/
+out_apprentice_test/
+fixtures/smoke_25.jsonl
+fixtures/detections.jsonl
+fixtures/detections_real.jsonl
+.venv/
+*.gguf
+data/
+.DS_Store
+# zarf init package (376MB, fetched on demand by `make deploy-local`, never committed)
+zarf-init-*.tar.zst
+zarf/dist/zarf-init-*.tar.zst

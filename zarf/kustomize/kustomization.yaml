@@ -1,0 +1,31 @@
+# Packs the ACTUAL repo source + fixtures into ConfigMaps at `zarf package create` time —
+# no source duplication, no image build required. Requires kustomizeAllowAnyDirectory: true
+# in zarf.yaml (files live outside this kustomization root).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: referee
+resources:
+  - ../manifests/namespace.yaml
+  - ../manifests/job.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/part-of: referee
+configMapGenerator:
+  - name: referee-src
+    files:
+      - ../../referee/__init__.py
+      - ../../referee/chain.py
+      - ../../referee/demo.py
+      - ../../referee/intake.py
+      - ../../referee/policy.py
+      - ../../referee/schemas.py
+  - name: cot-src
+    files:
+      - ../../cot/emit.py
+      - ../../cot/listener.py
+  - name: referee-fixtures
+    files:
+      - ../../fixtures/smoke_25.jsonl
+      - ../../fixtures/policy_cannonico.json
+      - ../../fixtures/gen_smoke.py

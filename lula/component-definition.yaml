@@ -1,0 +1,165 @@
+# Lula component definition — THE REFEREE (PKG slot, Day 2)
+# The ATO-accelerator story: the SAME artifact that runs the mission generates its control evidence.
+# 2 live validations wired (AU-9 -> out/bundle.json, CM-3 -> fixtures/policy_cannonico.json);
+# the rest are mapped rows until time allows (cut-line #6).
+#
+#   Schema check :  lula tools lint -f lula/component-definition.yaml
+#   Run evidence :  make smoke && lula validate -f lula/component-definition.yaml \
+#                     --confirm-execution -o lula/assessment-results.yaml
+#
+# Honesty lock: tamper-EVIDENT not tamper-proof; accreditation_status never CERTIFIED;
+# everything advisory — human + accreditation process = authority of record.
+component-definition:
+  uuid: fc468382-fb6e-4222-b937-9d44cdc5d977   # regenerate at event (lula tools uuidgen)
+  metadata:
+    title: THE REFEREE — assurance & accountability layer
+    version: 0.1.0
+    oscal-version: 1.1.2
+    last-modified: 2026-06-12T10:07:00Z
+    remarks: >-
+      Reference spine (stdlib-only, AGPL event repo). Control evidence below describes the
+      reference implementation in this repo; production capability (Ed25519 ledger, scorer)
+      arrives via retained-IP wheels at the event and upgrades — not replaces — these seams.
+  components:
+    - uuid: 94eadb62-655a-4a3f-ab6b-651ffea1ffa4
+      type: software
+      title: referee
+      description: >-
+        Independent AI assurance and accountability layer for the multi-vendor mission:
+        observe vendor decisions (JSONL replay / CoT-UDP), gate against an authorized-parameters
+        policy, append every observation and violation to a tamper-evident hash-chained record,
+        and verify the record offline. Advisory-only.
+      control-implementations:
+        - uuid: e682308a-93b6-4ccf-8ff9-9a6c941523d6
+          source: https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json
+          description: >-
+            NIST SP 800-53 rev5 mapping for the Referee reference spine. Two validations are
+            live compliance-as-code (AU-9, CM-3); remaining rows are honest mapped descriptions
+            of implemented behavior in this repo.
+          implemented-requirements:
+            - uuid: 444eb60b-7800-4866-8f02-1d7cf83a99c7
+              control-id: au-2   # audit events: every vendor decision observed -> chained leaf
+              description: >-
+                All vendor-emitted decisions and gate violations are chain-appended at ingest
+                (referee/intake.py -> referee/chain.py). Smoke fixture: 25 observations + 8
+                violation leaves = 33 chain leaves, asserted by `make smoke`.
+            - uuid: 927f368c-8ec1-453c-8299-3678e230acad
+              control-id: au-3   # content of audit records
+              description: >-
+                Each chain leaf carries idx, timestamp, kind (observation|violation|scorecard),
+                obs_id, the full base64 record, and prev_hash (referee/chain.py Leaf). Violation
+                leaves additionally stamp policy_id+version and the tripped rule.
+            - uuid: ba0d6d36-2289-410f-9a6c-06fee4057361
+              control-id: au-9   # protection of audit information  [LIVE VALIDATION #1]
+              description: >-
+                Hash-chain integrity: SHA-256 prev-hash chain + Merkle root over all leaves.
+                Live Lula validation asserts the emitted proof bundle carries a well-formed
+                64-hex chain head + Merkle root and the tamper-evident honesty flag. Full
+                re-hash walk is the offline verifier (`python -m referee.demo --verify`;
+                forceai-verify at the event) — tamper flips one byte, chain SNAPS at that leaf.
+              links:
+                - href: '#297ebac2-fc55-4939-b1d0-674585f36c89'
+                  rel: lula
+                  text: au9-proof-bundle-integrity
+            - uuid: a95b002f-a77c-438d-a238-650f9c929cde
+              control-id: au-10  # non-repudiation  [LIVE at event: Ed25519 ledger via retained wheels]
+              description: >-
+                Production ledger signs each leaf (Ed25519, Force OS audit_ledger — arrives via
+                retained-IP wheels at the event); the reference chain in this repo demonstrates
+                the same append/verify seam without signatures. Mapped row until event wiring.
+            - uuid: 61b4854a-62ad-4892-a4d8-e7d0661ae059
+              control-id: si-7   # software & information integrity
+              description: >-
+                Merkle root binds the session record; RFC-3161 timestamp field present in the
+                proof bundle (null in reference spine; flips live for demo day). Verify is
+                offline and third-party-buildable.
+            - uuid: cbdfb785-3f14-4e31-a2ee-ab22b5246f3a
+              control-id: ac-6   # least privilege
+              description: >-
+                Read-only surfaces; ingest socket isolated. In the Zarf deploy the smoke runs as
+                non-root (runAsUser 65534, no privilege escalation, all capabilities dropped),
+                source mounts read-only; UDS/Pepr policies apply at deploy when bundled over uds-core.
+            - uuid: ec8f7bd9-ee8a-401b-9cec-5593d4665ff1
+              control-id: cm-3   # configuration change control  [LIVE VALIDATION #2]
+              description: >-
+                Authorized-parameters policy is a versioned fixture (policy_id + version +
+                explicit fail_mode); policy_id+version stamped on every violation leaf
+                (referee/policy.py). Live Lula validation asserts the policy fixture is
+                versioned and identified.
+              links:
+                - href: '#563aa341-5013-421c-9daf-ba8b5cb22e1b'
+                  rel: lula
+                  text: cm3-policy-versioned
+            - uuid: 7a5b6196-cc95-4ee5-8334-759e4faf9876
+              control-id: ca-7   # continuous monitoring
+              description: >-
+                Scorecard/drift evaluation runs over the live feed; accreditation_status never
+                exceeds EVIDENCE_LOGGED (honesty register: building to CMMC L2, audit pending;
+                never CERTIFIED).
+  back-matter:
+    resources:
+      # Validations embedded in `description` (this lula build does not resolve rlinks);
+      # standalone copies for `lula dev validate` live in lula/validations/.
+      - uuid: 297ebac2-fc55-4939-b1d0-674585f36c89
+        title: au9-proof-bundle-integrity
+        description: |
+          metadata:
+            name: au9-proof-bundle-integrity
+            uuid: c04902b5-da4e-4e85-9936-93f5850662d7
+          domain:
+            type: file
+            file-spec:
+              filepaths:
+                - name: bundle
+                  path: ../out/bundle.json
+          provider:
+            type: opa
+            opa-spec:
+              rego: |
+                package validate
+                import rego.v1
+
+                default validate := false
+
+                hex64(s) if {
+                  count(s) == 64
+                  regex.match(`^[0-9a-f]{64}$`, s)
+                }
+
+                validate if {
+                  startswith(input.bundle.bundle_kind, "referee-proof-bundle/")
+                  input.bundle.leaf_count > 0
+                  hex64(input.bundle.chain_head)
+                  hex64(input.bundle.merkle_root)
+                  input.bundle.tamper_evident_not_tamper_proof == true
+                }
+              output:
+                validation: validate.validate
+      - uuid: 563aa341-5013-421c-9daf-ba8b5cb22e1b
+        title: cm3-policy-versioned
+        description: |
+          metadata:
+            name: cm3-policy-versioned
+            uuid: a980248a-0f25-40f3-b307-814782c68e8f
+          domain:
+            type: file
+            file-spec:
+              filepaths:
+                - name: policy
+                  path: ../fixtures/policy_cannonico.json
+          provider:
+            type: opa
+            opa-spec:
+              rego: |
+                package validate
+                import rego.v1
+
+                default validate := false
+
+                validate if {
+                  count(input.policy.policy_id) > 0
+                  count(input.policy.version) > 0
+                  input.policy.fail_mode in {"closed", "open"}
+                }
+              output:
+                validation: validate.validate

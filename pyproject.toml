@@ -1,0 +1,10 @@
+[project]
+name = "referee"
+version = "0.1.0"
+description = "THE REFEREE — independent AI assurance & accountability for the multi-vendor mission (Warhacker event scaffold)"
+requires-python = ">=3.10"
+license = { text = "AGPL-3.0-only" }
+dependencies = []  # stdlib-only by design; production capability arrives via retained-IP wheels at the event
+
+[tool.setuptools]
+packages = ["referee", "cot"]

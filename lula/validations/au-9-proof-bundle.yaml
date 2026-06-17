@@ -1,0 +1,39 @@
+# Lula validation — AU-9 (protection of audit information)  [LIVE VALIDATION #1]
+# Asserts the emitted proof bundle (out/bundle.json) carries a well-formed,
+# non-empty hash-chain head + Merkle root and the honesty flag.
+# The full re-hash walk is `python -m referee.demo --verify` (offline) /
+# forceai-verify at the event — this validation checks the bundle artifact itself.
+# Run standalone:  lula dev validate -f lula/validations/au-9-proof-bundle.yaml
+#                  (from repo root, after `make smoke`)
+metadata:
+  name: au9-proof-bundle-integrity
+  uuid: c04902b5-da4e-4e85-9936-93f5850662d7
+domain:
+  type: file
+  file-spec:
+    filepaths:
+      - name: bundle
+        path: ../../out/bundle.json   # relative to this file: repo/out/bundle.json
+provider:
+  type: opa
+  opa-spec:
+    rego: |
+      package validate
+      import rego.v1
+
+      default validate := false
+
+      hex64(s) if {
+        count(s) == 64
+        regex.match(`^[0-9a-f]{64}$`, s)
+      }
+
+      validate if {
+        startswith(input.bundle.bundle_kind, "referee-proof-bundle/")
+        input.bundle.leaf_count > 0
+        hex64(input.bundle.chain_head)
+        hex64(input.bundle.merkle_root)
+        input.bundle.tamper_evident_not_tamper_proof == true
+      }
+    output:
+      validation: validate.validate

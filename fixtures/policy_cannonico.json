@@ -1,0 +1,14 @@
+{
+  "policy_id": "cannonico-uas-oversight-001",
+  "version": "1.0",
+  "applies_to": "vendor:any",
+  "geofence": {"lat_min": 32.55, "lat_max": 32.95, "lon_min": -117.45, "lon_max": -116.95},
+  "confidence_floor": 0.70,
+  "latency_sla_ms": 2000,
+  "classification_ceiling": "UNCLASSIFIED",
+  "ddil_profiles_allowed": ["nominal", "satcom_denied", "tactical_edge"],
+  "forbidden_classes": ["school", "hospital", "ambulance", "civilian_vehicle"],
+  "forbidden_decision_types": ["strike_recommendation"],
+  "require_provenance": true,
+  "fail_mode": "closed"
+}

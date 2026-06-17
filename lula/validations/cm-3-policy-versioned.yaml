@@ -1,0 +1,30 @@
+# Lula validation — CM-3 (configuration change control)  [LIVE VALIDATION #2]
+# Asserts the authorized-parameters policy fixture is versioned and identified:
+# policy_id + version present (these are stamped on every violation leaf by
+# referee/policy.py), and fail_mode is explicit.
+# Run standalone:  lula dev validate -f lula/validations/cm-3-policy-versioned.yaml
+metadata:
+  name: cm3-policy-versioned
+  uuid: a980248a-0f25-40f3-b307-814782c68e8f
+domain:
+  type: file
+  file-spec:
+    filepaths:
+      - name: policy
+        path: ../../fixtures/policy_cannonico.json   # relative to this file
+provider:
+  type: opa
+  opa-spec:
+    rego: |
+      package validate
+      import rego.v1
+
+      default validate := false
+
+      validate if {
+        count(input.policy.policy_id) > 0
+        count(input.policy.version) > 0
+        input.policy.fail_mode in {"closed", "open"}
+      }
+    output:
+      validation: validate.validate

@@ -1,0 +1,17 @@
+# UDS bundle — THE REFEREE (spec §9)
+# Create : zarf package create zarf/ -o zarf/dist --confirm   (package first)
+#          uds create zarf/ -o zarf/dist --confirm
+# Deploy : uds deploy zarf/dist/uds-bundle-referee-*.tar.zst --confirm
+#
+# Standalone bundle for the package-only walkthrough (cut-line #4 fallback).
+# For the full UDS story, prepend uds-core slim-dev (k3d local) or full core
+# (cloud/edge) to `packages:` — kept out here to keep the demo light.
+kind: UDSBundle
+metadata:
+  name: referee
+  description: "THE REFEREE — airgap-deployable assurance & accountability bundle"
+  version: 0.1.0
+packages:
+  - name: referee
+    path: dist
+    ref: 0.1.0
