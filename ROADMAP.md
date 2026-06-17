@@ -4,7 +4,7 @@
 **Mission:** the self-controlled ship brain — onboard analytics + edge model-delivery under DDIL, decision-support with human-in-command, on big surface combatants (DDG/CG). Real on real, every decision sealed in a tamper-evident record.
 
 ## Hardware we have (real)
-- **2× Raspberry Pi 5, 4GB** — Tier-2 system-component nodes. Maps to **2 organs**: **Pi-1 = MACHINERY** (CBM) · **Pi-2 = CONTACTS** (AIS PoL). On Tailscale (William).
+- **2× Raspberry Pi 5, 4GB** — Tier-2 nodes. **Pi-1 = MACHINERY** (CBM, 500GB SSD) · **Pi-2 = CONTACTS** (AIS PoL, 1TB SSD). On Tailscale (William). **Disk is ample → RAM (4GB) is the only constraint** (store big, but inference RAM-bound). Tommy has a container built on a Pi.
 - **Gigabyte Ryzen, 32GB** — local on-prem **Tier-1** node (MLflow central server + heavier compute + retrain). The "ship data center" stand-in.
 - **NVIDIA Blackwell cloud** — **Tier-1 GPU** (Triton-TRT-LLM explainer; the heaviest reasoning).
 - 4GB/Pi ⇒ small models on the edge (CBM ✓, AIS PoL ✓, GGUF ≤~1.5B Q4). Heavy reasoning on Tier-1 (Ryzen/Blackwell). Architecture: `docs/architecture/COMPUTE_TIERS.md`.
@@ -52,6 +52,7 @@
 ---
 
 ## Update log (newest on top)
+- **Jun 17 (pm)** — Hardware detail: pi1 500GB SSD / pi2 1TB SSD → **disk ample, RAM (4GB) is the only constraint**. Tommy built a container on a Pi (arm64 path works). GitHub repo access being granted to the team (per-repo collaborators on `theseus` only — founder action).
 - **Jun 17 (pm)** — **Frontend data contract shipped** (`demo/api.py` → `/api/state`, JSON, CORS) so Gerardo (Frontend) + Aaron (Data+Frontend) build the UI against the sealed record. Roles updated from team self-report: Carolina=IL6+SW versions, Thang=Pi Dockerfile, Josh=scaffolding, Nick=train-on-JSON+MLflow, William=Pis/Tailscale, Gerardo=Frontend, Aaron=Data+Frontend.
 - **Jun 17 (pm)** — **`deploy/` tree landed + verified:** Containerfile builds + runs hardened (real data, verify PASS), DDIL beat runs, Pepr policy compiles, YAML valid. Added **Gigabyte Ryzen 32GB** as local Tier-1. **Team active:** Carolina=IL6 baseline+SW versions, Thang=Pi analytics Dockerfile, William=Pis+Tailscale, Juan=Tailscale integration, Nick=MLflow. *(SSH to the Pis/Ryzen: I can't authenticate with passwords — see chat; key-based or team-run.)*
 - **Jun 17** — Hardware confirmed: **2× Pi 5 4GB** (Tier-2, 2 organs) + Blackwell (Tier-1). Master roadmap created. Watchstander board + two-tier architecture + vLLM/FIPS verdict shipped. UDS packaging workflow landing.
