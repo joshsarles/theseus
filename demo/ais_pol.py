@@ -94,11 +94,13 @@ def detect(tracks, envelope):
             continue
         fixes.sort()
         b = fixes[0][5]
-        sogs = [f[3] for f in fixes]
+        sogs = [f[3] for f in fixes if f[3] < 102.2]   # drop AIS "not available" (1023→102.3) sentinel (THESEUS bug fix: was false overspeed)
+        if not sogs:
+            continue
         span_h = (fixes[-1][0] - fixes[0][0]) / 3600
         # --- loiter: a vessel that DEMONSTRABLY transited (>3kn) then sat near-zero ---
-        # require real movement first, else we just flag berthed ships with bad status (false alarms)
-        if span_h >= 1.0 and max(sogs) > 3.0:
+        # require real movement first; skip types that legitimately dwell (ferries, fishing) → fewer false alarms
+        if span_h >= 1.0 and max(sogs) > 3.0 and b not in ("passenger", "fishing"):
             still = sum(1 for f in fixes if f[3] < 0.5 and f[4] == 0)   # f[4]==0 underway (excl. at-anchor)
             frac = still / len(fixes)
             if 0.6 < frac < 0.95 and still >= 20:  # tuned (THESEUS): higher floor + absolute dwell gate → fewer nuisance alerts
