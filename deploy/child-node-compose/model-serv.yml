@@ -1,44 +1,70 @@
-services:
-  # Resolves the remote MLflow tracking server as a host alias
-  # so containers can reach it by name instead of raw IP.
-  mlflow-remote:
-    image: alpine:3
-    container_name: mlflow-remote-proxy
-    command: ["sh", "-c", "echo 'mlflow-remote alias running'; sleep infinity"]
-    extra_hosts:
-      - "mlflow-server:${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}"
-    networks:
-      - model-net
+# THESEUS child (edge / ship) node — model serving.
+# =============================================================================
+# Runs the REAL Theseus edge inference server (serve/model_server.py) on the
+# child node: CPU-only, RAM-light, fits a Raspberry Pi 5 (4GB). It serves the
+# promoted CBM gas-turbine model from demo/models/current/ and accepts shore→ship
+# hot-swaps (POST /reload), sealing each swap into the tamper-evident record.
+#
+# NO GPU. There is no `runtime: nvidia` / `deploy.resources.devices` here on
+# purpose — this is a CPU-only inference node.
+#
+# Run (from the REPO ROOT so the build context sees serve/ demo/ referee/):
+#   cd <repo-root>
+#   docker compose -f deploy/child-node-compose/model-serv.yml --env-file deploy/child-node-compose/.env up --build
+#   curl http://localhost:8080/health
+#   curl http://localhost:8080/version
+#   # deliver a freshly-promoted model from shore (Tier-1) -> hot-swap the edge:
+#   python3 serve/deliver.py promote-and-deliver --edge http://localhost:8080
+#
+# MLFLOW_SERVER_HOST / _PORT point at the central MLflow tracking server
+# (deploy/mlflow-compose/). It is OPTIONAL for serving — the edge serves fully
+# offline from demo/models/current/. It is used by the shore-side retrain step
+# (demo/retrain.py logs to MLflow when MLFLOW_TRACKING_URI is set).
+# =============================================================================
 
-  # Example: vLLM model server. Swap image/command for Ollama, TGI, etc.
+services:
   model-server:
-    image: vllm/vllm-openai:latest
-    container_name: model-server
+    build:
+      # Build context = repo root (two levels up), so serve/ demo/ referee/ resolve.
+      context: ../..
+      dockerfile: serve/Dockerfile
+    image: theseus-serve:0.1.0
+    container_name: theseus-model-server
     restart: unless-stopped
-    runtime: nvidia           # remove if not using GPU
+    # CPU-only edge box; cap memory so it stays inside a 4GB Pi's budget.
+    mem_limit: 1g
+    cpus: "2.0"
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
-      # Point experiment tracking at the remote MLflow server
-      MLFLOW_TRACKING_URI: http://${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}:${MLFLOW_SERVER_PORT:-5000}
-      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-default}
-      # Model config
-      MODEL_NAME: ${MODEL_NAME:-meta-llama/Llama-3-8b-instruct}
+      EDGE_HOST: 0.0.0.0
+      EDGE_PORT: "8080"
+      # The live model slot + the tamper-evident record (mounted below).
+      MODEL_DIR: /models/current
+      RECORD_DIR: /record
+      # Central MLflow tracking server (optional; used by the shore retrain step).
+      # Resolves the host alias `mlflow-server` to the configured IP (extra_hosts).
+      MLFLOW_TRACKING_URI: http://mlflow-server:${MLFLOW_SERVER_PORT:-5000}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-theseus-cbm}
     volumes:
-      - model_cache:/root/.cache/huggingface
-    command: >
-      --model ${MODEL_NAME:-meta-llama/Llama-3-8b-instruct}
-      --host 0.0.0.0
-      --port 8000
+      # The promoted model the loop maintains (read-only on the edge — only /reload
+      # changes it, via a delivered bundle the server validates first).
+      - ../../demo/models:/models:ro
+      # The tamper-evident record: read-write so swaps seal an edge_model_loaded leaf.
+      - ../../demo/out/record:/record
     extra_hosts:
-      # Gives this container direct access to the remote MLflow host by name
-      - "mlflow-server:${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set}"
+      # Reach the central MLflow host by name instead of a raw IP.
+      - "mlflow-server:${MLFLOW_SERVER_HOST:?MLFLOW_SERVER_HOST must be set in .env}"
     networks:
       - model-net
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 networks:
   model-net:
     driver: bridge
-
-volumes:
-  model_cache:
