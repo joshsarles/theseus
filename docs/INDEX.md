@@ -12,6 +12,7 @@
 
 ## Setup / runbooks
 - **`setup/MLFLOW_PODMAN.md`** — run the MLflow central server on Podman; offline/airgap staging; how it maps to the objectives.
+- **`setup/PI_NODES.md`** — stand up the 2× Pi 5 4GB Tier-2 nodes (Pi-1 machinery, Pi-2 contacts); DDIL beat; 4GB gotchas.
 
 ## Research
 - **`research/sbir/NAVSEA_SBIR_TOPICS.md`** — the demand signal: NV063 (lead) + NV061, SOTA, SBIR mechanics, combat-system integration reality (SSDS/Aegis/ICS).

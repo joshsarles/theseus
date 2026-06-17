@@ -29,7 +29,7 @@
 
 ### Phase 1 — Warhacker demo (Jun 16–19) 🔵 IN PROGRESS
 - [x] Two-tier architecture defined (ship GPU brain + 2-Pi components; Blackwell emulation).
-- [ ] **Tier-2 on the 2 Pis:** flash 2× Pi 5 4GB (Pi OS 64-bit) + Podman + Python 3.14; Pi-1 runs `update_model.py` (machinery), Pi-2 runs `ais_pol.py` (contacts). *(William)*
+- [ ] **Tier-2 on the 2 Pis:** flash 2× Pi 5 4GB (Pi OS 64-bit) + Podman + Python 3.14; Pi-1 runs `update_model.py` (machinery), Pi-2 runs `ais_pol.py` (contacts). *(William)* → runbook ready: `docs/setup/PI_NODES.md`
 - [ ] **Tier-1 on Blackwell:** MLflow central server + retrain + (optional) Triton-TRT-LLM explainer; emulates the ship data center. *(Tommy + WARHACKER)*
 - [ ] **UDS/Podman packaging** — Containerfile + Zarf package + UDS bundle + Pepr human-in-command policy. *(WARHACKER — in flight)*
 - [ ] **DDIL beat** — cut shore: both Pis keep serving last-good, record holds, rollback works. *(WARHACKER)*
