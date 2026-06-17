@@ -28,6 +28,16 @@ bash demo/run.sh && python3 demo/ais_pol.py && python3 demo/show.py
 ```
 Renders the human-in-command surface from what's sealed in the record: machinery (CBM) model health, flagged contacts as **RECOMMEND → ACCEPT/OVERRIDE** cards (why + recommended action), and record integrity (verify PASS). *Theseus recommends; the watch officer decides; nothing is actioned automatically* — the rails, made visible. This is the demo's closing view.
 
+## The frontend data contract — `api.py` (for Gerardo + Aaron)
+```bash
+python3 demo/api.py            # http://localhost:8077  (CORS *, read-only, stdlib)
+```
+Serves the ship-state board as JSON straight from the sealed record — the UI fetches it:
+- `GET /api/state` → `{ machinery:{version,rmse,framework,status}, contacts:[{mmsi,type,vessel_class,confidence,why,recommended_action,status}], human_in_command:{pending,note}, record:{verify_ok,leaf_count,merkle,events} }`
+- `GET /api/contacts` → just the recommendation cards · `GET /api/health` → liveness + record-verifies.
+
+The **UI is the frontend lane**; this is the **data backend** it builds against. Keys are stable — build on them. (Same data `demo/show.py` renders in the terminal.)
+
 ## The three contracts (so every lane plugs in without colliding)
 1. **Data** — `stage_data.py` writes `demo/data/staged.csv` (last column = target `gt_compressor_decay`). Swap in ship HM&E telemetry or a live SDR AIS capture; keep the CSV shape.
 2. **Model** — `retrain.py` registers `theseus-cbm/v{N}` (local registry + MLflow). The edge pulls the latest.

@@ -24,13 +24,13 @@
 | **WARHACKER** (Force AI agent) | Orchestration · the build (`demo/` + `deploy/`) · record/trust · DU integration |
 | **William Emeny** | Edge / Pi cluster + SDR rig |
 | **Thang (Tommy) Do** | Build / MLOps (MLflow + model pipeline) |
-| **Nick Bernstein** | Build / models (flagged the edge-model VRAM constraint) |
-| **Carolina Hatch** | MLOps config / PM (KanBan, versions, CVE hygiene) |
-| **Juan Pineda** | MLOps config / PM (MLflow-in-container architecture) |
-| **Gerardo Cano** | *open — suggest data/ingest or demo UI* |
-| **Savannah Rodriguez** | *open — suggest eval/labeling (OMTAD) or demo UI* |
-| **Aaron Jaeger** | *open — suggest deploy/Podman or data* |
-| **Josh Sarles** | Founder / direction |
+| **Nick Bernstein** | Models — training on JSON files + MLflow |
+| **Carolina Hatch** | Security — IL6 baseline requirements + SW versions |
+| **Juan Pineda** | Networking/MLOps — Tailscale integration + MLflow-in-container |
+| **Gerardo Cano** | **Frontend** — fetches the state API (`demo/api.py` → `/api/state`) |
+| **Aaron Jaeger** | **Data + Frontend** — data prep + UI |
+| **Savannah Rodriguez** | *open — suggest eval/labeling (OMTAD)* |
+| **Josh Sarles** | Founder / direction — system scaffolding |
 
 *Plus the **THESEUS** agent on the data/research lane (datasets, NV061, ingest, eval). Three people are open for a lane — fits noted; they can claim any Backlog card on `../KANBAN.md`.*
 

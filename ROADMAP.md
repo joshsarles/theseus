@@ -52,6 +52,7 @@
 ---
 
 ## Update log (newest on top)
+- **Jun 17 (pm)** — **Frontend data contract shipped** (`demo/api.py` → `/api/state`, JSON, CORS) so Gerardo (Frontend) + Aaron (Data+Frontend) build the UI against the sealed record. Roles updated from team self-report: Carolina=IL6+SW versions, Thang=Pi Dockerfile, Josh=scaffolding, Nick=train-on-JSON+MLflow, William=Pis/Tailscale, Gerardo=Frontend, Aaron=Data+Frontend.
 - **Jun 17 (pm)** — **`deploy/` tree landed + verified:** Containerfile builds + runs hardened (real data, verify PASS), DDIL beat runs, Pepr policy compiles, YAML valid. Added **Gigabyte Ryzen 32GB** as local Tier-1. **Team active:** Carolina=IL6 baseline+SW versions, Thang=Pi analytics Dockerfile, William=Pis+Tailscale, Juan=Tailscale integration, Nick=MLflow. *(SSH to the Pis/Ryzen: I can't authenticate with passwords — see chat; key-based or team-run.)*
 - **Jun 17** — Hardware confirmed: **2× Pi 5 4GB** (Tier-2, 2 organs) + Blackwell (Tier-1). Master roadmap created. Watchstander board + two-tier architecture + vLLM/FIPS verdict shipped. UDS packaging workflow landing.
 - **Jun 17** — Demo is a runnable 3-step story (loop + AIS PoL + board) on real data; THESEUS lanes assigned; datasets pulled.
