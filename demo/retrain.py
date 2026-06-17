@@ -27,18 +27,40 @@ TARGET = "gt_compressor_decay"
 
 
 # Columns that are labels/targets, never features (avoid leakage).
-_NON_FEATURES = {TARGET, "gt_turbine_decay"}
+# Secondary label columns to never use as features (leakage). gt_turbine_decay is
+# UCI #316's other target; harmless to list for datasets that don't have it.
+_EXTRA_DROP = {"gt_turbine_decay"}
 
 
-def _load_xy() -> tuple[list[list[float]], list[float], list[str]]:
+def _resolve_target(cli: str | None) -> str:
+    """Target column: --target wins, else the .target sidecar stage_data writes
+    (= the last CSV column, per the data contract), else the CBM default."""
+    if cli:
+        return cli
+    sidecar = STAGED.parent / ".target"
+    if sidecar.exists() and sidecar.read_text().strip():
+        return sidecar.read_text().strip()
+    return TARGET
+
+
+def _load_xy(target: str) -> tuple[list[list[float]], list[float], list[str]]:
     import random
     rows = list(csv.DictReader(STAGED.open()))
-    random.Random(316).shuffle(rows)  # UCI #316 is ordered by decay — shuffle for a sane split
-    feats = [c for c in rows[0].keys() if c not in _NON_FEATURES]
-    # drop constant columns (some UCI #316 features are constant) — they break OLS
-    feats = [c for c in feats if len({r[c] for r in rows}) > 1]
+    if not rows or target not in rows[0]:
+        raise SystemExit(f"target '{target}' not in staged data (cols: {list(rows[0])[:8] if rows else []})")
+    random.Random(316).shuffle(rows)  # data may be ordered — shuffle for a sane split
+    feats: list[str] = []
+    for c in rows[0].keys():
+        if c == target or c in _EXTRA_DROP:
+            continue
+        try:
+            vals = [float(r[c]) for r in rows]   # numeric-only features
+        except ValueError:
+            continue                              # skip id/timestamp/string columns
+        if len(set(vals)) > 1:                    # drop constants (break OLS)
+            feats.append(c)
     X = [[float(r[c]) for c in feats] for r in rows]
-    y = [float(r[TARGET]) for r in rows]
+    y = [float(r[target]) for r in rows]
     return X, y, feats
 
 
@@ -78,11 +100,16 @@ def _next_version() -> int:
 
 
 def main() -> int:
-    print("THESEUS demo · STEP 2 — Retrain")
+    import argparse
+    ap = argparse.ArgumentParser(description="Retrain + register the model on the staged data.")
+    ap.add_argument("--target", help="target column (default: demo/data/.target sidecar = last column, else gt_compressor_decay)")
+    a = ap.parse_args()
+    target = _resolve_target(a.target)
+    print(f"THESEUS demo · STEP 2 — Retrain (target: {target})")
     if not STAGED.exists():
         print("  no staged data — run stage_data.py first")
         return 1
-    X, y, feats = _load_xy()
+    X, y, feats = _load_xy(target)
     cut = int(len(X) * 0.8)
     Xtr, ytr, Xte, yte = X[:cut], y[:cut], X[cut:], y[cut:]
 
@@ -110,7 +137,7 @@ def main() -> int:
     model_sha = hashlib.sha256(blob).hexdigest()
     meta = {
         "name": "theseus-cbm", "version": version, "framework": framework,
-        "target": TARGET, "features": feats, "rmse": round(rmse, 6),
+        "target": target, "features": feats, "rmse": round(rmse, 6),
         "n_train": len(Xtr), "n_test": len(Xte), "model_sha256": model_sha,
         "trained_unix": time.time(),
     }

@@ -99,9 +99,11 @@ def main() -> int:
         shutil.copyfile(src, STAGED)
         sha = hashlib.sha256(STAGED.read_bytes()).hexdigest()
         n = sum(1 for _ in STAGED.open()) - 1
+        tgt = next(csv.reader(STAGED.open()))[-1]       # contract: last column = target
+        (DATA / ".target").write_text(tgt)
         seal(RECORD, "data_staged", "staged.csv",
-             {"source": f"ingest:{src.name}", "rows": n, "sha256": sha})
-        print(f"  staged from {src} · rows={n} · sha256={sha[:12]}…")
+             {"source": f"ingest:{src.name}", "rows": n, "sha256": sha, "target": tgt})
+        print(f"  staged from {src} · rows={n} · target={tgt} · sha256={sha[:12]}…")
         return 0
 
     rows = _fetch_real()
@@ -112,9 +114,11 @@ def main() -> int:
             data_bytes = STAGED.read_bytes()
             sha = hashlib.sha256(data_bytes).hexdigest()
             n = sum(1 for _ in io.StringIO(data_bytes.decode())) - 1
+            tgt = next(csv.reader(io.StringIO(data_bytes.decode())))[-1]
+            (DATA / ".target").write_text(tgt)
             seal(RECORD, "data_staged", "staged.csv",
-                 {"source": "cache", "rows": n, "sha256": sha, "target": TARGET})
-            print(f"  sealed data_staged · rows={n} · sha256={sha[:12]}…")
+                 {"source": "cache", "rows": n, "sha256": sha, "target": tgt})
+            print(f"  sealed data_staged · rows={n} · target={tgt} · sha256={sha[:12]}…")
             return 0
         print("  ⚠ PLACEHOLDER DATA (offline + no cache) — NOT REAL.")
         print("    Run online once with `pip install ucimlrepo` to cache real UCI #316.")
@@ -127,10 +131,11 @@ def main() -> int:
         w.writeheader()
         w.writerows(rows)
     sha = hashlib.sha256(STAGED.read_bytes()).hexdigest()
+    (DATA / ".target").write_text(fields[-1])
     seal(RECORD, "data_staged", "staged.csv",
-         {"source": source, "rows": len(rows), "features": fields, "sha256": sha, "target": TARGET})
+         {"source": source, "rows": len(rows), "features": fields, "sha256": sha, "target": fields[-1]})
     print(f"  source: {source}")
-    print(f"  staged {len(rows)} rows -> {STAGED.relative_to(HERE.parent)}")
+    print(f"  staged {len(rows)} rows -> {STAGED.relative_to(HERE.parent)} · target={fields[-1]}")
     print(f"  sealed data_staged · sha256={sha[:12]}…")
     return 0
 

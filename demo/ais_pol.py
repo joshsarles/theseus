@@ -136,6 +136,7 @@ def main() -> int:
     ap.add_argument("--rows", type=int, default=1_500_000)
     ap.add_argument("--box", default="")  # minlat,maxlat,minlon,maxlon
     ap.add_argument("--csv", default=str(DEFAULT_CSV))
+    ap.add_argument("--predictions", help="also write eval predictions.csv (track_id,is_anomaly,score,kind) for eval/score.py")
     a = ap.parse_args()
     box = tuple(float(x) for x in a.box.split(",")) if a.box else None
 
@@ -164,6 +165,21 @@ def main() -> int:
              {"mmsi": mmsi, "type": kind, "vessel_class": b, "confidence": conf,
               "why": why, "recommended_action": action})
     print(f"  sealed baseline + {min(len(alerts),50)} alerts into the record")
+
+    # eval contract (THESEUS eval/score.py): one row per flagged track, deduped by MMSI.
+    if a.predictions:
+        seen: dict = {}
+        for mmsi, kind, b, conf, why, action in alerts:
+            if mmsi not in seen or conf > seen[mmsi][0]:
+                seen[mmsi] = (conf, kind)
+        pp = Path(a.predictions)
+        pp.parent.mkdir(parents=True, exist_ok=True)
+        with pp.open("w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["track_id", "is_anomaly", "score", "kind"])
+            for mmsi, (conf, kind) in seen.items():
+                w.writerow([mmsi, 1, conf, kind])
+        print(f"  wrote {len(seen)} predictions -> {pp}  (score: python3 eval/score.py --pred {pp} --labels <omtad>)")
 
     print("\n  sample explainable alerts (what a watchstander sees):")
     for mmsi, kind, b, conf, why, action in alerts[:6]:
