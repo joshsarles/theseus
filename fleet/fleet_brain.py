@@ -353,6 +353,23 @@ def run_merge(
             },
         )
         report["outcome"] = "accepted"
+        # Node 3: register the accepted merged model in the MLflow fleet registry (the
+        # "coordinate via MLflow" loop, UUV_FLEET_ARCHITECTURE §1). MLflow-OPTIONAL — a no-op
+        # that leaves fleet_model.json as the source of truth if the Node-3 server is down;
+        # MODEL-AGNOSTIC — Claire's UUV model registers as theseus-uuv the same way.
+        try:
+            from fleet import mlflow_registry
+            model_out = FLEET_DIR / "out" / "fleet_model.json"
+            model_out.parent.mkdir(parents=True, exist_ok=True)
+            model_out.write_text(json.dumps(merged_params))
+            report["mlflow_registered"] = mlflow_registry.log_fleet_round(
+                {"incumbent_rmse": report["incumbent_rmse"], "merged_rmse": report["merged_rmse"],
+                 "rmse_delta": report["rmse_delta"], "accepted_n": len(report["accepted_ships"])},
+                model_out, run_name="fleet-merge")
+            if verbose and report["mlflow_registered"]:
+                print(f"  {DIM}registered merged model in the MLflow fleet registry (theseus-uuv){END}")
+        except Exception:
+            report["mlflow_registered"] = False
     else:
         if verbose:
             print(f"\n  {RED}EVAL GATE: FAIL{END} — merged model regresses. Rolling back to incumbent.")

@@ -17,7 +17,7 @@ ALLOWED_ROOTS = (
     "fleet/",  # fleet-learning miniature (provenance-gated federated merge)
     "analytics/",  # team analytics container (Tommy/Juan)
     "train.py", "inspect_data.py", "docker-compose.yml", "requirements.txt",  # team root files (Nick/Juan)
-    "Makefile", "README.md", "CONTRIBUTING.md",
+    "Makefile", "README.md", "CONTRIBUTING.md", "CLAUDE.md", "AGENTS.md",
     "KANBAN.md", "ROADMAP.md", "pyproject.toml", ".gitignore", "LICENSE",
 )
 
