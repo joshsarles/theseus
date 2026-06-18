@@ -149,7 +149,7 @@ python3 models/nv063/pi_bench.py            # inference-only Pi-5-4GB footprint
 on the full 11,773-track MarineCadastre pool (curated-schema features; the analyst-curated n=50
 excluded from the fit; `contamination=0.06` a-priori, NOT tuned on test). On the curated n=50 (9 pos):
 - IForest: **P0.556 R0.556 F1 0.556 FAR 0.098 · ROC-AUC 0.802 PR-AUC 0.685**
-- `ais_pol` rules baseline: P0.571 **R0.889** F1 0.696 FAR 0.146
+- `ais_pol` rules baseline (post-fix, reproducible): **P0.692 R1.0 F1 0.818 FAR 0.098**
 
 Read it straight: the off-the-shelf ML matches precision with lower false-alarm, but **the domain
 rules win recall** (the watch-relevant axis). ROC-AUC 0.80 = good separability → it's an

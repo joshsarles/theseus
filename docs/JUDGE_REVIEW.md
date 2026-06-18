@@ -60,7 +60,7 @@ cd frontend/ui && npm install && npm run dev   # → http://localhost:5173  (API
 
 ## What's real vs. in-flight (we say it out loud)
 - **Real + verified (in this repo, on `main`):** the signed record, the fleet-learning flywheel (on synthetic data — poison rejected, eval-gate, verifies), the DDIL edge loop, the airgap **Zarf** deploy (Zarf bundle + SBOM + cosign + live Pepr admission) + the OSCAL emit path, ONNX edge inference (fits a 4 GB Pi), the digital-twin UI, 21 tests. *(In-flight: full UDS Core — Istio/Keycloak — + complete Lula control-validation; UUV twin geometry.)*
-- **The contact-detection number (NV063, AIS Pattern-of-Life):** precision **0.57** / recall **0.89** / false-alarm **0.15** / F1 **0.70** on an analyst-labeled set of **n=50** — an honest early number, not a leaderboard claim. Code: `demo/ais_pol.py`, eval in `eval/`.
+- **The contact-detection number (NV063, AIS Pattern-of-Life):** precision **0.69** / recall **1.0** / false-alarm **0.10** / F1 **0.82** on an analyst-labeled set of **n=50** (anomaly-enriched; pending SME validation) — an honest early number, not a leaderboard claim. **Reproduce it:** `python3 eval/score.py --pred eval/out/ais_pol_preds.csv --labels eval/curated_labels.csv` (predictions committed). Code: `demo/ais_pol.py`, eval in `eval/`.
 - **In-flight (the team's last-day lanes):** the real **UUV-shaped** dataset + a **sequence-autoencoder** model on it (registers in MLflow as `theseus-uuv`); the live **MLflow** server on Node 3; the 2 Raspberry Pis as live UUV nodes. *The flywheel runs today on the miniature; these make it the full hardware loop.*
 
 ## The data-honesty fork (important — and we keep it honest)

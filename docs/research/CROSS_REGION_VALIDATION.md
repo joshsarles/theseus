@@ -257,11 +257,11 @@ The honest limitation above is now FIXED in `demo/ais_pol.py`: a position_jump m
 
 **Curated NV063 eval (50 analyst-labeled tracks):**
 
-| | pre-fix (stale) | post-fix (honest) |
+| | pre-fix (stale) | post-fix (honest, reproducible) |
 |---|---:|---:|
-| precision | 0.36 | **0.57** |
-| recall | 1.00 | 0.89 |
-| F1 | 0.53 | **0.70** |
-| false-alarm rate | 0.39 | **0.15** |
+| precision | 0.36 | **0.69** |
+| recall | 1.00 | **1.00** |
+| F1 | 0.53 | **0.82** |
+| false-alarm rate | 0.39 | **0.10** |
 
-Halved the false-alarm rate and lifted F1, at the cost of one borderline <0.5 nm detection. 21/21 tests pass; records verify PASS.
+Cut the false-alarm rate by ~75% (16→4 FP) and lifted F1 to 0.82 while keeping recall at 1.0 (all 9 TPs caught). Reproducible: committed `eval/out/ais_pol_preds.csv` scored against `eval/curated_labels.csv` → `eval/out/curated_metrics.json`. 21/21 tests pass; records verify PASS.

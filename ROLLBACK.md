@@ -8,7 +8,7 @@
 - **Rollback tag:** **`event-baseline`** → commit **`41afc03`** (pushed to origin/main).
 - **What it is:** the verified, working **one-ship THESEUS demo** — judge self-audit **6.9/10**. All real, on real data:
   - `bash demo/run.sh` — Stage→Retrain→Update loop (real UCI #316, RMSE 0.0038), sealed.
-  - `demo/ais_pol.py` — cold-start AIS Pattern-of-Life (NV063), cross-region validated, honest eval 0.57/0.70/0.15.
+  - `demo/ais_pol.py` — cold-start AIS Pattern-of-Life (NV063), cross-region validated, honest eval 0.69/0.82/0.10 (n=50, reproducible).
   - `frontend/ui` (:5173) — the CIC dashboard (record-as-spine, live ACCEPT/OVERRIDE seal).
   - Real airgap **UDS deploy** (Zarf signed pkg + SBOM + cosign + live Pepr admission).
   - Edge serve + shore→ship delivery, ONNX edge inference, MLflow sync, ship hierarchy, real explainer LLM, DDIL beat.

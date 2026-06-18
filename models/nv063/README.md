@@ -21,13 +21,14 @@ to ONNX, and benchmarked to run on a Raspberry Pi 5 (4GB).
 | detector | precision | recall | F1 | false-alarm | ROC-AUC | PR-AUC |
 |---|---|---|---|---|---|---|
 | **IsolationForest (this model)** | 0.556 | 0.556 | 0.556 | **0.098** | **0.802** | **0.685** |
-| `ais_pol` rules (baseline) | 0.571 | **0.889** | **0.696** | 0.146 | — | — |
+| `ais_pol` rules (baseline) | **0.692** | **1.00** | **0.818** | **0.098** | — | — |
 
-**Read it straight:** the off-the-shelf unsupervised model matches the rules on precision and has
-a **lower false-alarm rate**, but the **domain rules win recall** (0.89 vs 0.56) — and recall is
-the watch-officer-relevant axis. Threshold-free **ROC-AUC 0.80 / PR-AUC 0.69** show the model
-ranks anomalies well, so the gap is an operating-point/recall problem, not a separability one.
-Pool-wide it flags **713/11,773 (6.1%)** vs `ais_pol`'s 8.6%.
+**Read it straight:** on this curated set the **domain rules (`ais_pol`) now dominate** the
+off-the-shelf unsupervised model on every operating-point metric — precision (0.69 vs 0.56),
+recall (1.0 vs 0.56), F1 (0.82 vs 0.56) — at the **same** false-alarm rate (0.098). IsolationForest's
+value is its **threshold-free ranking** (ROC-AUC 0.80 / PR-AUC 0.69) and as an **ensemble member**,
+not as a standalone replacement. Pool-wide IForest flags **713/11,773 (6.1%)** vs `ais_pol`'s 8.6%.
+*(`ais_pol` numbers reproducible: `eval/score.py` against committed `eval/out/ais_pol_preds.csv`.)*
 
 **So what:** this is the honest ML baseline NV063 needs — it (a) sets the "what does a generic
 detector get" bar, (b) confirms the bespoke rules' recall edge, and (c) motivates the real next

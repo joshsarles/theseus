@@ -3,7 +3,7 @@
 *Updated Jun 17 2026 on real MarineCadastre US AIS (2024-01-01, first 1.5M rows, national).*
 
 ## TL;DR
-- **Current NV063 signal (post-fix), n=50 analyst-curated set: precision 0.57 · recall 0.89 · F1 0.70 · false-alarm 0.15** (FP 16→6). This **supersedes** the pre-fix 0.36 / 1.0 / 0.53 / 0.39 baseline forensically documented in §2 — the lift came from landing the two fixes below, *not* from re-labeling. **One number, one place:** this headline = `eval/out/curated_metrics.json` = `ROADMAP.md`.
+- **Current NV063 signal (post-fix), n=50 analyst-curated set: precision 0.69 · recall 1.0 · F1 0.82 · false-alarm 0.10** (FP 16→4). This **supersedes** the pre-fix 0.36 / 1.0 / 0.53 / 0.39 baseline forensically documented in §2 — the lift came from landing the two fixes below, *not* from re-labeling. **One number, one place — and reproducible:** `python3 eval/score.py --pred eval/out/ais_pol_preds.csv --labels eval/curated_labels.csv` regenerates `eval/out/curated_metrics.json` (= this headline = `ROADMAP.md`). The predictions file is committed, so a fresh clone re-scores the headline without the raw 807 MB AIS source.
 - **The two dominant false-positive causes are now FIXED:** (1) the AIS **SOG = 1023 "not available" sentinel** misread as a 102 kn overspeed → dropped; (2) **position_jump over-fired on high-cadence feeds** (GPS jitter) → **cadence-aware ≥ 0.5 nm distance gate** (validated cross-region on Ushant: 3151→771 false jumps). *(loiter over-fire on dwelling ferries/tugs was separately tuned.)*
 - **Honest framing:** n=50, analyst-curated, **pending NAVSEA SME validation**; anomaly-enriched (sample FAR ≠ population FAR). The detector also fires **~1,699 alerts on the open universe (~11.9k tracks) that this n=50 set does not score** — that unmeasured nuisance load is exactly the Phase-I at-sea-labeling ask, not a solved problem.
 
@@ -31,7 +31,7 @@
 
 > **Caveats (loud):** n=50, analyst-curated **pending NAVSEA SME validation**; the precision estimate is sensitive to the "is a stationary tug anomalous?" calls (SME-dependent). Stratified/anomaly-enriched, so the sample FAR ≠ population FAR. This is a pilot signal, not a production metric.
 >
-> **⚑ The §2 table above is the PRE-FIX forensic baseline** (kept to show the bugs we found + fixed). **Current headline (post SOG + cadence fixes), same n=50 set:** precision **0.57** · recall **0.89** · F1 **0.70** · FAR **0.15** (FP 16→6, FN 0→1) — `eval/out/curated_metrics.json`, cross-region check in `docs/research/CROSS_REGION_VALIDATION.md`.
+> **⚑ The §2 table above is the PRE-FIX forensic baseline** (kept to show the bugs we found + fixed). **Current headline (post SOG + cadence fixes), same n=50 set:** precision **0.69** · recall **1.0** · F1 **0.82** · FAR **0.10** (FP 16→4, all 9 TPs caught) — reproducible via `eval/score.py` against the committed `eval/out/ais_pol_preds.csv` → `eval/out/curated_metrics.json`; cross-region check in `docs/research/CROSS_REGION_VALIDATION.md`.
 
 ## 3. Circular weak-label sanity check `[pipeline-only]` (kept for completeness)
 ais_pol vs `make_weak_labels.py` (same rule family): P 0.962 / R 0.882 / FAR 0.0036 / F1 0.921 over 11,898 tracks. **Not a performance metric** — measures rule-implementation agreement (~92%), validated only that the eval path runs. Superseded by §2 as the real signal.

@@ -25,8 +25,8 @@
 
 ### Current Signal (post-fix)
 - **Honest evaluation:** n=50 **analyst-curated** (stratified: 25 flagged + 25 random un-flagged)  
-- **Precision:** 0.57 (95% CI ≈ 0.18–0.57 wide due to small n)  
-- **False-alarm rate:** 0.15 (sample enriched; population ≈ 5–6%)  
+- **Precision:** 0.69 · **recall:** 1.0 · **F1:** 0.82 (n=50; reproducible via committed preds + `eval/score.py`)  
+- **False-alarm rate:** 0.10 (sample enriched; population ≈ 5–6%)  
 - **Critical gap:** **1,699 unscored alerts** fired on the open universe (11,898 tracks) → the **unmeasured nuisance load is exactly the Phase-I at-sea labeling ask**, not a solved problem  
 - **Root cause:** No labeled real-world AIS anomaly dataset exists in the public domain with:
   1. **Ground truth labels** (dark-gap, spoofing, loiter, anomalous-SOG) from domain experts or at-sea validation
@@ -201,7 +201,7 @@ Pull IEEE DataPort synthetic GPS dataset as a **noise baseline** (controlled fal
 - **Global Fishing Watch dark-vessel research:** https://globalfishingwatch.org/research-project-dark-vessels/  
 - **Stone Soup (UK MoD, MIT):** https://github.com/dstl/Stone-Soup  
 - **Autoferry sensor fusion:** https://github.com/Autoferry/sensor_fusion_dataset  
-- **Current NV063 eval:** `/Users/force/Developer/Theseus/eval/RESULTS.md` (0.57 precision, n=50, 1,699 unscored)  
+- **Current NV063 eval:** `/Users/force/Developer/Theseus/eval/RESULTS.md` (0.69 precision / 1.0 recall / 0.82 F1, n=50, reproducible)  
 - **Current inventory:** `/Users/force/Developer/Theseus/data/datasets/` (2.2 GB on disk)
 
 ---
