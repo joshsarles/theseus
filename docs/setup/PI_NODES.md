@@ -32,7 +32,7 @@ If `run.sh` is green, the node can train/serve/seal locally — disconnected-cap
 
 ## 3. Point at Tier-1 (the Blackwell-emulated ship brain), when present
 ```bash
-export MLFLOW_TRACKING_URI=http://<tier1-host>:5000   # Blackwell box or the laptop running MLflow
+export MLFLOW_TRACKING_URI=http://<tier1-host>:5050   # Blackwell box or the laptop running MLflow
 ```
 With this set, `retrain.py` logs to the central registry; without it, the node works fully local (DDIL).
 

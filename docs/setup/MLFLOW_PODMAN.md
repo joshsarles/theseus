@@ -9,15 +9,15 @@ podman pull ghcr.io/mlflow/mlflow
 # save dir for runs/artifacts
 mkdir -p mlruns
 
-# run the server (tracking + registry on :5000, sqlite backend)
+# run the server (tracking + registry on :5050, sqlite backend)
 podman run -d \
   --name mlflow-server \
-  -p 5000:5000 \
+  -p 5050:5050 \
   -v $(pwd)/mlruns:/mlflow \
   ghcr.io/mlflow/mlflow \
-  mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db
+  mlflow server --host 0.0.0.0 --port 5050 --backend-store-uri sqlite:///mlflow.db
 ```
-Open `http://localhost:5000`. Pi nodes log/register against `http://<server-ip>:5000`.
+Open `http://localhost:5050`. Pi nodes log/register against `http://<server-ip>:5050`.
 
 ## Versions (CVE-aware, per team Slack)
 - **MLflow ≥ 3.11** (3.13 latest) — versions <3.11 carry a high-sev CVE.
