@@ -129,7 +129,11 @@ def detect(tracks, envelope):
                     f"AIS gap {dt/60:.0f} min while underway ({s0:.0f}kn) — possible AIS-off",
                     "cue another sensor; flag possible dark-vessel behavior"))
                 break
-            if implied > 60 and implied > 5 * max(s0, 1):
+            # a real position-jump covers REAL distance; sub-0.5nm "jumps" are GPS jitter, not a teleport.
+            # cadence-aware (cross-region validation, Ushant 8s vs US 71s fix interval): on high-cadence
+            # feeds, tiny jitter over short gaps inflates implied speed — 96% of false jumps were <0.5nm.
+            # Gating on distance (not time) stays robust at any cadence: a real spoof still trips it.
+            if dist >= 0.5 and implied > 60 and implied > 5 * max(s0, 1):
                 alerts.append((mmsi, "position_jump", b, 0.75,
                     f"implausible jump: {implied:.0f}kn implied vs {s0:.0f}kn reported ({dist:.1f}nm/{dt/60:.0f}min)",
                     "possible GNSS spoofing or identity swap — verify"))

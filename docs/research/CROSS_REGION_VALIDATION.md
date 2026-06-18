@@ -244,3 +244,24 @@ Artifacts: `ingest/ushant.py` (adapter), `out/ushant_predictions.csv`,
 `out/us_predictions.csv`, `demo/out/record/` (sealed chain).
 
 *All figures in this document are from the real runs above (THESEUS, Jun 17 2026).*
+
+---
+
+## Post-fix update (Jun 17) — cadence-aware position_jump
+
+The honest limitation above is now FIXED in `demo/ais_pol.py`: a position_jump must cover **real distance (≥0.5 nm)**, not jitter — cadence-robust (gates on distance, not time, so a real spoof still trips at any fix rate).
+
+| | US | Ushant |
+|---|---:|---:|
+| position_jump (before → after) | 97 → **82** | 3151 → **771** (−75%) |
+
+**Curated NV063 eval (50 analyst-labeled tracks):**
+
+| | pre-fix (stale) | post-fix (honest) |
+|---|---:|---:|
+| precision | 0.36 | **0.57** |
+| recall | 1.00 | 0.89 |
+| F1 | 0.53 | **0.70** |
+| false-alarm rate | 0.39 | **0.15** |
+
+Halved the false-alarm rate and lifted F1, at the cost of one borderline <0.5 nm detection. 21/21 tests pass; records verify PASS.

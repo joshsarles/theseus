@@ -1,0 +1,12 @@
+{
+  "n_labeled": 50,
+  "tp": 8,
+  "fp": 6,
+  "fn": 1,
+  "tn": 35,
+  "precision": 0.5714,
+  "recall": 0.8889,
+  "false_alarm_rate": 0.1463,
+  "f1": 0.6957,
+  "unscored_positive_predictions": 1699
+}
