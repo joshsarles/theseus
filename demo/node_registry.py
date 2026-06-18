@@ -40,7 +40,15 @@ def _safe_node_id(node_id: str) -> str:
 
 
 def _path_for(node_id: str) -> Path:
-    return NODES_DIR / f"{_safe_node_id(node_id)}.json"
+    # Two barriers against path traversal: (1) _safe_node_id strips every char outside
+    # [A-Za-z0-9._-] (so '/' can never appear), and (2) resolve() + is_relative_to()
+    # asserts the final path stays inside NODES_DIR — a containment check that rejects
+    # any traversal attempt outright (and is recognized as a path-injection barrier).
+    base = NODES_DIR.resolve()
+    p = (base / f"{_safe_node_id(node_id)}.json").resolve()
+    if not p.is_relative_to(base):
+        raise ValueError(f"node report path escapes the registry: {node_id!r}")
+    return p
 
 
 def record_report(report: dict, *, now: float | None = None) -> dict:

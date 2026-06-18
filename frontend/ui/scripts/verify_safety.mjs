@@ -29,7 +29,7 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, extname, normalize } from "node:path";
+import { join, extname, normalize, resolve, sep } from "node:path";
 
 const DIST = new URL("../dist/", import.meta.url).pathname;
 const MIME = {
@@ -54,8 +54,11 @@ async function serveDist() {
     try {
       let p = normalize(decodeURIComponent(req.url.split("?")[0]));
       if (p === "/" || p === "") p = "/index.html";
-      let file = join(DIST, p);
-      if (!file.startsWith(DIST)) file = join(DIST, "index.html"); // path-escape guard
+      // Resolve within DIST and REQUIRE containment — any '..' traversal is rejected
+      // outright (path-injection barrier). DIST is the trusted root.
+      const root = resolve(DIST);
+      let file = resolve(root, "." + (p.startsWith("/") ? p : "/" + p));
+      if (file !== root && !file.startsWith(root + sep)) { res.writeHead(404); res.end("not found"); return; }
       let body;
       try {
         body = await readFile(file);
@@ -65,9 +68,9 @@ async function serveDist() {
       }
       res.writeHead(200, { "Content-Type": MIME[extname(file)] ?? "application/octet-stream" });
       res.end(body);
-    } catch (e) {
+    } catch {
       res.writeHead(500);
-      res.end(String(e));
+      res.end("internal error");   // do not reflect the exception (stack-trace / xss)
     }
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
