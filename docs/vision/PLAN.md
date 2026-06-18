@@ -11,7 +11,7 @@ A warship is a floating city of systems — propulsion, power, navigation, damag
 ---
 
 ## Why this, why now
-- **The team is the proof.** We have **NAVSEA + NSWC Port Hueneme engineers** — the people who actually build and sustain ship systems. This isn't outsiders guessing; it's the operators.
+- **The team is the proof.** We have **Navy ship-systems engineers (NAVSEA / NSWC)** — the people who actually build and sustain ship systems. This isn't outsiders guessing; it's the operators.
 - **The host is already here.** Defense Unicorns (event host) + Leidos just won **Navy shipboard software-container trials (Apr 2026)**; the Navy fielded onboard AI condition-monitoring on **USS Fitzgerald (Jan 2025)**. The current is with us.
 - **The gap is real (honest version):** onboard analytics today is single-system (engineering only) and mostly **feeds shore**. **Nobody has unified the ship's systems into one onboard brain that closes the loop locally under DDIL.** That's the white space.
 
