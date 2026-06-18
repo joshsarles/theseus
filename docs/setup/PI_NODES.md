@@ -13,7 +13,14 @@
 | **Pi-1** (UUV-1 · MACHINERY) | `10.10.3.244` | `pi1` | `ssh pi1@10.10.3.244` |
 | **Pi-2** (UUV-2 · CONTACTS)  | `10.10.2.173` | `pi2` | `ssh pi2@10.10.2.173` |
 
-**Password is NOT in this public repo** (it would be exposed on GitHub) — it's in `deploy/pi/.pi-access.md` (gitignored, on the Node-3 machine) and the team channel. Each Pi reaches Node-3 MLflow on **:5050** (set in the receiver's `config.yml` `mlflow.host:port`); the edge receiver listens on **:54321**.
+**Password is NOT in this public repo** (it would be exposed on GitHub) — it's in `deploy/pi/.pi-access.md` (gitignored, on the Node-3 machine) and the team channel. The edge receiver listens on **:54321**.
+
+### Pi → Node-3 MLflow connectivity (the ":5050 connection refused" fix)
+Two things must both be true:
+1. **Node 3 binds all interfaces** — `deploy/mlflow/run.sh` now launches `mlflow server --host 0.0.0.0 --port 5050` (was `127.0.0.1`, which only accepted localhost). ✓ done.
+2. **The Pi points at the Node-3 LAN IP, not `localhost`** — in the Pi's receiver `config.yml`, set `mlflow.host` to the **Node-3 IP** (NOT `localhost` — that makes the Pi connect to itself → connection refused). **Current Node-3 IP: `10.10.2.162`** (interface `en13`; DHCP can change it — re-check on the Mac with `ipconfig getifaddr en13` or `route -n get default`). Both Pis are on the same `10.10.0.0/22` and ping the Mac sub-ms.
+
+Verify from a Pi: `curl http://10.10.2.162:5050/health` → expect `200`. Then the receiver loads `models:/uuv1_anomaly_deploy@production`.
 
 ## 1. Flash + base (both Pis)
 - **Raspberry Pi OS 64-bit (Bookworm)**, headless, SSH enabled, unique hostnames `theseus-pi1` / `theseus-pi2`, static IPs or mDNS on the same switch/LAN as the Tier-1 box.

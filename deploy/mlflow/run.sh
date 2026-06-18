@@ -32,8 +32,11 @@ if [ ! -x "$VENV/bin/mlflow" ]; then
 fi
 
 kill_port
-echo "  · launching MLflow on :$PORT (sqlite backend, artifacts under deploy/mlflow/mlruns)…"
-nohup "$VENV/bin/mlflow" server --host 127.0.0.1 --port "$PORT" \
+# Bind 0.0.0.0 (all interfaces) so the UUV Pis on the LAN can reach Node-3 MLflow, not just
+# localhost. Override with MLFLOW_HOST=127.0.0.1 to keep it local-only.
+HOST="${MLFLOW_HOST:-0.0.0.0}"
+echo "  · launching MLflow on $HOST:$PORT (sqlite backend, artifacts under deploy/mlflow/mlruns)…"
+nohup "$VENV/bin/mlflow" server --host "$HOST" --port "$PORT" \
   --backend-store-uri "sqlite:///$HERE/mlflow.db" \
   --default-artifact-root "$HERE/mlruns" > "$HERE/mlflow.log" 2>&1 &
 for _ in $(seq 1 45); do
