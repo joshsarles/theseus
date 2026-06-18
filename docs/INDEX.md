@@ -29,7 +29,7 @@
 - **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild).
 
 ## Setup / runbooks
-- **`setup/MLFLOW_PODMAN.md`** — the Node-3 MLflow registry (Podman; offline/airgap staging).
+- **`setup/MLFLOW_PODMAN.md`** — the Node-3 MLflow registry (**Docker + k3s**; offline/airgap staging). *(Runbook owned by Tommy/Juan — being updated from the earlier Podman draft.)*
 - **`setup/PI_NODES.md`** — stand up the 2× Pi 5 (4 GB) as the UUV nodes (Node 1 / Node 2); DDIL beat; 4 GB gotchas.
 - **`../KANBAN.md`** — the board.
 

@@ -12,7 +12,9 @@ The **accreditable fleet-learning layer for unmanned maritime vehicles (UUVs) un
 4. `ROADMAP.md` (state, newest on top) · `docs/TEAM_LANES.md` (who does what)
 
 ## Topology
-Node 1 + Node 2 = **UUVs** (Raspberry Pi 5 brains, airgapped / DDIL). Node 3 = **this machine** = fleet coordinator (MLflow registry + UI; aggregates the UUVs' improvements, eval-gates the best, pushes it back). Team = 11.
+Node 1 + Node 2 = **UUVs** (Raspberry Pi 5 brains, airgapped / DDIL). Node 3 = **this machine** = fleet coordinator (MLflow registry + UI; aggregates the UUVs' improvements, eval-gates the best, pushes it back). Stack: **Docker + k3s** (not Podman). Team = 11.
+
+**Your boundary:** you **orchestrate** the Pis *from Node 3* (the fleet node, MLflow, the merge/registry/UI). You do **NOT** push to or provision the Pis directly — **Juan + William own the Pi-side deployment.** Coordinate; don't reach onto their hardware.
 
 ## Run it
 `bash deploy/demo_up.sh` (→ GO) · `bash deploy/preflight.sh` (GO/NO-GO gate) · `frontend/ui` (the UI) · `bash fleet/run_miniature.sh` (the flywheel) · `python3 -m pytest tests/` (21).

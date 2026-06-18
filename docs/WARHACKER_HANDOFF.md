@@ -43,7 +43,8 @@ bash deploy/demo_up.sh                                       # run THIS if prefl
 
 ## 3. The 3-node topology (locked, prototype scale)
 - **Node 1 = UUV 1**, **Node 2 = UUV 2** — Raspberry Pi 5 (4 GB) onboard brains; airgapped (submerged = DDIL); run lightweight ONNX-int8 models locally.
-- **Node 3 = this machine** — **fleet coordinator**: hosts **MLflow** (the model registry; Juan's `deploy/mlflow-compose/`) + the **UI**; aggregates the UUVs' improvements, **eval-gates** the best, pushes it back down. **You are overwatch here.**
+- **Node 3 = this machine** — **fleet coordinator**: hosts **MLflow** (the model registry; Juan's `deploy/mlflow-compose/`) + the **UI**; aggregates the UUVs' improvements, **eval-gates** the best, pushes it back down. Stack is **Docker + k3s** (not Podman). **You are overwatch here.**
+- **Your boundary:** you **orchestrate** the Pis *from Node 3* (the fleet node / MLflow / merge / registry / UI). You do **NOT** push to or provision the Pis directly — **Juan + William own the Pi-side.** Coordinate; don't reach onto their hardware.
 - **No Node 4** at prototype scale (the explainer/command-center folds into Node 3; it's the natural expansion node later). The topology is N-node — it scales to more vehicles or to a ship-brain with the UUVs as subsystems.
 
 ---

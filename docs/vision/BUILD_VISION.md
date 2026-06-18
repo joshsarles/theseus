@@ -31,7 +31,7 @@ The ML (anomaly detectors, track predictors) is **commoditized** — a prime clo
 ## Tech stack (founder-set + how it slots in)
 - **Python + PyTorch** — the models (anomaly detectors, PoL, track prediction). Export to **ONNX** for the edge runtime (Seahelm's ONNX path / Pi NPU).
 - **MLflow** — experiment tracking **and the model registry**. This is the backbone of the **DDIL model lifecycle**: versioned, signed, content-addressed weights → pre-staged in the bundle → rollback-to-last-good on a disconnected ship → the loaded version recorded in the trust chain. MLflow registry ↔ the record is a clean fit.
-- **Podman** (rootless, daemonless OCI) — container build/runtime. Better edge + security posture than Docker, and RHEL/DoD-friendly. Builds the images the **UDS/Zarf** airgap bundle ships; runs under K3s on the nodes.
+- **Docker + k3s** — container build/runtime (Docker) under **k3s** (lightweight Kubernetes) on the nodes. Builds the images the **UDS/Zarf** airgap bundle ships.
 - **Force OS** (force-core) — the fleet/agent orchestration option for the per-node agent mesh + A2A; **APOLLO is proving Force OS on an NVIDIA Blackwell cloud box with self-hosted Kimi 2.7** (the model-hosting/inference proof). Force OS is the orchestration substrate; Seahelm is the DDIL edge/record core; they compose.
 - **UDS / Zarf** — the airgap deploy bundle (already verified end-to-end).
 
