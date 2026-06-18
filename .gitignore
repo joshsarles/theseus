@@ -55,3 +55,6 @@ deploy/mlflow-sync/ship/
 deploy/mlflow-sync/transfer/
 deploy/mlflow-sync/*.log
 deploy/mlflow-sync/*.pid
+deploy/mlflow-sync/.venv/
+deploy/mlflow-sync/out/
+deploy/mlflow-sync/transfer/
