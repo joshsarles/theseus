@@ -1,0 +1,51 @@
+{
+  "dataset": "MarineCadastre US AIS 2024-01-01 (public domain) \u2014 per-track Pattern-of-Life",
+  "n_pool": 11773,
+  "n_train": 11723,
+  "scanned_rows": 1500001,
+  "curated_eval": {
+    "n": 50,
+    "n_pos": 9,
+    "tp": 5,
+    "fp": 4,
+    "fn": 4,
+    "tn": 37,
+    "precision": 0.5556,
+    "recall": 0.5556,
+    "false_alarm_rate": 0.0976,
+    "f1": 0.5556,
+    "roc_auc": 0.8022,
+    "pr_auc": 0.685
+  },
+  "baseline_ais_pol_rules": {
+    "precision": 0.5714,
+    "recall": 0.8889,
+    "f1": 0.6957,
+    "false_alarm_rate": 0.1463
+  },
+  "pool_alert_rate": {
+    "flagged": 713,
+    "total": 11773,
+    "pct": 6.06,
+    "ais_pol_pct": 8.6
+  },
+  "fit_seconds": 0.172,
+  "edge": {
+    "onnx": {
+      "fp32_path": "models/onnx/ais_anomaly_iforest.onnx",
+      "fp32_bytes": 1276725,
+      "onnx_vs_sklearn_label_parity": 1.0,
+      "single_row_latency_ms_1thread": 1.1767,
+      "training_process_peak_rss_mb": 668.4,
+      "rss_note": "this RSS is the full TRAINING process (sklearn+numpy+onnxruntime); the honest Pi inference-only footprint is in models/nv063/pi_bench.json (~74 MB).",
+      "out_names": [
+        "label",
+        "scores"
+      ],
+      "int8_path": "models/onnx/ais_anomaly_iforest_int8.onnx",
+      "int8_bytes": 1499465,
+      "int8_note": "dynamic quant targets MatMul/Gemm; a TreeEnsemble stores float thresholds, so size change is expected to be small \u2014 fp32 is already tiny for the Pi."
+    }
+  },
+  "caveats": "n=50 (9 pos) analyst-curated, pilot signal, SME-pending (matches eval/RESULTS.md). Unsupervised IForest fit on the pool EXCLUDING the 50; labels used only for eval. ROC-AUC/PR-AUC are threshold-free; P/R/FAR at contamination threshold."
+}

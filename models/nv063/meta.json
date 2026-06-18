@@ -1,0 +1,23 @@
+{
+  "name": "theseus-nv063-ais-anomaly",
+  "model": "IsolationForest+StandardScaler",
+  "framework": "sklearn",
+  "features": [
+    "n_fixes",
+    "dur_h",
+    "sog_min",
+    "sog_mean",
+    "sog_max",
+    "still_frac",
+    "max_gap_min",
+    "max_jump_kn",
+    "vessel_type"
+  ],
+  "n_estimators": 200,
+  "contamination": 0.06,
+  "seed": 316,
+  "n_train": 11723,
+  "n_eval": 50,
+  "model_sha256": "17048b7900e58925fc21913973f25bb01829741c979e52e42a3e22ae54a821b3",
+  "trained_unix": 1781802812.4331589
+}

@@ -1,0 +1,2 @@
+# sklearn pickle is a reproducible intermediate (python3 train_ais_anomaly.py); ONNX is the edge artifact we ship
+model.pkl

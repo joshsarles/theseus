@@ -1,0 +1,10 @@
+{
+  "model": "models/onnx/ais_anomaly_iforest.onnx",
+  "model_kb": 1246.8,
+  "onnxruntime_version": "1.24.2",
+  "threads": 1,
+  "latency_ms_per_track_single": 1.1759,
+  "latency_ms_per_track_batch64": 0.03116,
+  "inference_process_peak_rss_mb": 74.0,
+  "note": "Inference-only process (numpy + onnxruntime). Pi 5 / 4GB headroom is ample: model ~1.2 MB, RSS well under 4 GB, sub-ms per track on one core."
+}
