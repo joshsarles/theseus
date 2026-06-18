@@ -2,6 +2,8 @@ import os
 import yaml
 import json
 import asyncio
+from contextlib import asynccontextmanager
+import requests
 from collections import deque
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException, status
@@ -9,8 +11,6 @@ from pydantic import BaseModel
 import mlflow
 import mlflow.pyfunc
 from river import anomaly
-
-app = FastAPI()
 
 # --- 1. CONFIGURATION ---
 CONFIG_FILE = "config.yml"
@@ -35,8 +35,20 @@ EXPERIMENT_NAME = config.get("mlflow", {}).get("experiment", "uuv1_anomaly_train
 with open(FEATURE_FILE, 'r') as f:
     FEATURE_LIST = json.load(f)[TARGET_TOPIC_ID]
 
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-mlflow.set_experiment(EXPERIMENT_NAME)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup Logic ---
+    try:
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        mlflow.set_experiment(EXPERIMENT_NAME)
+        app.state.mlflow_enabled = True
+    except (requests.exceptions.ConnectionError, Exception) as e:
+        app.state.mlflow_enabled = False
+
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # Queue 1: Absorbs raw HTTP traffic spikes
 incoming_queue: asyncio.Queue = asyncio.Queue()
@@ -63,7 +75,7 @@ class JsonRiverHSTWrapper(mlflow.pyfunc.PythonModel):
             "n_trees": self.river_model.n_trees,
             "height": self.river_model.height,
             "window_size": self.river_model.window_size,
-            "random_state": self.river_model.random_state,
+            "seed": self.river_model.seed,
             "_counter": getattr(self.river_model, "_counter", 0)
         }
         json_file_path = os.path.join(model_path, "river_state.json")
@@ -81,7 +93,7 @@ class JsonRiverHSTWrapper(mlflow.pyfunc.PythonModel):
             n_trees=model_state["n_trees"],
             height=model_state["height"],
             window_size=model_state["window_size"],
-            random_state=model_state["random_state"]
+            seed=model_state["seed"]
         )
         if "_counter" in model_state:
             self.river_model._counter = model_state["_counter"]
@@ -101,11 +113,11 @@ def load_production_model():
         return pyfunc_model._model_impl.python_model.river_model
     except Exception as e:
         print(f"⚠️ Could not pull Production model ({e}). Instantiating baseline River HST.")
-        return anomaly.HalfSpaceTrees(n_trees=10, height=8, window_size=250, random_state=42)
+        return anomaly.HalfSpaceTrees(n_trees=10, height=8, window_size=250, seed=42)
 
 # Global runtime pointers for models and tracking metrics
 active_model = load_production_model()
-shadow_model = anomaly.HalfSpaceTrees(n_trees=12, height=8, window_size=250, random_state=42)
+shadow_model = anomaly.HalfSpaceTrees(n_trees=12, height=8, window_size=250, seed=42)
 
 active_score_sum = 0.0
 shadow_score_sum = 0.0
@@ -232,6 +244,11 @@ async def startup_event():
 
 
 # --- 8. GATEWAY SERVICE ENDPOINTS ---
+@app.get("/")
+def read_root():
+    return {"mlflow_connected": app.state.mlflow_enabled}
+
+
 @app.post("/stream-item")
 async def receive_item(item: IncomingRecord):
     """
@@ -251,7 +268,6 @@ async def receive_item(item: IncomingRecord):
     }
 
 
-# --- 9. THE AUDIT ENDPOINT ---
 @app.get("/history", response_model=List[Dict[str, Any]])
 async def get_processing_history():
     # Read transactions are completely isolated from the writing loops

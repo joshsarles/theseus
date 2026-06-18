@@ -4,6 +4,7 @@ numpy
 pandas
 pydantic
 pyyaml
+requests
 river
 scikit-learn
 scipy
