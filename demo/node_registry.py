@@ -61,6 +61,13 @@ def record_report(report: dict, *, now: float | None = None) -> dict:
     NODES_DIR.mkdir(parents=True, exist_ok=True)
     node_id = _safe_node_id(report.get("node_id"))
     stored = dict(report)
+    # Sanitize free-text string fields at ingest: cap length + strip control chars and angle
+    # brackets so a node report can't carry a stored-XSS / log-injection payload into the UI
+    # or logs (defense-in-depth — the React UI also escapes by default).
+    _bad = re.compile(r"[<>\x00-\x1f\x7f]")
+    for k, v in list(stored.items()):
+        if isinstance(v, str):
+            stored[k] = _bad.sub("", v)[:256]
     stored["node_id"] = node_id
     stored["received_unix"] = now
     tmp = _path_for(node_id).with_suffix(".json.tmp")

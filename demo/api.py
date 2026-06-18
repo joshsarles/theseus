@@ -215,9 +215,9 @@ def build_state(record_dir: Path) -> dict:
             # A real reporting node can only RAISE the severity floor to its own health;
             # a critical contact picture still wins over a nominal node report.
             order = {"standby": 0, "nominal": 1, "warning": 2, "critical": 3}
+            # The >= compare already escalates a standby system to any reporting node's
+            # severity (standby floor = 0), so no separate standby branch is needed.
             if order.get(sev, 1) >= order.get(s.get("severity", "standby"), 0):
-                s["severity"] = sev
-            elif s.get("severity") == "standby":
                 s["severity"] = sev
             s["detail"] = detail
             s["node"] = node_block
