@@ -50,7 +50,7 @@ spec:
       #   remoteNamespace: mlflow
       #   remoteSelector:
       #     app.kubernetes.io/name: mlflow-server
-      #   port: 5000
+      #   port: 5050
 
   # ---- monitoring scrape (Prometheus/Grafana from uds-core) --------------------------------------
   # Present so a metrics-emitting UI/service is scraped under default-deny without hand-rolled

@@ -92,10 +92,10 @@ used by the shore-side retrain step (`demo/retrain.py` logs runs when
 ### Connectivity troubleshooting
 ```bash
 # from the child node, confirm the tracking server is reachable
-curl http://<MLFLOW_SERVER_HOST>:5000/health     # -> {"status":"OK"} from MLflow
+curl http://<MLFLOW_SERVER_HOST>:5050/health     # -> {"status":"OK"} from MLflow
 
 # firewall on the MLflow host (ufw / firewalld)
-sudo ufw allow 5000/tcp
+sudo ufw allow 5050/tcp
 # or
-sudo firewall-cmd --add-port=5000/tcp --permanent && sudo firewall-cmd --reload
+sudo firewall-cmd --add-port=5050/tcp --permanent && sudo firewall-cmd --reload
 ```

@@ -42,4 +42,4 @@ UI → `http://localhost:5173` (needs the state API on `:8501`, which `demo_up.s
 - **`docs/ONBOARDING.md`** — get running in ~20 min · **`ROADMAP.md`** — state + update log
 
 ## Rails (carried into everything)
-Human always in command — never autonomous · **all-real** (proxies + in-progress labeled as such) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** — what the platform *watches* (surface contacts; AIS, real) vs the platform's *own* UUV systems (real UUV telemetry, not jet-engine proxies) are kept separate · **OPSEC**: no real names / commands in this public repo.
+Human always in command — never autonomous · **all-real** (proxies + in-progress labeled as such) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** — what the platform *watches* (surface contacts; AIS, real) vs the platform's *own* UUV systems (real UUV telemetry, not jet-engine proxies) are kept separate · **OPSEC**: no secrets/credentials in this public repo (the team is credited by name).

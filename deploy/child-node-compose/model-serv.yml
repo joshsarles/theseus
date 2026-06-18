@@ -44,7 +44,7 @@ services:
       RECORD_DIR: /record
       # Central MLflow tracking server (optional; used by the shore retrain step).
       # Resolves the host alias `mlflow-server` to the configured IP (extra_hosts).
-      MLFLOW_TRACKING_URI: http://mlflow-server:${MLFLOW_SERVER_PORT:-5000}
+      MLFLOW_TRACKING_URI: http://mlflow-server:${MLFLOW_SERVER_PORT:-5050}
       MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-theseus-cbm}
     volumes:
       # The promoted model the loop maintains (read-only on the edge — only /reload

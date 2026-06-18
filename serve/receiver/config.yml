@@ -1,0 +1,9 @@
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "localhost"
+  port: 5050
+  model: "uuv1_anomaly_deploy"
+  experiment: "uuv1_anomaly_train"

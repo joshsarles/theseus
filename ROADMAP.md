@@ -25,7 +25,7 @@ The founder's vision, and the apex this whole build climbs toward: **each ship i
 - **3-node topology locked** (no Blackwell needed, prototype scale): **Node 1 + 2 = UUV Pis** · **Node 3 = this Mac = fleet coordinator** (MLflow registry + UI + manages the Pis). `docs/vision/UUV_FLEET_ARCHITECTURE.md`.
 - **Review-readiness shipped** — README reframed to the UUV anchor; **`docs/JUDGE_REVIEW.md`** (guided walkthrough, real output); **`docs/ONBOARDING.md`** + **`docs/WARHACKER_HANDOFF.md`** (revive the copilot) + repo-root **`CLAUDE.md`**; `docs/INDEX.md` re-mapped.
 - **MLflow fleet-registry glue** (`fleet/mlflow_registry.py`) — MLflow-optional + model-agnostic; Claire's UUV model flows into the flywheel the moment it registers as `theseus-uuv` (no rework).
-- **Security:** all 5 GitHub CodeQL alerts fixed (path-injection + stack-trace/xss). **PAE RAS** dropped as a to-do (founder handled engagement). **Team → 11** (+Claire / NAVSEA intern, models; +Mark / Force, strategy).
+- **Security:** all 5 GitHub CodeQL alerts fixed (path-injection + stack-trace/xss). **PAE RAS** dropped as a to-do (founder handled engagement). **Team → 11** (+Claire Shen / NAVSEA intern, models; +Mark Weinrich / Force, strategy).
 - **In-flight (the team's last-day lanes):** real UUV-shaped dataset + Claire's sequence-autoencoder (→ `theseus-uuv`); the live Node-3 MLflow server (Tommy/Juan); the 2 Pis as live UUV nodes (William); the OSCAL compliance packet (Caroline).
 
 ## Status snapshot (Jun 17 — Day 1 close · judge re-score 6.9/10, was 5.4)

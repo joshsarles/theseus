@@ -16,7 +16,7 @@ ALLOWED_ROOTS = (
     "serve/",  # edge model-serving + shore->ship delivery
     "fleet/",  # fleet-learning miniature (provenance-gated federated merge)
     "analytics/",  # team analytics container (Tommy/Juan)
-    "train.py", "inspect_data.py", "docker-compose.yml", "requirements.txt",  # team root files (Nick/Juan)
+    "train.py", "train_rivers.py", "inspect_data.py", "docker-compose.yml", "requirements.txt",  # team root files (Nick/Juan)
     "Makefile", "README.md", "CONTRIBUTING.md", "CLAUDE.md", "AGENTS.md",
     "KANBAN.md", "ROADMAP.md", "ROLLBACK.md", "pyproject.toml", ".gitignore", "LICENSE",
 )

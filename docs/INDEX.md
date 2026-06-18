@@ -34,4 +34,4 @@
 - **`../KANBAN.md`** — the board.
 
 ## The rails (everywhere)
-Human always in command — never autonomous · **all-real** (proxies + in-progress labeled) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** (what the platform *watches* vs the platform's *own* UUV systems — kept separate) · **OPSEC** (no real names / commands in this public repo).
+Human always in command — never autonomous · **all-real** (proxies + in-progress labeled) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** (what the platform *watches* vs the platform's *own* UUV systems — kept separate) · **OPSEC** (no secrets/credentials in this public repo; the team is credited by name).

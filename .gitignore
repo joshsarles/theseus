@@ -67,3 +67,9 @@ deploy/mlflow-sync/transfer/
 fleet/out/
 fleet/keys/*.key
 fleet/__pycache__/
+
+# Node-3 MLflow runtime
+deploy/mlflow/.venv/
+deploy/mlflow/mlruns/
+deploy/mlflow/mlflow.db
+deploy/mlflow/mlflow.log

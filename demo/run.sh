@@ -13,4 +13,4 @@ echo
 $PY update_model.py
 echo "============================================================"
 echo "Run again to see a NEW version trained, promoted, and the record grow."
-echo "Set MLFLOW_TRACKING_URI=http://<server>:5000 to log to the central MLflow."
+echo "Set MLFLOW_TRACKING_URI=http://<server>:5050 to log to the central MLflow."

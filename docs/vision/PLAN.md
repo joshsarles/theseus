@@ -50,20 +50,20 @@ Repo: **github.com/joshsarles/theseus** (public, AGPL-3.0).
 ---
 
 ## The team & roles (we flex as we go)
-*Real names + specific commands kept OUT of this public repo (OPSEC); the canonical roster lives in the team channel. NAVSEA + retired Navy/Marine engineers + analysts (11).*
+*The team — NAVSEA + retired Navy/Marine engineers + analysts (11), credited by full name. Keep secrets/credentials out of this public repo.*
 | Who | On Theseus |
 |---|---|
-| **Joshua** | Lead — narrative, architecture, the demo, the deploy spine |
-| **William** | Ship-systems domain lead (what data matters / what "normal" is) + edge / Pi cluster + SDR |
-| **Tommy** | In-service ship-systems engineering (real failure modes); build / MLOps |
-| **Carolina** | Security / IL6 baseline; analyst voice — the human in the loop, readiness |
-| **Nicholas** | Models — prototype engineering / build |
-| **Juan** | Networking / MLOps |
-| **Savannah** | Ship-systems engineering / data; eval / labeling |
-| **Gerardo** | Frontend |
-| **Aaron** | Data + frontend / analytics |
-| **Mark** | Strategy / engagement (Force; retired Marine) |
-| **Claire** | Models — UUV own-systems training, Node 3 (NAVSEA intern) |
+| **Joshua Sarles** | Lead — narrative, architecture, the demo, the deploy spine |
+| **William Emeny** | Ship-systems domain lead (what data matters / what "normal" is) + edge / Pi cluster + SDR |
+| **Thang "Tommy" Do** | In-service ship-systems engineering (real failure modes); build / MLOps |
+| **Carolina Hatch** | Security / IL6 baseline; analyst voice — the human in the loop, readiness |
+| **Nicholas Bernstein** | Models — prototype engineering / build |
+| **Juan Pineda** | Networking / MLOps |
+| **Savannah Rodriguez** | Ship-systems engineering / data; eval / labeling |
+| **Gerardo Cano** | Frontend |
+| **Aaron Jaeger** | Data + frontend / analytics |
+| **Mark Weinrich** | Strategy / engagement (Force; retired Marine) |
+| **Claire Shen** | Models — UUV own-systems training, Node 3 (NAVSEA intern) |
 
 *Defense Unicorns engineers on-site = the deploy/UDS muscle if we want it.*
 

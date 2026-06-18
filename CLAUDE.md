@@ -24,7 +24,7 @@ Node 1 + Node 2 = **UUVs** (Raspberry Pi 5 brains, airgapped / DDIL). Node 3 = *
 - **ALL-REAL** — no mocked/fabricated data or results; label any proxy or in-progress thing as such.
 - **No overclaim** — concede limits out loud (the fleet-learning is *demonstrated in miniature*; the fielded fleet is the roadmap).
 - **Data honesty** — Framing A (what the platform *watches*: AIS contacts, real) vs Framing B (the platform's *own* UUV systems: needs real UUV telemetry, NOT jet-engine proxies). Don't conflate.
-- **OPSEC** — **no real names / specific commands in this public repo** (roster + commands live in the team channel only).
+- **OPSEC** — **no secrets/credentials in this public repo** (keys, tokens, private endpoints). The team is credited by full name — that's intended, not a leak.
 - **Engagement/acquisition is the founder's lane** — don't free-lance outreach.
 - **git** — pull before you push; push small + often; the IP-guard pre-commit (`scripts/ip_guard.py`) runs on every commit — never bypass with `--no-verify`.
 

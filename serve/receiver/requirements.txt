@@ -1,0 +1,11 @@
+fastapi
+mlflow
+numpy
+pandas
+pydantic
+pyyaml
+river
+scikit-learn
+scipy
+statsmodels
+uvicorn

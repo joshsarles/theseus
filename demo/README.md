@@ -12,7 +12,7 @@ python3 demo/update_model.py   # 3. promote to local + verify -> seals model_pro
 ```
 Run it again → a new version trains, promotes, the previous is kept for **rollback**, and the record grows. It works **offline** (stdlib least-squares fallback) and gets better with the real stack:
 - `pip install scikit-learn` → real GradientBoostingRegressor (auto-detected).
-- `export MLFLOW_TRACKING_URI=http://<server>:5000` → logs to Tommy's central MLflow.
+- `export MLFLOW_TRACKING_URI=http://<server>:5050` → logs to Tommy's central MLflow.
 - Real data: `demo/data/staged.csv` is the **real UCI #316** naval gas-turbine CBM set (see `data/SOURCE.md`). RMSE ~0.0038 predicting compressor decay.
 
 ## The AIS Pattern-of-Life cell (the NV063 beat) — `ais_pol.py`

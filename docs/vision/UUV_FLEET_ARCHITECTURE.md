@@ -59,7 +59,7 @@ Two framings are easy to tangle; keep them **separate and honestly labeled** (an
 - **A UUV sim with fault injection** (HoloOcean / Stonefish / UUV-Sim) — fault-labeled thruster/battery/ballast/leak data at scale.
 - Model: a small **sequence autoencoder** (LSTM/TCN/transformer; reconstruction-error = anomaly, supports RUL) — better than IsolationForest for streaming subsystem data. Train ashore (MLflow-tracked, GPU optional) → **ONNX-int8 → runs on the 4 GB Pi.**
 
-**Owner:** Claire (NAVSEA intern) trains the new UUV own-systems model on real UUV-shaped data (this supersedes the first AIS IsolationForest model, which moves to the Framing-A / NV063 surface-contact track). The fleet node registers it in **MLflow** and the flywheel coordinates it across Nodes 1+2. **The flywheel mechanism is data-agnostic** — it improves whatever model is registered; the *honesty* is in using the right data per framing.
+**Owner:** Claire Shen (NAVSEA intern) trains the new UUV own-systems model on real UUV-shaped data (this supersedes the first AIS IsolationForest model, which moves to the Framing-A / NV063 surface-contact track). The fleet node registers it in **MLflow** and the flywheel coordinates it across Nodes 1+2. **The flywheel mechanism is data-agnostic** — it improves whatever model is registered; the *honesty* is in using the right data per framing.
 
 ---
 

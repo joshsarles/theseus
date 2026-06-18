@@ -27,7 +27,7 @@ CONTEXT_COLS   = ["record_id", "vehicle_id", "vehicle_type", "timestamp_utc"]
 
 ALL_FEATURE_COLS = C2_COLS + SENSOR_COLS + TELEMETRY_COLS
 
-mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5050"))
 mlflow.set_experiment("UAV Anomaly Detection")
 
 
@@ -245,7 +245,7 @@ for prefix in sorted(vehicle_prefixes):
         trained_models[f"{prefix}-c2"] = train_and_log(vehicle_df, f"{prefix}-c2", c2_cols)
 
 print(f"\nDone! Trained {len(trained_models)} models.")
-print(f"View results at http://localhost:5000")
+print(f"View results at http://localhost:5050")
 
 # trained_models dict is available for use in other scripts or notebooks:
 # e.g. model = trained_models["fleet-all-sensors"]

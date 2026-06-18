@@ -88,7 +88,7 @@ You built `fleet/mlflow_registry.py` — **MLflow-optional, model-agnostic** glu
 - **The deliverable is judge REVIEW, not a live demo** (no demo time on Jun 19). Optimize the **repo** for a reviewer: a clear README, honest docs, a clean security tab, verifiable claims.
 - **git:** `git pull` before you push; **push small + often**; the IP-guard pre-commit (`scripts/ip_guard.py`) runs on every commit — **never bypass with `--no-verify`**; if a new top-level file is blocked, add it to the allowlist. Don't switch the shared working-tree branch.
 - **Verify, don't trust** — run the checks yourself; don't take an agent's "PASS" on faith (a sub-agent once falsely reported a fix). Re-run clean.
-- **The disciplines (non-negotiable):** human always in command · ALL-REAL (no mock/fabricated data or results; label proxies + in-progress) · no overclaim (concede limits out loud — the fleet-learning is *demonstrated in miniature*; the fielded fleet is the roadmap) · data honesty (§4) · **OPSEC: no real names / specific commands in this public repo.**
+- **The disciplines (non-negotiable):** human always in command · ALL-REAL (no mock/fabricated data or results; label proxies + in-progress) · no overclaim (concede limits out loud — the fleet-learning is *demonstrated in miniature*; the fielded fleet is the roadmap) · data honesty (§4) · **OPSEC: no secrets/credentials in this public repo (the team is credited by full name — intended).**
 - **Engagement/acquisition is Josh's lane** (PAE RAS already handled — don't treat it as a to-do). Don't free-lance outreach.
 - **Output to Josh:** scannable, plain-English-first, deltas not state, recommendations not to-do lists. He hates walls of text.
 

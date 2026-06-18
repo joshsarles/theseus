@@ -64,7 +64,7 @@ python3 -m pytest tests/                     # 21 tests
 - **All-real** — no mocked/fabricated data or results. A proxy or an in-progress thing is *labeled* as such.
 - **No overclaim** — concede limits out loud (it reads as credibility). The fleet-learning is *demonstrated in miniature*; the fielded fleet is the roadmap.
 - **Data honesty** — *Framing A* = what the platform **watches** (surface/air contacts; AIS data, real) vs *Framing B* = the platform's **own UUV systems** (needs real UUV telemetry, not jet-engine proxies). Don't conflate them.
-- **OPSEC** — **no real names or specific commands in the public repo.** (Roster + commands live in the team channel only.)
+- **OPSEC** — **no secrets/credentials in the public repo** (keys, tokens, private endpoints). The team is credited by full name — intended.
 
 ## 8. Where we are (snapshot — `ROADMAP.md` is authoritative)
 Verified + on `main`: the tamper-evident **signed record** (in-toto/DSSE + Ed25519), the model-delivery loop, the **fleet-learning flywheel** (provenance-gated merge, poison rejected, eval-gate, verifies), the **digital-twin UI** (OPERATIONS + FLEET LEARNING), real **airgap UDS deploy** (Zarf + SBOM + cosign + live Pepr admission), ONNX edge inference (fits a 4 GB Pi), the OSCAL/cATO compliance emit, and a clean CodeQL security tab. **In flight (the team's lanes):** a real **UUV-shaped** dataset + Claire's **sequence-autoencoder** model (registers in MLflow as `theseus-uuv`), the live **MLflow** server on Node 3, and the 2 Pis as live UUV nodes. Team = 11.

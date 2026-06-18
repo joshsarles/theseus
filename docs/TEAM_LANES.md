@@ -10,7 +10,7 @@
 ## Lanes — who owns what, and the interface they expose
 | Lane | Owner | Owns | Interface to the rest | Don't touch |
 |---|---|---|---|---|
-| **Edge / Pi cluster** | **William** | Flash Pis (Pi OS 64-bit), network them, Podman + Python 3.14, **SDR rig** (RTL-SDR + AIS-catcher + dump1090-fa = live AIS/ADS-B cold-start) | Runs `demo/update_model.py` on the Pi; registers to MLflow `:5000`; receives the UDS bundle | the MLflow server config, datasets/ |
+| **Edge / Pi cluster** | **William** | Flash Pis (Pi OS 64-bit), network them, Podman + Python 3.14, **SDR rig** (RTL-SDR + AIS-catcher + dump1090-fa = live AIS/ADS-B cold-start) | Runs `demo/update_model.py` on the Pi; registers to MLflow `:5050`; receives the UDS bundle | the MLflow server config, datasets/ |
 | **Build / MLOps** | **Tommy** | MLflow central server in Podman (`docs/setup/MLFLOW_PODMAN.md`), the train/register/version flow | `MLFLOW_TRACKING_URI`; `retrain.py` logs to it; registry `theseus-cbm` | the Pi provisioning, the record internals |
 | **MLOps config / PM** | **Carolina + Juan** | KanBan, version pins (MLflow 3.13 / Podman >5.8.1 / Python 3.14.4), container architecture, CVE hygiene | keeps board + versions current | model code, edge HW |
 | **Data / research** | **THESEUS agent** | `docs/research/datasets/` (catalog + A–F + ROADMAP), license clearing, SDR capture plan, NV061 trajectory data | the **data contract** (CSV shape stage_data expects) | demo/ code, deploy/ |
@@ -19,19 +19,19 @@
 ## Team roster (11)
 | Member | Lane |
 |---|---|
-| **Joshua** — Team Lead | direction · system scaffolding |
-| **William** | Edge / Pi cluster + SDR rig + Tailscale |
-| **Carolina** | Security — IL6 baseline + SW versions (ZAP scan) |
-| **Tommy** | Build / MLOps — analytics container + MLflow pipeline |
-| **Savannah** | open — eval / labeling |
-| **Gerardo** | Frontend |
-| **Nicholas** | Models — training + MLflow |
-| **Juan** | Networking / MLOps — Tailscale + MLflow container |
-| **Aaron** | Data + Frontend |
-| **Mark** | Strategy / engagement (Force; retired Marine) |
-| **Claire** | Models — trains the UUV own-systems model on Node 3 (NAVSEA intern) |
+| **Joshua Sarles** — Team Lead | direction · system scaffolding |
+| **William Emeny** | Edge / Pi cluster + SDR rig + Tailscale |
+| **Carolina Hatch** | Security — IL6 baseline + SW versions (ZAP scan) |
+| **Thang "Tommy" Do** | Build / MLOps — analytics container + MLflow pipeline |
+| **Savannah Rodriguez** | eval / labeling |
+| **Gerardo Cano** | Frontend |
+| **Nicholas Bernstein** | Models — training + MLflow |
+| **Juan Pineda** | Networking / MLOps — Tailscale + MLflow container |
+| **Aaron Jaeger** | Data + Frontend |
+| **Mark Weinrich** | Strategy / engagement (Force; retired Marine) |
+| **Claire Shen** | Models — trains the UUV own-systems model on Node 3 (NAVSEA intern) |
 
-*Team = 11: NAVSEA (incl. intern) + retired Navy/Marine engineers + analysts (no NIWC). Surnames kept out of this public repo (OPSEC); accurate roster lives in the team channel. The NIWC official referenced in an earlier draft is NOT on the team — scrubbed. Force AI agents (not team members): WARHACKER = orchestration/build/record/DU · THESEUS = data/research/eval.*
+*Team = 11: NAVSEA (incl. intern) + retired Navy/Marine engineers + analysts. Force AI agents (not team members): WARHACKER = orchestration/build/record/DU · THESEUS = data/research/eval.*
 
 ## Collision rules (we share one repo)
 - **Pull before you push** (`git pull --no-edit origin main` then push). **Push often.**
