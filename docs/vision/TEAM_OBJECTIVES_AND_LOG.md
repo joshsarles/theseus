@@ -45,7 +45,7 @@
 - Inference corrected: GPU (Triton-TRT-LLM, `iron-bank` flavor) runs ON the ship Tier-1; GGUF/llama.cpp on the Pi components. vLLM Iron Bank is out (archived). FIPS = crypto boundary only. → `../integration/INFERENCE_AND_FIPS.md`.
 
 ### Jun 17 — team formed + stack locked
-- team-theseus channel created; ~12 members (NAVSEA/NIWC engineers + analysts). KanBan stood up (Carolina, Juan).
+- team-theseus channel created; 10 members (NAVSEA + retired Navy/Marine engineers + analysts). KanBan stood up (Carolina, Juan).
 - Stack decided: MLflow 3.13 central server + Podman + Pi cluster. CVE-aware (MLflow ≥3.11, Podman >5.8.1).
 - Architecture sketch (Juan / Tommy): MLflow container as central server monitoring models on other containers/Pis; deploy a model to the Pis; test save + update; stage updates shore-side.
 - Repo live + public: github.com/joshsarles/theseus. Working dir: /Developer/Theseus.

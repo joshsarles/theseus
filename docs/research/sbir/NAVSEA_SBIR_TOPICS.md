@@ -37,7 +37,7 @@
 - **Pursue NV063 as the anchor** (strongest fit, R3 window 6/24–7/22, and it's exactly what we're building at Warhacker — the witnessed run becomes the SBIR proof).
 - **Bundle NV061** (predictive track) as the paired object-SA story; **NV065** (adaptive sensor mgmt) as the Phase-II autonomy extension.
 - **Skip NV050 / NV048** (undersea hardware/sonar — off-core, near-dead deadlines) unless a partner appears.
-- **Why this matters:** Warhacker (Theseus demo, Jun 16–19) → NV063 opens **6/24, two days after the event** → the Warhacker build is a running head-start on a NAVSEA SBIR. The team (NAVSEA + NIWC engineers) is the exact bidder profile.
+- **Why this matters:** Warhacker (Theseus demo, Jun 16–19) → NV063 opens **6/24, two days after the event** → the Warhacker build is a running head-start on a NAVSEA SBIR. The team (NAVSEA + retired Navy/Marine engineers) is the exact bidder profile.
 
 ## Honest rails (carry into any NV063 pitch)
 - Human-in-command on any alert/action; explainable AI is *required* by the topic and is our strength (the tamper-evident record + the explanation).

@@ -7,7 +7,7 @@ A central **MLflow** server (Podman) manages models deployed to a **Raspberry Pi
 ---
 
 ## ✅ Done
-- Team formed (~12: NAVSEA/NIWC engineers + analysts); team-theseus Slack + KanBan up.
+- Team formed (10: NAVSEA + retired Navy/Marine engineers + analysts); team-theseus Slack + KanBan up.
 - Stack decided: MLflow 3.13 + Podman (latest) + Pi cluster + UDS/Zarf + Python 3.14.4.
 - Repo live + public: github.com/joshsarles/theseus → cloned to /Developer/Theseus.
 - Research documented: build vision, SBIR (NV063), **datasets (full A–F catalog)**, MLflow/Podman runbook, DU integration, IL roadmap.

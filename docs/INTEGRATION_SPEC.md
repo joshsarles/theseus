@@ -1,6 +1,6 @@
 # THESEUS — Integration Spec (Buy / Borrow / Build)
 
-*The architecture decision: compose best-of-breed open components, keep our build to the thin glue plus the one thing only a NAVSEA/NIWC team can do. Web-grounded Jun 17 2026. Companion to `ROADMAP.md` (state) and `docs/WARHACKER_JUDGE_AUDIT.md` (scoring). Drafted by the THESEUS lane.*
+*The architecture decision: compose best-of-breed open components, keep our build to the thin glue plus the one thing only a NAVSEA + retired Navy/Marine team can do. Web-grounded Jun 17 2026. Companion to `ROADMAP.md` (state) and `docs/WARHACKER_JUDGE_AUDIT.md` (scoring). Drafted by the THESEUS lane.*
 
 > **Why this exists.** The record, the detection, the deploy, and the machinery CBM are all commoditizing (`WARHACKER_JUDGE_AUDIT.md §0.1`; Glacis/nono/cachee on receipts, Windward on detection, Defense Unicorns on deploy, Fathom5 ERM on CBM). Re-deriving any of them burns the team's only scarce asset: Navy domain access. So we adopt standards everywhere and build only the non-commodity inch. Adopting the standards is itself the moat-sharpener: a recognized, interoperable record is what makes other vendors emit into it.
 

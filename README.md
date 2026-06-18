@@ -6,7 +6,7 @@ When a warship loses its link to shore (DDIL: denied, degraded, intermittent, li
 
 > *Like the Ship of Theseus — every plank can be replaced and she's still herself, because the brain that runs her is one.*
 
-Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + NIWC engineers (Force AI). AGPL-3.0.
+Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + retired Navy/Marine engineers (Force AI). AGPL-3.0.
 
 ## What it does (team objectives)
 1. **Deploy** AI models at the edge (shipboard-like, resource-limited).

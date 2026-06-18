@@ -4,7 +4,7 @@
 ---
 
 ## The bet (share this)
-A warship is a floating city of systems — propulsion, power, navigation, damage control, readiness — and the moment it loses the link to shore (DDIL: denied, degraded, intermittent, limited), all that data is on its own, scattered across stovepiped systems, watched by a handful of overworked sailors. **Theseus turns the ship into a self-controlled brain at the edge:** it ingests the ship's own systems data, fuses it into one live picture, spots what's failing or off-normal, and drafts the call for a human to approve — running fully disconnected, from one deployable bundle, with every decision written to a record nobody can quietly change. *Like the Ship of Theseus, every part can be replaced and she's still herself — because the brain that runs her is one.*
+A warship is a floating city of systems — propulsion, power, navigation, damage control, readiness — and the moment it loses the link to shore (DDIL: denied, degraded, intermittent, limited), all that data is on its own, scattered across stovepiped systems, watched by a handful of overworked sailors. **Theseus turns the ship into an onboard decision-support brain at the edge — human always in command:** it ingests the ship's own systems data, fuses it into one live picture, spots what's failing or off-normal, and drafts the call for a human to approve — running fully disconnected, from one deployable bundle, with every decision written to a record nobody can quietly change. *Like the Ship of Theseus, every part can be replaced and she's still herself — because the brain that runs her is one.*
 
 **One line:** the ship keeps thinking when it's cut off.
 
@@ -38,7 +38,7 @@ The spine is built and verified — it transfers straight from our prior work:
 - **Correlation/anomaly engine** (fuses noisy signals into tracks/state over time) — *verified*; we re-point it from imagery detections to ship-systems telemetry
 - **A live console** (the watch picture + human accept/override) — *built*
 - **One-command laptop setup** (`make onboard`) + IP-guard firewall — *built*
-Repo: **github.com/joshsarles/theseus** (private).
+Repo: **github.com/joshsarles/theseus** (public, AGPL-3.0).
 
 ## What we build in 4 days
 1. **Ship-systems data adapter** — feed real/representative shipboard telemetry (DDS/SWAN-style: power, propulsion, nav, damage-control) into the correlation engine
@@ -50,7 +50,7 @@ Repo: **github.com/joshsarles/theseus** (private).
 ---
 
 ## The team & roles (we flex as we go)
-*Real names + specific commands kept OUT of this public repo (OPSEC); the canonical roster lives in the team channel. NAVSEA/NIWC/NSWC engineers + analysts (9).*
+*Real names + specific commands kept OUT of this public repo (OPSEC); the canonical roster lives in the team channel. NAVSEA + retired Navy/Marine engineers + analysts (10).*
 | Who | On Theseus |
 |---|---|
 | **Joshua** | Lead — narrative, architecture, the demo, the deploy spine |
@@ -62,6 +62,7 @@ Repo: **github.com/joshsarles/theseus** (private).
 | **Savannah** | Ship-systems engineering / data; eval / labeling |
 | **Gerardo** | Frontend |
 | **Aaron** | Data + frontend / analytics |
+| **Mark** | Strategy / engagement (Force; retired Marine) |
 
 *Defense Unicorns engineers on-site = the deploy/UDS muscle if we want it.*
 

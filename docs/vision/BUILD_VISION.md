@@ -36,7 +36,7 @@ The ML (anomaly detectors, track predictors) is **commoditized** — a prime clo
 - **UDS / Zarf** — the airgap deploy bundle (already verified end-to-end).
 
 ## The two things that actually decide life-or-death (Red Team — chase these, not the demo)
-1. **A program-office sponsor who owns the ATO risk** (NOT just a SBIR TPOC). No sponsor → a clean bundle sits in a lab forever. *Single most likely cause of death.* The NAVSEA/NIWC team is the path to this — use them.
+1. **A program-office sponsor who owns the ATO risk** (NOT just a SBIR TPOC). No sponsor → a clean bundle sits in a lab forever. *Single most likely cause of death.* The NAVSEA + retired Navy/Marine team is the path to this — use them.
 2. **A contractual/technical path to one real ship-data feed past the primes** (signed ICD or interface agreement). "Fuses ship data" is unproven until we name the feed. Start SWAN-side machinery telemetry (most reachable).
    Plus: **a false-alarm number** on real/high-fidelity machinery data at a watch-tolerable threshold (<~1 nuisance/watch) — trust is a one-shot resource on a ship.
 

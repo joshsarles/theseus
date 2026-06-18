@@ -8,7 +8,7 @@
 
 ## §1 — Executive summary (the blue ocean in four sentences)
 
-DECK is a **data engine**: it collects, curates, and moves ship sensor data so models can be built and operations supported, centered on **unmanned/autonomous systems** (it sits under the Navy's robotics-and-autonomy acquisition portfolio). It opens the learning loop; it does not close it onboard, it does not make a learning model accreditable, and it does not solve safe fleet-merge. The uncontested space, the blue ocean, is the intersection of **onboard closed-loop learning under DDIL + the provenance record as accreditation evidence (cATO-for-AI) + provenance-gated fleet-merge + the ship-systems-engineering (HM&E) domain** — none of which DECK does, all of which require exactly a NAVSEA/NIWC team, and all of which *ride* DECK rather than compete with it. The one-liner: **DECK feeds the loop; THESEUS closes it and proves it.**
+DECK is a **data engine**: it collects, curates, and moves ship sensor data so models can be built and operations supported, centered on **unmanned/autonomous systems** (it sits under the Navy's robotics-and-autonomy acquisition portfolio). It opens the learning loop; it does not close it onboard, it does not make a learning model accreditable, and it does not solve safe fleet-merge. The uncontested space, the blue ocean, is the intersection of **onboard closed-loop learning under DDIL + the provenance record as accreditation evidence (cATO-for-AI) + provenance-gated fleet-merge + the ship-systems-engineering (HM&E) domain** — none of which DECK does, all of which require exactly a NAVSEA + retired Navy/Marine team, and all of which *ride* DECK rather than compete with it. The one-liner: **DECK feeds the loop; THESEUS closes it and proves it.**
 
 ---
 
@@ -65,7 +65,7 @@ Using the Blue Ocean Strategy grid to make the uncontested space explicit:
 | **RAISE** | Onboard autonomy *under DDIL* (keep reasoning when the link is cut); trust + accreditation (the record as the AO's evidence); human-in-command provability. |
 | **CREATE** | **Provenance-gated fleet learning** (the safe Tesla-for-the-fleet loop); **cATO-for-AI** (accredit the learning pipeline, not frozen weights); the **onboard closed loop** that consumes DECK's curated data and closes it; the **neutral onboard trust layer** every algorithm emits into. |
 
-**The uncontested intersection:** onboard-DDIL closed loop × provenance/accreditation record × provenance-gated fleet-merge × HM&E engineering domain. It is empty precisely because filling it requires a NAVSEA/NIWC team (domain + feeds + AO relationship) that a Silicon Valley autonomy-data company does not have. The barrier that keeps the ocean blue is the same barrier the team already cleared by existing.
+**The uncontested intersection:** onboard-DDIL closed loop × provenance/accreditation record × provenance-gated fleet-merge × HM&E engineering domain. It is empty precisely because filling it requires a NAVSEA + retired Navy/Marine team (domain + feeds + AO relationship) that a Silicon Valley autonomy-data company does not have. The barrier that keeps the ocean blue is the same barrier the team already cleared by existing.
 
 ---
 
