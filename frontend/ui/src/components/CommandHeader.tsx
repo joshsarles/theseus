@@ -1,10 +1,13 @@
 import { useUtcClock } from "../hooks/useUtcClock";
+import { SceneToggle } from "./SceneToggle";
 import type { ConnState } from "../hooks/useShipState";
-import type { ShipState } from "../lib/types";
+import type { ShipState, SceneMode } from "../lib/types";
 
 interface CommandHeaderProps {
   state: ShipState;
   conn: ConnState;
+  mode: SceneMode;
+  onMode: (m: SceneMode) => void;
 }
 
 const CONN_LABEL: Record<ConnState, string> = {
@@ -14,7 +17,7 @@ const CONN_LABEL: Record<ConnState, string> = {
   mock: "SIM FEED",
 };
 
-export function CommandHeader({ state, conn }: CommandHeaderProps) {
+export function CommandHeader({ state, conn, mode, onMode }: CommandHeaderProps) {
   const utc = useUtcClock();
   const critical = state.systems.filter((s) => s.severity === "critical").length;
   const liveCount = state.systems.filter((s) => s.live).length;
@@ -64,6 +67,9 @@ export function CommandHeader({ state, conn }: CommandHeaderProps) {
             </div>
           </div>
         </div>
+
+        {/* scene toggle — operations vs fleet learning */}
+        <SceneToggle mode={mode} onChange={onMode} />
 
         {/* posture rail */}
         <div

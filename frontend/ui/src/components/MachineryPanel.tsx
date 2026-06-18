@@ -3,10 +3,11 @@ import { SectionHead } from "./Hairline";
 import type { Machinery } from "../lib/types";
 
 interface MachineryPanelProps {
-  machinery: Machinery;
+  machinery: Machinery | null;
 }
 
 export function MachineryPanel({ machinery }: MachineryPanelProps) {
+  if (!machinery) return <MachineryStandby />;
   const { model, version, rmse, framework, status, promotions } = machinery;
 
   // Deterministic decay-residual trend seeded by the model, converging to rmse.
@@ -68,6 +69,21 @@ export function MachineryPanel({ machinery }: MachineryPanelProps) {
           Residual Trend · last 48 fixes
         </div>
         <Trend points={trend} color={color} />
+      </div>
+    </section>
+  );
+}
+
+/** Honest standby state — shown when no machinery model has been promoted yet. */
+function MachineryStandby() {
+  return (
+    <section style={{ display: "flex", flexDirection: "column" }}>
+      <SectionHead index="02" title="Machinery · HM&E" meta="STANDBY" />
+      <div style={{ padding: "16px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 8, height: 8, background: "var(--faint)" }} />
+        <span className="mono" style={{ fontSize: 10.5, color: "var(--muted)", letterSpacing: "0.02em" }}>
+          organ instrumented · CBM model pending promotion
+        </span>
       </div>
     </section>
   );

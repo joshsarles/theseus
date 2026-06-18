@@ -62,7 +62,8 @@ export interface ShipState {
   ship: string;
   posture: string;
   systems: ShipSystem[];
-  machinery: Machinery;
+  /** null until a CBM model is promoted (build_state returns null before then) */
+  machinery: Machinery | null;
   contacts: Contact[];
   human_in_command: HumanInCommand;
   record: RecordState;
@@ -81,3 +82,49 @@ export interface Leaf {
 }
 
 export type Verdict = "accepted" | "overridden";
+
+/* ====================================================================== */
+/*  FLEET-LEARNING FLYWHEEL — GET /api/fleet                              */
+/*  human-authorized · eval-gated · provenance-attested                  */
+/* ====================================================================== */
+
+/** A sister hull that trained locally and synced a signed delta. */
+export interface FleetShip {
+  id: string | null;
+  n_samples: number | null;
+  local_train_rmse: number | null;
+  status: string;
+}
+
+/** A delta the provenance gate refused (poisoned / unattested). */
+export interface FleetRejection {
+  id: string | null;
+  reason: string | null;
+}
+
+/** The eval-gated FedAvg merge: incumbent → merged on a held-out set. */
+export interface FleetMerge {
+  accepted_ships: string[];
+  fedavg_weights: number[];
+  incumbent_rmse: number;
+  merged_rmse: number;
+  rmse_delta: number;
+  held_out_n: number;
+}
+
+export interface FleetRecord {
+  verify_ok: boolean;
+  message: string;
+  leaf_count: number;
+}
+
+export interface FleetState {
+  posture: string;
+  ships: FleetShip[];
+  rejected: FleetRejection[];
+  merge: FleetMerge | null;
+  eval_gate_pass: boolean | null;
+  record: FleetRecord;
+}
+
+export type SceneMode = "operations" | "fleet";
