@@ -50,16 +50,18 @@ Repo: **github.com/joshsarles/theseus** (private).
 ---
 
 ## The team & roles (we flex as we go)
-| Who | Org | On Theseus |
-|---|---|---|
-| **William Emeny** | NAVSEA | Ship-systems domain lead — what data matters, what "normal" is |
-| **Thang Do** | NSWC Port Hueneme | In-service ship-systems engineering — real failure modes |
-| **Savannah Rodriguez** | NAVSEA | Ship-systems engineering / data |
-| **Nicholas Bernstein** | US Navy | Prototype engineering / build |
-| **Carolina Hatch** | Naval Supply Systems Command | Analyst voice — the human in the loop, readiness |
-| **Aaron Jaeger** | QuantZero | Build / analytics |
-| *(+ 2 more — TBD)* | | |
-| **Josh (you)** | Force AI | Lead — narrative, architecture, the demo, the deploy spine |
+*Real names + specific commands kept OUT of this public repo (OPSEC); the canonical roster lives in the team channel. NAVSEA/NIWC/NSWC engineers + analysts (9).*
+| Who | On Theseus |
+|---|---|
+| **Joshua** | Lead — narrative, architecture, the demo, the deploy spine |
+| **William** | Ship-systems domain lead (what data matters / what "normal" is) + edge / Pi cluster + SDR |
+| **Tommy** | In-service ship-systems engineering (real failure modes); build / MLOps |
+| **Carolina** | Security / IL6 baseline; analyst voice — the human in the loop, readiness |
+| **Nicholas** | Models — prototype engineering / build |
+| **Juan** | Networking / MLOps |
+| **Savannah** | Ship-systems engineering / data; eval / labeling |
+| **Gerardo** | Frontend |
+| **Aaron** | Data + frontend / analytics |
 
 *Defense Unicorns engineers on-site = the deploy/UDS muscle if we want it.*
 
