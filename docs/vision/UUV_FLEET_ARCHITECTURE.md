@@ -98,9 +98,9 @@ So: **relabel ships→UUVs, wire the 2 real Pis as the vehicles, train the per-d
 
 ---
 
-## §8 — Engagement doors (founder's lane; don't pitch DECK or PAE-RAS leadership directly)
+## §8 — Engagement (founder's lane — handled)
 
-PAE RAS **OTA Marketplace Roadmap** (accelerated OTA, <12-mo) · **platform integrators** (HII Unmanned, GD Mission Systems, Boeing Phantom Works — "fleet model coordination for Odyssey mesh") · **NAVWAR / Project Overmatch** AI/ML prize challenges. *(Founder is already connected into the PAE RAS room.)*
+Acquisition/engagement is the founder's lane and already in motion — **not a build or strategy item here.** Technical posture only: stay **compatible-with** the platform autonomy stacks (HII Odyssey ACS, Project Overmatch) as the fleet-MLOps + accreditation layer that rides *on* them — never a competitor to them.
 
 ---
 
