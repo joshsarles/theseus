@@ -22,7 +22,9 @@ Two things must both be true:
 
 Verify from a Pi: `curl http://10.10.2.162:5050/health` → expect `200`. Then the receiver loads `models:/<model>@production`.
 
-### Pi receiver → model load: the 4 conditions (all verified working on pi2, Jun 18)
+### Pi receiver → model load: the 4 conditions (verified working on BOTH pi1 + pi2, Jun 18)
+*pi1 = UUV-1 loads `uuv1_anomaly_deploy@production`; pi2 = UUV-2 loads `uuv2_anomaly_deploy@production` — both from Node-3 MLflow (`10.10.2.162:5050`), both scoring the sensor stream, 0 baseline fallbacks.*
+
 Getting the Pi's receiver to actually load the registered model (not silently fall back to a baseline) required ALL of these:
 1. **Alias URI** — the receiver loads `models:/<model>@production` (MLflow 3.x **removed stages**; the old `models:/<model>/Production` / `models://.../Production` never resolves). The repo `serve/receiver/receiver.py` does this.
 2. **Proxied artifacts on Node 3** — `deploy/mlflow/run.sh` runs `mlflow server --serve-artifacts --artifacts-destination …` so artifact URIs are `mlflow-artifacts:/` (remote-downloadable). A local `file://` artifact root fails remotely with **`No such artifact`**. *(Existing experiments keep their original location — wipe `mlflow.db`/`mlruns` and re-register so everything is proxied.)*
