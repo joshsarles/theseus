@@ -36,9 +36,13 @@ kill_port
 # localhost. Override with MLFLOW_HOST=127.0.0.1 to keep it local-only.
 HOST="${MLFLOW_HOST:-0.0.0.0}"
 echo "  · launching MLflow on $HOST:$PORT (sqlite backend, artifacts under deploy/mlflow/mlruns)…"
+# --serve-artifacts + --artifacts-destination make the server PROXY artifact downloads
+# (artifact URIs become mlflow-artifacts:/ instead of a local file:// path), so remote
+# clients on the Pis can actually pull registered models. Without this, a remote load fails
+# with "No such artifact" because file:// mlruns is only readable on Node 3 itself.
 nohup "$VENV/bin/mlflow" server --host "$HOST" --port "$PORT" \
   --backend-store-uri "sqlite:///$HERE/mlflow.db" \
-  --default-artifact-root "$HERE/mlruns" > "$HERE/mlflow.log" 2>&1 &
+  --serve-artifacts --artifacts-destination "$HERE/mlartifacts" > "$HERE/mlflow.log" 2>&1 &
 for _ in $(seq 1 45); do
   curl -fsS -o /dev/null "http://127.0.0.1:$PORT/" 2>/dev/null && { echo "  ✓ MLflow up → http://127.0.0.1:$PORT"; exit 0; }
   sleep 1

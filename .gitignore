@@ -78,3 +78,5 @@ deploy/mlflow/mlflow.log
 deploy/pi/.pi-access
 deploy/pi/.pi-access.md
 **/*.creds
+deploy/mlflow/mlartifacts/
+deploy/mlflow/.venv312/
