@@ -46,7 +46,7 @@ def main() -> int:
         print(f"  kept previous (v{prev_meta['version']}) -> models/previous (rollback ready)")
         shutil.rmtree(CURRENT)
 
-    shutil.copytree(latest, CURRENT)
+    shutil.copytree(latest, CURRENT, dirs_exist_ok=True)   # idempotent — closes the rmtree/copytree race (flaky FileExistsError)
     print(f"  promoted v{meta['version']} -> models/current  (RMSE={meta['rmse']})")
 
     seal(RECORD, "model_promoted", f"theseus-cbm:v{meta['version']}",

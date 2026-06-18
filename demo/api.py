@@ -332,12 +332,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 self._send(build_fleet_state())
             except Exception as e:
-                self._send({"error": str(e)}, 500)
+                self._send({"error": "internal error"}, 500)   # don't leak exception text / filesystem paths
             return
         try:
             state = build_state(self.record_dir)
         except Exception as e:
-            self._send({"error": str(e)}, 500)
+            self._send({"error": "internal error"}, 500)   # don't leak exception text / filesystem paths
             return
         if path in ("/api/state", "/api"):
             self._send(state)
@@ -351,7 +351,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Seal a watch-officer decision into the tamper-evident record (the human-in-command beat)."""
         path = self.path.split("?")[0].rstrip("/")
-        length = int(self.headers.get("Content-Length", 0))
+        try:
+            length = int(self.headers.get("Content-Length", "0") or 0)
+        except ValueError:
+            self._send({"error": "bad content-length"}, 400); return
+        if length > 65536:                       # 64 KiB cap — bounded read (memory-exhaustion DoS guard)
+            self._send({"error": "payload too large"}, 413); return
         try:
             body = json.loads(self.rfile.read(length) or b"{}") if length else {}
         except Exception:

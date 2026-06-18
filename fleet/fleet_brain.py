@@ -257,7 +257,11 @@ def run_merge(
             print(f"  [{ship_id:>14}]  {status}  {DIM}{reason}{END}")
 
         if ok:
-            n_samples = statement["predicate"]["n_samples"]
+            n_samples = statement["predicate"].get("n_samples")
+            if not n_samples or n_samples <= 0:   # guard: empty/zero-weight delta → reject (no ZeroDivision in fedavg)
+                ok, reason = False, f"n_samples <= 0 ({n_samples!r}) — rejecting (cannot weight a zero-sample delta)"
+
+        if ok:
             accepted_params.append(model_params)
             accepted_weights.append(float(n_samples))
             report["deltas_accepted"] += 1
