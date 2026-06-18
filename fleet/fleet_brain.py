@@ -207,7 +207,7 @@ def run_merge(
     The report contains all metric values (honest numbers for the demo).
     """
     sys.path.insert(0, str(ROOT))
-    from fleet.signing import verify_envelope
+    from fleet.signing import verify_envelope, params_hash
     from referee.chain import verify_dir
 
     FLEET_RECORD_DIR.mkdir(parents=True, exist_ok=True)
@@ -238,6 +238,19 @@ def run_merge(
         model_params = pkg.get("model_params", {})
 
         ok, reason, statement = verify_envelope(envelope, KEYS_DIR)
+
+        # Weight-integrity gate: the signed statement carries model_params_hash; recompute
+        # it from the DELIVERED model_params and require a match. This closes the weight-
+        # substitution bypass — a captured node with a VALID key that swaps the weights in
+        # the (signature-uncovered) outer JSON. Signature OK is necessary but not sufficient.
+        if ok:
+            signed_hash = (statement.get("predicate") or {}).get("model_params_hash")
+            actual_hash = params_hash(model_params)
+            if signed_hash is None:
+                ok, reason = False, "no model_params_hash in signed statement (unbound weights)"
+            elif signed_hash != actual_hash:
+                ok, reason = False, (f"model_params hash MISMATCH — weight substitution "
+                                     f"(signed {str(signed_hash)[:10]}…, got {actual_hash[:10]}…)")
 
         if verbose:
             status = f"{GREEN}ACCEPTED{END}" if ok else f"{RED}REJECTED{END}"

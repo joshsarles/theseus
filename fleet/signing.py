@@ -22,6 +22,18 @@ delta provenance:
 
 Verification: reconstruct PAE = "DSSEv1" + SP + payload_type + SP + payload
 (DSSE spec §2.3) and verify signature. Reject if keyid is not a known ship.
+
+NOTE on interop: this is a self-consistent, DSSE-SHAPED Ed25519 envelope (PAE over the
+base64 payload string; hex-encoded signature; snake_case keys). Sign and verify here are
+mutually consistent and cryptographically sound for the fleet, but it is NOT byte-for-byte
+interoperable with external DSSE verifiers (cosign / go-dsse). The spec-exact, externally
+verifiable attestations are in `referee/chain.py` (PAE over the raw serialized body, base64
+signature, camelCase). Treat this layer as "Ed25519-signed, DSSE-structured", not as a
+drop-in for a third-party DSSE verifier.
+
+The signed statement's predicate carries `model_params_hash` — the fleet brain recomputes
+it from the delivered weights and rejects on mismatch, so the signature binds the actual
+model weights (not just the metadata) and a valid-key weight-substitution is caught.
 """
 from __future__ import annotations
 

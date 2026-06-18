@@ -269,6 +269,10 @@ def train_ship(
             "range_high_km": cfg["range_high_km"],
             "local_train_rmse": round(local_train_rmse, 6),
             "local_baseline_rmse": round(local_baseline, 6),
+            # Bind the actual model weights to the signature: the fleet brain recomputes
+            # this from the delivered model_params and rejects on mismatch. Without it, a
+            # captured node with a VALID key could swap weights and pass the gate.
+            "model_params_hash": params_hash(local_params),
         },
     )
 

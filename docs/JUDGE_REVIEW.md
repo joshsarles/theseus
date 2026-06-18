@@ -35,7 +35,7 @@ PHASE 3: PROVENANCE GATE + FEDAVG + EVAL GATE
    Incumbent RMSE 0.031816 → merged model PASSES the eval gate → accepted
    Chain verify: PASS
 ```
-**Why it matters:** this is the whole thesis in 30 seconds — **federated learning** (deltas, not raw sonar) + **provenance-gated defense** (an unattested/unregistered node's delta is rejected before the merge — Byzantine-robust aggregation is the named roadmap upgrade) + a **pre-deployment eval-gate** (you can't recall a bad model from a submerged vehicle, so a regression never ships). Code: `fleet/fleet_brain.py` (merge + gates), `fleet/signing.py` (Ed25519 DSSE), `fleet/ship_node.py` (local learning).
+**Why it matters:** this is the whole thesis in 30 seconds — **federated learning** (deltas, not raw sonar) + **provenance-gated defense** (an unattested/unregistered node's delta is rejected — and the Ed25519 signature **binds the actual model weights** via a signed `model_params_hash`, so a *captured* node with a valid key that swaps the weights is rejected too; Byzantine-robust aggregation is the named roadmap upgrade) + a **pre-deployment eval-gate** (you can't recall a bad model from a submerged vehicle, so a regression never ships). Code: `fleet/fleet_brain.py` (merge + gates), `fleet/signing.py` (Ed25519 DSSE), `fleet/ship_node.py` (local learning).
 
 ## Beat 2 — The tamper-evident record (the moat) · `referee/chain.py`
 **What it proves:** every model update + human decision is sealed in a hash-chained, **Ed25519-signed**, in-toto/DSSE-attested record that **verifies offline** and **snaps** if a single byte changes.
