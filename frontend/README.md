@@ -1,8 +1,8 @@
-# THESEUS — Combat Information Center (Streamlit)
+# THESEUS — frontend (historical note)
 
-A live-demo dashboard for **THESEUS**, the Navy shipboard "self-controlled ship
-brain": **decision-support, human-in-command**. It renders the watchstander board
-straight from the tamper-evident record and plots flagged contacts on real AIS data.
+> **The current UI is `frontend/ui/`** (the React/Three.js digital-twin CIC — OPERATIONS + FLEET LEARNING scenes). This Streamlit attempt is superseded and removed; this note is kept only for history.
+
+A live-demo dashboard for **THESEUS** — the Navy onboard **decision-support** brain, **human always in command**. It renders the watchstander board straight from the tamper-evident record and plots flagged contacts on real AIS data.
 
 > Built on **Gerardo's skeleton** (the sidebar perspective switch + naval frame) —
 > this fills both perspectives out fully against the real record + real AIS.
