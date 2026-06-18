@@ -1,0 +1,16 @@
+# THESEUS edge node — minimal Python deps for a Raspberry Pi (arm64, CPU-only).
+#
+# The local model server (serve/model_server.py) + report-up (serve/report_up.py) run
+# on the Python STANDARD LIBRARY ALONE — no third-party deps — when the served model is
+# the stdlib-ols flavor. The deps below are only for the richer paths:
+#
+#   onnxruntime    -> the ONNX edge inference path (models/onnx/infer.py)
+#   scikit-learn   -> only to UNPICKLE an sklearn-flavored model.bin at load time
+#   numpy          -> pulled in by both of the above; pinned for arm64 wheel availability
+#
+# OFFLINE: pre-stage arm64 wheels into deploy/pi/wheels/ (see deploy/pi/README.md);
+# edge_run.sh installs with `pip install --no-index --find-links wheels`. If wheels are
+# absent and there's no internet, the edge still serves stdlib-ols models + reports up.
+onnxruntime>=1.17
+numpy>=1.26
+scikit-learn>=1.3

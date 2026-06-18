@@ -23,7 +23,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE))            # for sibling demo modules (node_registry, _record)
 from referee.chain import verify_dir  # noqa: E402
+import node_registry  # noqa: E402  (demo/node_registry.py — edge-node report registry)
 
 RECORD = HERE / "out" / "record"
 
@@ -130,12 +132,81 @@ def build_state(record_dir: Path) -> dict:
         {"key": "damage_control", "label": "DAMAGE CONTROL", "live": False, "severity": "standby", "detail": "organ instrumented · model pending"},
         {"key": "readiness", "label": "READINESS", "live": False, "severity": "standby", "detail": "mission-capability rollup pending"},
     ]
+
+    # ── Edge-node hierarchy overlay (the ship's brain aggregating its edge devices) ──
+    # Each ship-system edge node (Pi-class) reports UP to the brain. A system is shown as
+    # a REAL live edge node ONLY if a node for it is genuinely reporting AND fresh; stale
+    # reports (node went dark) fall back to standby. This is the honest "all systems, one
+    # picture" rollup — never green unless a node is actually up and recent.
+    live = node_registry.live_systems()
+    by_key = {s["key"]: s for s in systems}
+    for sys_key, rep in live.items():
+        node_health = str(rep.get("health", "")).strip().lower()
+        # Map node-reported health -> CIC severity. A node that reports but is unhealthy
+        # is shown as a warning (live, but degraded) — not silently green.
+        sev = {"ok": "nominal", "nominal": "nominal", "healthy": "nominal",
+               "degraded": "warning", "warning": "warning",
+               "error": "critical", "down": "critical"}.get(node_health, "warning")
+        node_block = {
+            "node_id": rep.get("node_id"),
+            "model": rep.get("model"),
+            "model_version": rep.get("model_version"),
+            "framework": rep.get("framework"),
+            "health": node_health or "unknown",
+            "last_good": rep.get("last_good"),
+            "age_seconds": rep.get("age_seconds"),
+            "recent_leaf_hashes": (rep.get("leaf_hashes") or [])[:5],
+            "reported_unix": rep.get("received_unix"),
+        }
+        ver = rep.get("model_version")
+        fw = rep.get("framework") or "?"
+        detail = (f"edge node {rep.get('node_id')} · {rep.get('model') or 'model'} "
+                  f"v{ver} ({fw}) · {node_health or 'unknown'}")
+        lg = rep.get("last_good")
+        if lg:
+            detail += f" · last-good {lg}"
+        if sys_key in by_key:
+            s = by_key[sys_key]
+            s["live"] = True
+            # A real reporting node can only RAISE the severity floor to its own health;
+            # a critical contact picture still wins over a nominal node report.
+            order = {"standby": 0, "nominal": 1, "warning": 2, "critical": 3}
+            if order.get(sev, 1) >= order.get(s.get("severity", "standby"), 0):
+                s["severity"] = sev
+            elif s.get("severity") == "standby":
+                s["severity"] = sev
+            s["detail"] = detail
+            s["node"] = node_block
+        else:
+            # A reporting node for a system the brain didn't pre-list — still show it,
+            # honestly, as a live edge node rather than dropping it.
+            systems.append({
+                "key": sys_key, "label": sys_key.upper(), "live": True,
+                "severity": sev, "detail": detail, "node": node_block,
+            })
+
+    all_nodes = node_registry.load_nodes()
     return {
         "ship": "THESEUS",
         "posture": "decision-support · human-in-command · SWAN-side",
         "systems": systems,
         "machinery": machinery,
         "contacts": contacts,
+        # The edge hierarchy as the brain sees it: every node that has EVER reported,
+        # with age + freshness, so a dark node is visible (stale) not invisible.
+        "nodes": {
+            "count": len(all_nodes),
+            "live": sum(1 for n in all_nodes if n.get("fresh")),
+            "ttl_seconds": node_registry.TTL_SECONDS,
+            "reporting": [
+                {"node_id": n.get("node_id"), "system": n.get("system"),
+                 "model": n.get("model"), "model_version": n.get("model_version"),
+                 "framework": n.get("framework"), "health": n.get("health"),
+                 "last_good": n.get("last_good"), "age_seconds": n.get("age_seconds"),
+                 "fresh": n.get("fresh")}
+                for n in all_nodes
+            ],
+        },
         "human_in_command": {
             "pending": len(contacts),
             "note": "Theseus recommends; the watch officer decides. Nothing is actioned automatically.",
@@ -223,8 +294,54 @@ class Handler(BaseHTTPRequestHandler):
                         {"contact_id": cid, "verdict": verdict, "by": by})
             self._send({"ok": True, "sealed": "human_decision", "verdict": verdict,
                         "contact_id": cid, "leaf_hash": leaf})
+        elif path == "/api/node-report":
+            # An edge node reporting UP its status to the ship brain (the hierarchy beat).
+            # Mirrors /api/decision: validate, persist to the node registry (demo/out/nodes/),
+            # and seal a `node_report` leaf into the tamper-evident record. The report is the
+            # edge node's self-described state; build_state decides liveness by freshness.
+            node_id = str(body.get("node_id", "")).strip()
+            system = str(body.get("system", "")).strip().lower()
+            if not node_id or not system:
+                self._send({"error": "need node_id + system"}, 400)
+                return
+            report = {
+                "node_id": node_id,
+                "system": system,
+                "model": body.get("model"),
+                "model_version": body.get("model_version"),
+                "framework": body.get("framework"),
+                "health": str(body.get("health", "")).strip().lower() or "unknown",
+                "last_good": body.get("last_good"),
+                # recent sealed leaf hashes from the edge's OWN record (provenance trail).
+                "leaf_hashes": [str(h) for h in (body.get("leaf_hashes") or [])][:8],
+                "edge_unix": body.get("edge_unix"),
+                "reload_count": body.get("reload_count"),
+            }
+            stored = node_registry.record_report(report)
+            leaf = None
+            try:
+                import sys as _sys
+                _sys.path.insert(0, str(Path(__file__).resolve().parent))
+                from _record import seal
+                leaf = seal(self.record_dir, "node_report", f"{system}:{node_id}",
+                            {"node_id": node_id, "system": system,
+                             "model_version": report["model_version"],
+                             "framework": report["framework"], "health": report["health"],
+                             "last_good": report["last_good"],
+                             "leaf_hashes": report["leaf_hashes"]})
+            except Exception as e:
+                # Persisting the live registry must succeed even if record sealing hiccups;
+                # surface the seal error but still ACK the report (offline-resilient).
+                self._send({"ok": True, "registered": True, "sealed": False,
+                            "seal_error": str(e), "node_id": node_id, "system": system,
+                            "received_unix": stored["received_unix"]})
+                return
+            self._send({"ok": True, "registered": True, "sealed": "node_report",
+                        "node_id": node_id, "system": system,
+                        "received_unix": stored["received_unix"], "leaf_hash": leaf})
         else:
-            self._send({"error": "not found", "routes": ["POST /api/decision"]}, 404)
+            self._send({"error": "not found",
+                        "routes": ["POST /api/decision", "POST /api/node-report"]}, 404)
 
     def log_message(self, *a):  # quiet
         pass

@@ -1,0 +1,38 @@
+# THESEUS edge node — systemd unit TEMPLATE.
+# edge_run.sh renders @PLACEHOLDERS@ and installs this to
+# /etc/systemd/system/theseus-edge-<system>.service. Do not edit the installed copy by
+# hand — re-run deploy/pi/install.sh to change config (it regenerates node.env + unit).
+#
+# One unit runs BOTH the local model server and the report-up beat via edge_run.sh's
+# own supervision is avoided here; instead we run them as a tiny wrapper so systemd
+# restarts the pair on failure. CPU-only, no GPU.
+[Unit]
+Description=THESEUS edge node (@NODE_SYSTEM@) — local model server + report-up
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@HERE@
+Environment=NODE_ID=@NODE_ID@
+Environment=NODE_SYSTEM=@NODE_SYSTEM@
+Environment=EDGE_PORT=@EDGE_PORT@
+Environment=EDGE_URL=@EDGE_URL@
+Environment=BRAIN_URL=@BRAIN_URL@
+Environment=REPORT_INTERVAL=@REPORT_INTERVAL@
+Environment=MODEL_DIR=@MODEL_DIR@
+Environment=RECORD_DIR=@RECORD_DIR@
+Environment=EDGE_HOST=0.0.0.0
+# Start the local model server in the background, then run report_up in the foreground
+# (systemd tracks the unit by report_up; on stop the whole cgroup is killed so both die
+# together). If the model server exits, report_up reports health=down UP to the brain;
+# Restart=always brings the pair back.
+ExecStart=/bin/sh -c '@PY@ serve/model_server.py --port @EDGE_PORT@ --model-dir @MODEL_DIR@ --record-dir @RECORD_DIR@ & sleep 2; exec @PY@ serve/report_up.py --brain @BRAIN_URL@ --edge @EDGE_URL@ --node-id @NODE_ID@ --system @NODE_SYSTEM@ --record-dir @RECORD_DIR@ --interval @REPORT_INTERVAL@'
+Restart=always
+RestartSec=5
+# Light resource ceiling appropriate for a Pi 5 (4 GB). Tune per node if needed.
+MemoryMax=512M
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
