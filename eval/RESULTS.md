@@ -3,9 +3,9 @@
 *Updated Jun 17 2026 on real MarineCadastre US AIS (2024-01-01, first 1.5M rows, national).*
 
 ## TL;DR
-- **We now have a real, non-circular NV063 signal** from a small **analyst-curated** eval set (OMTAD turned out to be unusable — see §6): on a stratified n=50 sample, **ais_pol precision ≈ 0.36** (9 of 25 random flags adjudicated true), **recall ≈ 1.0** (0 missed anomalies in 25 unflagged tracks, small-n). Estimated **population false-alarm rate ≈ 5–6%**.
-- **The dominant false-positive causes are concrete and fixable:** (1) **a real bug** — ais_pol reads the AIS **SOG = 102.3 "not available" sentinel** (value 1023) as a 102 kn overspeed; (2) **loiter over-fires** on ferries dwelling at terminals, working tugs, and fishing vessels.
-- Honest framing: this is **analyst-curated, pending NAVSEA SME validation**, n=50, anomaly-enriched sample. It is the first non-circular number; the production number needs more labeled tracks (and ideally a GFW commercial grant).
+- **Current NV063 signal (post-fix), n=50 analyst-curated set: precision 0.57 · recall 0.89 · F1 0.70 · false-alarm 0.15** (FP 16→6). This **supersedes** the pre-fix 0.36 / 1.0 / 0.53 / 0.39 baseline forensically documented in §2 — the lift came from landing the two fixes below, *not* from re-labeling. **One number, one place:** this headline = `eval/out/curated_metrics.json` = `ROADMAP.md`.
+- **The two dominant false-positive causes are now FIXED:** (1) the AIS **SOG = 1023 "not available" sentinel** misread as a 102 kn overspeed → dropped; (2) **position_jump over-fired on high-cadence feeds** (GPS jitter) → **cadence-aware ≥ 0.5 nm distance gate** (validated cross-region on Ushant: 3151→771 false jumps). *(loiter over-fire on dwelling ferries/tugs was separately tuned.)*
+- **Honest framing:** n=50, analyst-curated, **pending NAVSEA SME validation**; anomaly-enriched (sample FAR ≠ population FAR). The detector also fires **~1,699 alerts on the open universe (~11.9k tracks) that this n=50 set does not score** — that unmeasured nuisance load is exactly the Phase-I at-sea-labeling ask, not a solved problem.
 
 ## 1. Harness validation `[verified]`
 `python3 eval/score.py --selftest` passes. Scorer joins `(track_id, is_anomaly)` predictions vs a labeled universe; `false_alarm_rate = FP/(FP+TN)`.
@@ -29,7 +29,9 @@
 
 **The 9 true positives:** stationary tugs/towing declared "underway" for 5+ h (366946850, 367352250, …), a transited-then-loitered HSC (338519000), and genuine multi-hour **AIS dark gaps** on transiting cargo/pleasure (563033500 75 min, 636016824 6.3 h, 367731170 6.2 h).
 
-> **Caveats (loud):** n=50, analyst-curated **pending NAVSEA SME validation**; the precision estimate is sensitive to the "is a stationary tug anomalous?" calls (SME-dependent) — if those flip to normal, precision drops further. Stratified/anomaly-enriched, so the sample FAR ≠ population FAR. This is a pilot signal, not a production metric.
+> **Caveats (loud):** n=50, analyst-curated **pending NAVSEA SME validation**; the precision estimate is sensitive to the "is a stationary tug anomalous?" calls (SME-dependent). Stratified/anomaly-enriched, so the sample FAR ≠ population FAR. This is a pilot signal, not a production metric.
+>
+> **⚑ The §2 table above is the PRE-FIX forensic baseline** (kept to show the bugs we found + fixed). **Current headline (post SOG + cadence fixes), same n=50 set:** precision **0.57** · recall **0.89** · F1 **0.70** · FAR **0.15** (FP 16→6, FN 0→1) — `eval/out/curated_metrics.json`, cross-region check in `docs/research/CROSS_REGION_VALIDATION.md`.
 
 ## 3. Circular weak-label sanity check `[pipeline-only]` (kept for completeness)
 ais_pol vs `make_weak_labels.py` (same rule family): P 0.962 / R 0.882 / FAR 0.0036 / F1 0.921 over 11,898 tracks. **Not a performance metric** — measures rule-implementation agreement (~92%), validated only that the eval path runs. Superseded by §2 as the real signal.

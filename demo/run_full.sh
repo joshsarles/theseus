@@ -34,6 +34,6 @@ rule; echo "  NEXT: bash deploy/ddil_beat.sh   (cord-pull → local promote → 
 echo "        the demo is real on real data, every step sealed, runs disconnected."
 
 if [ "${1:-}" = "--api" ]; then
-  rule; echo "  Serving the state API for the frontend (Ctrl-C to stop) ..."
-  exec $PY demo/api.py
+  rule; echo "  Serving the state API for the frontend on :8501 (Ctrl-C to stop) ..."
+  exec $PY demo/api.py --port 8501   # pinned to the UI default — never let the demo drift onto mock
 fi

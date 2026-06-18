@@ -5,7 +5,7 @@ Serves the watchstander board as JSON so the frontend (Gerardo/Aaron) can render
 straight from the tamper-evident record. Read-only, stdlib only, CORS-enabled for a
 dev frontend. The UI is the frontend lane; THIS is the data backend it fetches.
 
-  python3 demo/api.py            # http://localhost:8077
+  python3 demo/api.py            # http://localhost:8501  (matches the UI default)
   GET /api/state                 # full board: machinery + contacts + record integrity
   GET /api/contacts              # just the flagged contacts (recommendation cards)
   GET /api/health                # liveness + record verify status
@@ -349,7 +349,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8077)
+    ap.add_argument("--port", type=int, default=8501)   # MUST match the UI default (frontend/ui useShipState :8501) — mismatch silently serves mock
     ap.add_argument("--record", default=str(RECORD))
     a = ap.parse_args()
     Handler.record_dir = Path(a.record)

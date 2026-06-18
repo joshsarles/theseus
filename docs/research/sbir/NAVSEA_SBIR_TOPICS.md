@@ -11,7 +11,7 @@
 | CTA / Priority | Applied AI · Human-Machine Interfaces, Trusted AI & Autonomy |
 | Wants | Automated **Pattern-of-Life (PoL)** of surface + air contacts around Navy ships — **AIS + ADS-B + radar fusion**, **explainable-AI** alerting, integrated with **Ship Self-Defense System (SSDS)** |
 | Key constraints | **No large historical DB required**; must work in **novel OPAREAs**; Phase III = **live SSDS combat-system integration** |
-| **Theseus fit** | **STRONG — pursue.** This *is* the situational-awareness organ of the ship brain: fuse the ship's sensor feeds, learn "normal" on the fly (no historical DB — matches our "learn the ship's normal" + DDIL design), flag the anomaly, explain it, human commands. Explainable AI + the tamper-evident record = "trusted AI/autonomy" in their words. QuantZero (Aaron Jaeger) angle: runtime autonomy + zero-trust verification of contact intent. |
+| **Theseus fit** | **STRONG — pursue.** This *is* the situational-awareness organ of the ship brain: fuse the ship's sensor feeds, learn "normal" on the fly (no historical DB — matches our "learn the ship's normal" + DDIL design), flag the anomaly, explain it, human commands. Explainable AI + the tamper-evident record = "trusted AI/autonomy" in their words. A runtime-autonomy + zero-trust contact-intent-verification angle complements this. |
 
 ## The two that pair with NV063 (combat-system track lane)
 **DON26BZ03-NV061 — Predictive Movement for Object-Oriented Tracking** · NAVSEA R3 · opens 6/24, closes 7/22
