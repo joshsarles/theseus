@@ -73,3 +73,8 @@ deploy/mlflow/.venv/
 deploy/mlflow/mlruns/
 deploy/mlflow/mlflow.db
 deploy/mlflow/mlflow.log
+
+# Pi SSH access — credentials, NEVER commit to this public repo (local/operational only)
+deploy/pi/.pi-access
+deploy/pi/.pi-access.md
+**/*.creds

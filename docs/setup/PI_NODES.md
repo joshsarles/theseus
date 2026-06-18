@@ -7,6 +7,14 @@
 | **Pi-1** | **MACHINERY / HM&E** | `demo/update_model.py` (serves the latest model) | CBM gas-turbine decay (UCI #316) |
 | **Pi-2** | **CONTACTS** | `demo/ais_pol.py` | AIS Pattern-of-Life (MarineCadastre; live SDR later) |
 
+## Node addresses + SSH access
+| Node | Host | User | Connect |
+|---|---|---|---|
+| **Pi-1** (UUV-1 · MACHINERY) | `10.10.3.244` | `pi1` | `ssh pi1@10.10.3.244` |
+| **Pi-2** (UUV-2 · CONTACTS)  | `10.10.2.173` | `pi2` | `ssh pi2@10.10.2.173` |
+
+**Password is NOT in this public repo** (it would be exposed on GitHub) — it's in `deploy/pi/.pi-access.md` (gitignored, on the Node-3 machine) and the team channel. Each Pi reaches Node-3 MLflow on **:5050** (set in the receiver's `config.yml` `mlflow.host:port`); the edge receiver listens on **:54321**.
+
 ## 1. Flash + base (both Pis)
 - **Raspberry Pi OS 64-bit (Bookworm)**, headless, SSH enabled, unique hostnames `theseus-pi1` / `theseus-pi2`, static IPs or mDNS on the same switch/LAN as the Tier-1 box.
 - Update + tools:
