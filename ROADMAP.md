@@ -1,7 +1,7 @@
 # THESEUS — Roadmap
 *The master plan. Living doc — updated as we go (newest status on top). Tactical board: `KANBAN.md`. Lanes: `docs/TEAM_LANES.md`.*
 
-**Mission:** onboard ship-systems analytics + edge model-delivery under DDIL — decision-support with human-in-command, on big surface combatants (DDG/CG). Real on real, **every model-promotion and human decision sealed as DoD-standard attestation evidence** (in-toto / SLSA / Sigstore + NIST **OSCAL** via Lula) — extended to *runtime, onboard*, the genuinely novel inch.
+**Mission:** the **accreditable fleet-learning layer for unmanned maritime vehicles (UUVs) under DDIL** — each vehicle learns onboard (human-in-command), and a fleet node coordinates the improvements as **model deltas (never raw data)** via a provenance-gated, eval-gated, signed merge. Real on real, **every model update + human decision sealed as DoD-standard attestation evidence** (in-toto / SLSA / Sigstore + NIST **OSCAL** via Lula). *Surface-contact Pattern-of-Life (NV063) is the adjacent funded track; the same spine runs on big surface combatants (DDG/CG) too.*
 
 **Architecture — Jun 17 pivot (`docs/INTEGRATION_SPEC.md`):** compose best-of-breed open components that pass the **GATE** (permissive · airgap-capable · edge-feasible) — Stone Soup (fusion), Eclipse Zenoh + DDS plugin (DDIL transport *and* the SWAN-side ship-bus bridge), PyOD/Merlion/River (cold-start detection), MLflow + ONNX (lifecycle), UDS/Zarf/Pepr/Syft/cosign (deploy, already verified) — and **build only the ~15% non-commodity inch**: onboard cross-system fusion under DDIL · the **runtime-decision attestation extension** · the DDIL delivery loop · Navy domain knowledge. Adopting the standards *is* the moat-sharpener — a recognized, interoperable record is what makes other vendors emit *into* it. (Internal Merkle hash-chain stays as the implementation detail; the external artifact is standard attestations.)
 
@@ -18,6 +18,15 @@ The founder's vision, and the apex this whole build climbs toward: **each ship i
 - **Gigabyte Ryzen, 32GB** — local on-prem **Tier-1** node (MLflow central server + heavier compute + retrain). The "ship data center" stand-in.
 - **NVIDIA Blackwell cloud** — **Tier-1 GPU** (Triton-TRT-LLM explainer; the heaviest reasoning).
 - 4GB/Pi ⇒ small models on the edge (CBM ✓, AIS PoL ✓, GGUF ≤~1.5B Q4). Heavy reasoning on Tier-1 (Ryzen/Blackwell). Architecture: `docs/architecture/COMPUTE_TIERS.md`.
+
+## Status snapshot (Jun 18 — Day 2, last build day · deliverable = judge REVIEW, no live demo)
+**The UUV fleet-learning pivot is locked, documented, and the repo is review-ready.**
+- **Anchor confirmed "both, B-led"** — UUV own-systems fleet-learning leads; surface-contact PoL (NV063) is the adjacent funded track. The **data-honesty fork** is documented (Framing A = what the platform *watches*, AIS, real; Framing B = the platform's *own* UUV systems → must train on real UUV-shaped data, not jet-engine proxies).
+- **3-node topology locked** (no Blackwell needed, prototype scale): **Node 1 + 2 = UUV Pis** · **Node 3 = this Mac = fleet coordinator** (MLflow registry + UI + manages the Pis). `docs/vision/UUV_FLEET_ARCHITECTURE.md`.
+- **Review-readiness shipped** — README reframed to the UUV anchor; **`docs/JUDGE_REVIEW.md`** (guided walkthrough, real output); **`docs/ONBOARDING.md`** + **`docs/WARHACKER_HANDOFF.md`** (revive the copilot) + repo-root **`CLAUDE.md`**; `docs/INDEX.md` re-mapped.
+- **MLflow fleet-registry glue** (`fleet/mlflow_registry.py`) — MLflow-optional + model-agnostic; Claire's UUV model flows into the flywheel the moment it registers as `theseus-uuv` (no rework).
+- **Security:** all 5 GitHub CodeQL alerts fixed (path-injection + stack-trace/xss). **PAE RAS** dropped as a to-do (founder handled engagement). **Team → 11** (+Claire Shen / NAVSEA intern, models; +Mark / Force, strategy).
+- **In-flight (the team's last-day lanes):** real UUV-shaped dataset + Claire's sequence-autoencoder (→ `theseus-uuv`); the live Node-3 MLflow server (Tommy/Juan); the 2 Pis as live UUV nodes (William); the OSCAL compliance packet (Caroline).
 
 ## Status snapshot (Jun 17 — Day 1 close · judge re-score 6.9/10, was 5.4)
 **The full system runs on real data, every step sealed + verified. Day 1 built the spine AND the depth:**
