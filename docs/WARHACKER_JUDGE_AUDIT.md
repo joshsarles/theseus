@@ -2,7 +2,68 @@
 
 *Adversarial full-stack audit, written as a hostile Warhacker judge (Defense Unicorns + CDAO engineers in the room). Scored against the official rubric. Every finding traces to a file or a verified source. Drafted by the THESEUS lane (audit only); fixes are tagged by owning lane. Jun 17 2026.*
 
-> **How to read this:** §1 the rubric. §2 the adversarial scorecard (where we'd actually land today). §3 the kill-shot questions. §4 what's genuinely strong (don't break it). §5 the ranked over-the-top plan, tiered by rubric leverage. §6 the "if you do only 6 things." §7 integrity/OPSEC red flags (fix now).
+> **How to read this:** §0 the rubric VERBATIM + the current (Jun 17 day-1-close) re-score, which **supersedes** the original §2 scorecard. §1–§8 are the original pass, kept for delta tracking.
+
+---
+
+## §0 — The rubric, VERBATIM (source of truth)
+
+> Copied verbatim from the Warhacker judging-criteria page (founder-supplied Jun 17 2026). Do not paraphrase; reference this block.
+
+```
+Judging Criteria
+Understand how your project will be evaluated
+
+5 Criteria · 50 pts Max Score
+
+Weight Distribution
+  Mission Impact     25%
+  Portability        25%
+  Death Proof        25%
+  Most Resourceful   15%
+  Judges Pick        10%
+
+1. Mission Impact   — 25% weight — 0–10 pts — Required
+   How significant is the problem for the target mission?
+
+2. Portability      — 25% weight — 0–10 pts — Required
+   How ready is the capability to be deployed wherever the mission requires?
+
+3. Death Proof      — 25% weight — 0–10 pts — Required
+   How ready is the capability to cross the valley of death into sustained operations?
+
+4. Most Resourceful — 15% weight — 0–10 pts — Required
+   How effective was the team to overcome challenges?
+
+5. Judges Pick      — 10% weight — 0–10 pts — Required
+   The Warhacker judges bring expertise and unique perspective; their feedback
+   will be invaluable to building effective solutions.
+```
+
+---
+
+## §0.1 — CURRENT re-score (Jun 17, day-1 close) — supersedes §2
+
+*Fresh judge pass against verified artifacts (git log + `deploy/UDS_DEPLOY_EVIDENCE.md` + a live `pytest`/`make smoke` run). Every score traces to a receipt.*
+
+| Dimension | Wt | **Now** | Prior | Δ | Why a hostile judge lands here (receipts) |
+|---|---|---|---|---|---|
+| **Mission Impact** | 25% | **7.0** | 6.5 | +0.5 | The differentiated story is now the hero, not buried: tamper-evident **record-as-accreditation-substrate** + **sealed human decision** + DDIL, demoed first; machinery CBM demoted off ERM's turf. Maps to a real opening SBIR (NV063, 6/24). Ceiling-capped because it's decision-support analytics (ERM already fields machinery monitoring) and the "be-the-substrate" category is a claim, not yet adoption. |
+| **Portability** | 25% | **7.0** | 4.5 | **+2.5** | Real DU tooling, verified in-cluster: hardened `theseus-edge:0.1.0` **airgap side-loaded** (`k3d image import`, `imagePullPolicy:Never`), in-cluster Job **Completed 7s + offline verify PASS**, real **Zarf signed pkg + SBOM (Syft, 100 pkgs)**, real **cosign** sign/verify (tampered bytes rejected), **ONNX edge path** (~115KB, sub-ms, fits 4GB Pi), shore→ship delivery 11/11 PASS, **airgap-clean frontend** (zero CDN). Capped: full **uds-core platform** (Istio/Keycloak/Falco/UDS Operator) did NOT deploy (GHCR rate-limit; `Package` CR inert) and multi-node Pi failover not yet live. |
+| **Death Proof** | 25% | **5.5** | 3.5 | **+2.0** | Real death-proof artifacts now exist: **SBOM** (the ATO supply-chain doc), **cosign signature + negative control**, **Pepr admission** enforcing AC-6/SC-7/AU-9 at admission (4 DENY / 2 ADMIT, human-in-command required), the record as reusable accreditation evidence. Still the lowest and the #1 lever: **no program-office sponsor / AO sentence** (the actual valley of death — the demo script admits it), Lula still 2/8 unexercised this pass, uds-core ATO-inheritance documented-not-demonstrated, no Rekor. |
+| **Most Resourceful** | 15% | **8.5** | 8.0 | +0.5 | Standout. Multi-tier real HW; MLflow containerized around a Py3.14 break; SOTA reproduced on MPS; **honest self-correction** (MetroPT leakage caught, SOG-1023 bug caught+fixed `ais_pol.py:97`, OMTAD rejected, self-scrubbed own banned headline); DU tooling stood up under GHCR throttle with honest fallback; ONNX parity 6e-08; 9-person pickup team integrated. |
+| **Judges Pick** | 10% | **7.5** | 6.5 | +1.0 | The self-inflicted wound is gone (banned "self-controlled ship brain" headline scrubbed). What's left is catnip for DU/CDAO engineers: live **tamper-snap**, **Pepr DENY** on stage, the **sealed human decision**, instrument-grade CIC, and a relentless **REAL-vs-PENDING honesty** posture that reads as credibility, not spin. |
+
+**Weighted total ≈ 6.9 / 10  (~34.5 / 50)** — up from ~5.4 prior. Math: 7.0(.25)+7.0(.25)+5.5(.25)+8.5(.15)+7.5(.10) = 1.75+1.75+1.375+1.275+0.75.
+
+**Prior kill-shots — disposition:** #2 decision-theater → **CLOSED** (`POST /api/decision` seals a `human_decision` leaf, verify PASS). #3 frontend wrong-port/CDN → **CLOSED** (defaults to real `:8501`, zero CDN, wired to decision-seal). #6 banned headline → **CLOSED** (scrubbed). #1 UDS deploy → **PARTIAL** (real Zarf+Pepr+cosign+SBOM in-cluster; full uds-core platform pending rate-limit). #7 autoencoder LOFO → **CLOSED** in `MODEL_BENCHMARKS.md` (AUC 0.939 LOFO). #8 explainer real-LLM seal → **OPEN** (`serve/explain_local.py` WIP, untracked).
+
+**The 3 highest-leverage moves left (all in the 25% lanes):**
+1. **Land one attributed AO/PEO sentence** that the verifiable record counts as accreditation evidence → Death Proof 5.5→7+. The single biggest unlock; it's relationship work, not code.
+2. **Deploy on full uds-core** (registry-mirrored host to dodge the GHCR throttle) → show Istio mTLS + default-deny NetworkPolicy + Keycloak + the `Package` CR reconciling → Portability 7→8.5 and Death Proof up.
+3. **Capture the 60s live-demo recording + multi-node Pi failover** (Day 2) → de-risks the live run and turns "edge" into a real cloud-to-edge beat → Portability + Judges Pick.
+
+**Staleness flag:** `eval/out/curated_metrics.json` (precision 0.36) was scored **before** the SOG-1023 fix landed; re-run the curated eval post-fix for an honest, improved NV063 number before any external use.
 
 ---
 
