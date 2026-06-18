@@ -8,5 +8,27 @@
         "sonar_return_db",
         "acoustic_modem_status",
         "pressure_bar"
+    ],
+    "all": [
+        "sequence_num",
+        "payload_bytes",
+        "latency_ms",
+        "water_temp_c",
+        "salinity_ppt",
+        "turbidity_ntu",
+        "sonar_range_m",
+        "sonar_bearing_deg",
+        "sonar_return_db",
+        "pressure_bar",
+        "latitude_deg",
+        "longitude_deg",
+        "speed_knots",
+        "heading_deg",
+        "depth_m",
+        "roll_deg",
+        "pitch_deg",
+        "battery_pct",
+        "signal_strength_dbm",
+        "hdop"
     ]
 }

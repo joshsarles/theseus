@@ -22,7 +22,7 @@ Expected folder:
 Environment variables, optional:
     DATA_FOLDER=./data
     OUTPUT_DIR=./outputs
-    MLFLOW_TRACKING_URI=http://localhost:5000
+    MLFLOW_TRACKING_URI=http://localhost:5050
     MLFLOW_EXPERIMENT_NAME=UUV1 Anomaly Detection - HST
     VEHICLE_PREFIX=UUV1
     ANOMALY_THRESHOLD=0.7
@@ -57,7 +57,7 @@ ANOMALY_THRESHOLD = float(os.getenv("ANOMALY_THRESHOLD", "0.7"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
 TRAIN_SUBMODELS = os.getenv("TRAIN_SUBMODELS", "false").lower() in {"1", "true", "yes"}
 
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5050")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "UUV1 Anomaly Detection - HST")
 
 # UUV sensor schema: actual fields in UUV1-sensors.json.

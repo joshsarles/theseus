@@ -4,12 +4,12 @@ import requests
 from pathlib import Path
 
 URL = "http://127.0.0.1:8000/stream-item"
-INPUT_FILE = Path("uuv1-all-anom.json")
 TOPIC_ID = "all"
 BATCH_SIZE = 25
-INPUT_FILE = Path("uuv1-sensors-anom.json")
+# data lives under serve/receiver/data/ (resolve relative to this file, not cwd)
+INPUT_FILE = Path(__file__).resolve().parent / "data" / f"uuv1-{TOPIC_ID}-anom.json"
 
-print(f"Reading: {INPUT_FILE.resolve()}")
+print(f"Reading: {INPUT_FILE}")
 records = json.loads(INPUT_FILE.read_text())
 print(f"Loaded {len(records)} records")
 

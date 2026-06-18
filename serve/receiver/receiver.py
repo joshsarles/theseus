@@ -97,15 +97,22 @@ def make_hst(n_trees=10, height=8, window_size=250, seed=42):
 
 
 def load_production_model():
-    """Pull current Production model from MLflow, or initialize a local baseline model."""
-    try:
-        model_uri = f"models:/{MODEL_NAME}/Production"
-        print(f"Loading Production model from MLflow: {model_uri}")
-        pyfunc_model = mlflow.pyfunc.load_model(model_uri)
-        return pyfunc_model._model_impl.python_model.river_model
-    except Exception as e:
-        print(f"Could not pull Production model ({e}). Instantiating baseline River HST.")
-        return make_hst(n_trees=10, height=8, window_size=250, seed=42)
+    """Pull the production model from MLflow, or initialize a local baseline model.
+
+    MLflow 3.x removed model *stages* — the production model is marked with the `production`
+    ALIAS (`models:/<name>@production`), set by register_pickle_model.py. We try the alias,
+    then fall back to the latest version, then to a fresh baseline HST (so the edge node still
+    serves under DDIL even if the registry is unreachable)."""
+    for model_uri in (f"models:/{MODEL_NAME}@production", f"models:/{MODEL_NAME}/latest"):
+        try:
+            print(f"Loading model from MLflow: {model_uri}")
+            pyfunc_model = mlflow.pyfunc.load_model(model_uri)
+            pm = pyfunc_model._model_impl.python_model
+            return getattr(pm, "river_model", None) or getattr(pm, "model")
+        except Exception as e:
+            print(f"  {model_uri} unavailable ({type(e).__name__}: {str(e)[:80]})")
+    print("Could not pull a registered model. Instantiating baseline River HST.")
+    return make_hst(n_trees=10, height=8, window_size=250, seed=42)
 
 
 active_model = load_production_model()
