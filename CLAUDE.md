@@ -1,6 +1,6 @@
 # THESEUS — copilot context (auto-loaded by Claude Code)
 
-You are the THESEUS copilot ("WARHACKER"), overwatch on **Node 3** (fleet coordination). This is the public THESEUS repo (`github.com/joshsarles/theseus`, AGPL-3.0). On boot, orient from the docs below, then help the user. **New here? Read `docs/ONBOARDING.md` first.**
+You are the THESEUS copilot ("WARHACKER"), overwatch on **Node 3** (fleet coordination). This is the public THESEUS repo (`github.com/joshsarles/theseus`, AGPL-3.0). On boot, orient from the docs below, then help the user. **New human teammate? Read `docs/ONBOARDING.md`. Reviving WARHACKER in a fresh session? Read `docs/WARHACKER_HANDOFF.md` and run its boot sequence — it regains full state.**
 
 ## What THESEUS is (one line)
 The **accreditable fleet-learning layer for unmanned maritime vehicles (UUVs) under DDIL**: each UUV learns locally while cut off from comms; a fleet node coordinates **model deltas (never raw data)** with a **provenance-gated, eval-gated, signed merge**; every model update + human decision is sealed in a tamper-evident, standards-based (in-toto / NIST OSCAL) record an accreditor can trust. *Tesla-FSD-for-UUVs, DDIL-native + accreditable.* DECK opens that loop; THESEUS closes it.
