@@ -176,6 +176,26 @@ def inject_poison(poison_ship_id: str = "POISON_NODE") -> Path:
 # Main merge loop
 # ---------------------------------------------------------------------------
 
+def _seal_fleet_leaf(out_dir: Path, kind: str, obs_id: str, record: dict) -> None:
+    """Seal one leaf into the fleet chain using the proven reload+append+write pattern.
+
+    Mirrors demo/_record.py::seal(): reloads the chain from disk, appends exactly ONE
+    leaf, then writes atomically. This ensures each leaf's record_b64 is always written
+    from the same data used to compute its hash — no accumulation of in-memory state
+    across multiple appends before a single write.
+    """
+    from referee.chain import Leaf, LocalHashChain
+    out_dir.mkdir(parents=True, exist_ok=True)
+    chain = LocalHashChain()
+    cp = out_dir / "chain.jsonl"
+    if cp.exists():
+        for line in cp.read_text().splitlines():
+            if line.strip():
+                chain.leaves.append(Leaf(**json.loads(line)))
+    chain.append(kind, obs_id, json.dumps(record, sort_keys=True).encode())
+    chain.write(out_dir)
+
+
 def run_merge(
     delta_paths: list[Path],
     incumbent_params_path: Path | None,
@@ -188,10 +208,9 @@ def run_merge(
     """
     sys.path.insert(0, str(ROOT))
     from fleet.signing import verify_envelope
-    from referee.chain import LocalHashChain, verify_dir
+    from referee.chain import verify_dir
 
     FLEET_RECORD_DIR.mkdir(parents=True, exist_ok=True)
-    chain = LocalHashChain()
     report: dict = {
         "deltas_submitted": len(delta_paths),
         "deltas_accepted": 0,
@@ -232,37 +251,38 @@ def run_merge(
             report["accepted_ships"].append(ship_id)
             report["fedavg_weights"].append(n_samples)
 
-            chain.append(
+            _seal_fleet_leaf(
+                FLEET_RECORD_DIR,
                 "fleet_delta_accepted",
                 f"{ship_id}_accepted",
-                json.dumps({
+                {
                     "ship_id": ship_id,
                     "data_hash": statement["subject"]["data_hash"],
                     "n_samples": n_samples,
                     "local_train_rmse": statement["predicate"].get("local_train_rmse"),
-                }).encode(),
+                },
             )
         else:
             report["deltas_rejected"] += 1
             report["rejected_details"].append({"ship_id": ship_id, "reason": reason})
 
-            chain.append(
+            _seal_fleet_leaf(
+                FLEET_RECORD_DIR,
                 "fleet_merge_rejected",
                 f"{ship_id}_rejected",
-                json.dumps({
+                {
                     "ship_id": ship_id,
                     "reason": reason,
                     "envelope_keyid": (
                         envelope.get("signatures", [{}])[0].get("keyid", "?")
                         if envelope.get("signatures") else "none"
                     ),
-                }).encode(),
+                },
             )
 
     if not accepted_params:
         if verbose:
             print(f"\n  {RED}No valid deltas — aborting merge.{END}")
-        chain.write(FLEET_RECORD_DIR)
         report["outcome"] = "aborted_no_valid_deltas"
         return False, {}, report
 
@@ -319,35 +339,35 @@ def run_merge(
     if eval_passed:
         if verbose:
             print(f"\n  {GREEN}EVAL GATE: PASS{END} — merged model improves on held-out set. Accepting.")
-        chain.append(
+        _seal_fleet_leaf(
+            FLEET_RECORD_DIR,
             "fleet_merge_accepted",
             "fleet_merge",
-            json.dumps({
+            {
                 "accepted_ships": report["accepted_ships"],
                 "fedavg_weights": report["fedavg_weights"],
                 "incumbent_rmse": report["incumbent_rmse"],
                 "merged_rmse": report["merged_rmse"],
                 "rmse_delta": report["rmse_delta"],
                 "held_out_n": report["held_out_n"],
-            }).encode(),
+            },
         )
         report["outcome"] = "accepted"
     else:
         if verbose:
             print(f"\n  {RED}EVAL GATE: FAIL{END} — merged model regresses. Rolling back to incumbent.")
-        chain.append(
+        _seal_fleet_leaf(
+            FLEET_RECORD_DIR,
             "fleet_merge_rejected",
             "eval_gate_fail",
-            json.dumps({
+            {
                 "reason": "eval_gate_regression",
                 "incumbent_rmse": report["incumbent_rmse"],
                 "merged_rmse": report["merged_rmse"],
                 "rmse_delta": report["rmse_delta"],
-            }).encode(),
+            },
         )
         report["outcome"] = "eval_gate_rollback"
-
-    chain.write(FLEET_RECORD_DIR)
 
     ok_verify, _, verify_msg = verify_dir(FLEET_RECORD_DIR)
     report["chain_verify"] = ok_verify
