@@ -64,3 +64,6 @@ deploy/mlflow-sync/.venv/
 deploy/mlflow-sync/out/
 deploy/mlflow-sync/transfer/
 *.tsbuildinfo
+fleet/out/
+fleet/keys/*.key
+fleet/__pycache__/

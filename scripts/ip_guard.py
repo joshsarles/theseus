@@ -14,6 +14,7 @@ ALLOWED_ROOTS = (
     "referee/", "cot/", "console/", "tests/", "fixtures/", "scripts/", "docs/",
     "zarf/", "lula/", "demo/", "deploy/", "ingest/", "eval/", "models/", "frontend/",
     "serve/",  # edge model-serving + shore->ship delivery
+    "fleet/",  # fleet-learning miniature (provenance-gated federated merge)
     "analytics/",  # team analytics container (Tommy/Juan)
     "train.py", "inspect_data.py", "docker-compose.yml", "requirements.txt",  # team root files (Nick/Juan)
     "Makefile", "README.md", "CONTRIBUTING.md",
