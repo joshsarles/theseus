@@ -9,14 +9,18 @@
 - **NVIDIA Blackwell cloud** — **Tier-1 GPU** (Triton-TRT-LLM explainer; the heaviest reasoning).
 - 4GB/Pi ⇒ small models on the edge (CBM ✓, AIS PoL ✓, GGUF ≤~1.5B Q4). Heavy reasoning on Tier-1 (Ryzen/Blackwell). Architecture: `docs/architecture/COMPUTE_TIERS.md`.
 
-## Status snapshot (Jun 17 — day-1 close)
-**Runnable today, on real data, all sealed + verified:**
-- `bash demo/run.sh` — Stage→Retrain→Update on real UCI #316 (RMSE ~0.0038).
-- `python3 demo/ais_pol.py` — cold-start AIS Pattern-of-Life on real MarineCadastre (NV063), explainable (205 alerts).
-- **CIC dashboard (`frontend/ui`, :5173)** — instrument-grade ops console (amber-on-off-black, mono numerals, grain/hairlines, **no glass/neon**), the **tamper-evident record as the visual spine**, deck.gl tactical, **ACCEPT/OVERRIDE seals a `human_decision` leaf live** via `POST /api/decision` (`demo/api.py` :8501). Cleared the bar on the 5th pass after a first-principles 2026-design research sweep.
-- **Whole system verified end-to-end:** 21 tests green · DDIL cord-pull/rollback/tamper green · eval green · API + decision-seal green.
-- **Team work merged + integrated:** analytics container (Tommy), child-node compose (Juan, WIP), anomaly-explaining `train.py` (Nick). IP-guard allowlists team paths.
-- 🔵 **Real UDS deploy in flight:** uds-core on k3d + Theseus in-cluster Job + live **Pepr admission** + **Zarf SBOM/cosign** (closes the portability gap).
+## Status snapshot (Jun 17 — Day 1 close · judge re-score 6.9/10, was 5.4)
+**The full system runs on real data, every step sealed + verified. Day 1 built the spine AND the depth:**
+- **Model-delivery loop** — `demo/run.sh`: Stage→Retrain→Update on real UCI #316 (RMSE 0.0038), sealed.
+- **AIS Pattern-of-Life (NV063)** — cold-start, explainable; **cross-region validated on Ushant** (the cold-start mechanism generalizes) → **cadence-aware `position_jump` fix** (Ushant false jumps 3151→771). Honest curated eval: **precision 0.57 · F1 0.70 · false-alarm 0.15** (was 0.36/0.53/0.39).
+- **CIC dashboard** (`frontend/ui` :5173) — instrument-grade, **record-as-spine**, deck.gl tactical, **ACCEPT/OVERRIDE seals a `human_decision` leaf live** (`POST /api/decision`). 5th-pass rebuild after a 2026-design research sweep.
+- **Real airgap UDS deploy** — uds-core/k3d + Theseus in-cluster Job (verify PASS) + **live Pepr admission** (4 violating pods DENIED — human-in-command enforced) + **Zarf SBOM (100 pkgs) + cosign**. `deploy/UDS_DEPLOY_EVIDENCE.md`.
+- **Edge model-serving + shore→ship delivery** (`serve/`) — CPU/low-RAM server, sha-256 integrity gate, hot-swap-on-delivery sealed, last-good under bad updates (11/11 PASS).
+- **ONNX edge inference** (`models/onnx/`) — CBM + autoencoder, parity 6e-08, ~115 KB, sub-ms (fits 4 GB Pi).
+- **Shore→ship MLflow registry sync** (`deploy/mlflow-sync/`) — `mlflow-export-import` across the air-gap, ship serves verbatim (8/8 PASS). *(Juan's BDTS/CANES idea.)*
+- **Offline ship hierarchy** (`serve/report_up.py` + `POST /api/node-report`) — edge nodes report up, brain aggregates live (honest TTL→standby); Pi deploy bundle ready (`deploy/pi/`).
+- **Real Tier-1 explainer LLM** — `llama-server` + qwen2.5-1.5b serving grounded NV063 alerts, sealed (`explained_alert`).
+- **Verified:** 21 tests green · DDIL cord-pull/rollback/tamper · whole-system end-to-end. **Team work merged.** OPSEC/integrity scrubbed.
 
 ---
 
@@ -30,19 +34,20 @@
 - [x] Team lanes + 3 contracts; regression tests; IP-guard allowlist for the build tree.
 - [x] Research: SBIR (NV063/NV061), datasets (catalog + 6 sets pulled), DU integration, inference/FIPS, IL roadmap.
 
-### Phase 1 — Warhacker demo (Jun 16–19) 🔵 IN PROGRESS
-- [x] Two-tier architecture defined (ship GPU brain + 2-Pi components; Blackwell emulation).
-- [ ] **Tier-2 on the 2 Pis:** flash 2× Pi 5 4GB (Pi OS 64-bit) + Podman + Python 3.14; Pi-1 runs `update_model.py` (machinery), Pi-2 runs `ais_pol.py` (contacts). *(William)* → runbook ready: `docs/setup/PI_NODES.md`
-- [ ] **Tier-1 on Blackwell:** MLflow central server + retrain + (optional) Triton-TRT-LLM explainer; emulates the ship data center. *(Tommy + WARHACKER)*
-- [x] **UDS/Podman packaging** — `deploy/`: Containerfile (builds + runs hardened, verified), Zarf package + UDS bundle + UDS Package CR, Pepr human-in-command policy (compiles). *(WARHACKER)*
-- [🔵] **Real `uds deploy`** — uds-core (slim-dev) on k3d + Theseus in-cluster Job (record verify) + **live Pepr admission** (denies violating pods) + **Zarf SBOM + cosign**. In flight; evidence → `deploy/UDS_DEPLOY_EVIDENCE.md`. *(WARHACKER agent)*
-- [x] **CIC dashboard + live decision-seal** — `frontend/ui` (:5173) instrument-grade console; record-as-spine; `POST /api/decision` seals the watch verdict (verify PASS). *(WARHACKER built; Gerardo owns/polishes for the demo)*
-- [x] **DDIL beat** — `deploy/ddil_beat.sh`: cord-pull→local promote, bad-update→local rollback, tamper→record snaps (single-node, verified). *Multi-node failover across the 2 Pis over Tailscale = the live mesh demo (William).*
-- [ ] **Live demo run** — the beats + the CIC board; 60s recorded fallback.
+### Phase 1 — Warhacker (Jun 17–19) 🔵 FINAL PUSH
+*Event clock: **Day 1 (Jun 17)** build → **Day 2 (Jun 18)** final build day → **Day 3 (Jun 19)** present.*
 
-#### 🎯 Day 2 (Jun 18) — final hacking day → judge-ready demo
-**Win condition:** one all-real story — *stage→retrain→update across 2 Pis + central MLflow → deployed on UDS → DDIL cord-pull → watch officer decides → every step sealed in the record, shown live on the CIC.* Plus defensible eval numbers + a death-proof packet. **Per-person plan: `docs/TEAM_LANES.md` → "Day 2 execute."**
-- [ ] Pre-stage all images/models offline before venue internet dies.
+**Day 1 (Jun 17) ✅ DONE — built the spine + the depth.** Judge re-score **6.9/10** (was 5.4). Everything in the Status snapshot above shipped, verified, and committed: two-tier architecture · the loop · AIS PoL + cross-region validation + cadence fix + honest eval · CIC dashboard + live decision-seal · **real UDS deploy** (Pepr admission + SBOM + cosign) · edge serve + shore→ship delivery · ONNX edge inference · MLflow shore→ship sync · ship hierarchy + Pi bundle · real explainer LLM · DDIL beat.
+
+**🎯 Day 2 (Jun 18) — FINAL BUILD DAY, go hard → demo-ready.** Win condition: ONE all-real story — *stage→retrain→update across the 2 Pis + central MLflow → deployed on UDS → DDIL cord-pull → watch officer decides → every step sealed, shown live on the CIC* — plus the death-proof packet. **Per-person plan: `docs/TEAM_LANES.md` → Day 2.**
+- [ ] **Light up the 2 Pis as live nodes** *(William; Pis hands-off until go)* — Pi-1 MACHINERY + Pi-2 CONTACTS reporting into the CIC hierarchy; multi-node DDIL failover over Tailscale. `deploy/pi/install.sh` is ready.
+- [ ] **Central MLflow + analytics container** live, loop logs to it *(Tommy)*; Tailscale mesh + child-node serve *(Juan)*.
+- [ ] **Death-proof packet** *(Carolina)* — Trivy/ZAP scan + the Zarf SBOM/cosign + a 1-page control-inheritance note.
+- [ ] **Full uds-core** on a registry-mirrored host (dodge the GHCR throttle) → Istio mTLS + Keycloak + the Package CR reconciling (Portability 7→8.5). *(WARHACKER — stretch.)*
+- [ ] **Pre-stage all images/models offline**; demo dry-run; 60s recorded fallback *(Aaron)*.
+- [ ] **Attributed AO/PEO sentence** *(Joshua)* — the biggest Death-Proof unlock; relationship work, not code.
+
+**Day 3 (Jun 19) — PRESENT.** Run `docs/DEMO_SCRIPT.md` (5 beats, 3 min, all-real): the all-systems picture → cold-start anomaly → human decides (sealed) → DDIL cord-pull (serves last-good offline) → deploys on real UDS with live Pepr admission. Lead with the **record-as-accreditation** moat.
 
 ### Phase 2 — SBIR + team-week build-out (post-event → Jul 22)
 - [ ] **NV063** (lead) Phase I — anomaly/PoL on real AIS, explainable, cold-start; OMTAD labeled eval + false-alarm number. *(WARHACKER + THESEUS)*
@@ -59,6 +64,7 @@
 ---
 
 ## Update log (newest on top)
+- **Jun 17 (late) — ROADMAP LOCKED for the final push; audit closed to 6.9/10.** Landed + verified + committed this session: real **UDS airgap deploy** (Zarf signed pkg + SBOM 100 pkgs + cosign + live Pepr admission, 4 DENY / 2 ADMIT); **edge model-serve + shore→ship delivery** (`serve/`, 11/11); **ONNX edge inference** (parity 6e-08, fits 4 GB Pi); **MLflow shore→ship sync** (Juan's `mlflow-export-import`, 8/8); **offline ship hierarchy** (edge→brain reporting + aggregation + Pi bundle, 7/7); **cross-region AIS validation** (Ushant — cold-start generalizes) → **cadence-aware `position_jump` fix** (3151→771); **honest NV063 re-eval** (precision 0.36→0.57, F1 0.70, far 0.15); **real Tier-1 explainer LLM** (`llama-server` + qwen2.5-1.5b, grounded alerts sealed). Folded team merges (analytics container, child-node compose, CodeQL scan). Pis hands-off per founder (bundle ready). **Timeline locked: Day 1 close → Day 2 (Jun 18) final build → Day 3 (Jun 19) present.**
 - **Jun 17 (night)** — **Day 1 close: face now matches the substance.** (1) **CIC dashboard shipped** (`frontend/ui` :5173) — after 4 rejected "AI-slop" dashboards (glass+neon+Inter+grid), did a 4-angle 2026-design research sweep → rebuilt instrument-grade (amber-on-off-black, mono numerals, grain/hairlines, **record-as-spine**, deck.gl tactical, no glass/neon). Cleared the bar. (2) **Human-in-command made real** — `POST /api/decision` seals ACCEPT/OVERRIDE into the record (was theater; now verify PASS). (3) **Integrity/OPSEC scrub** — banned "self-controlled ship brain" headline gone from all public surfaces; named NIWC official + OCI/"rides onto a ship" overclaim removed; surnames out of the public repo; roster corrected to the real 9 (Joshua=Lead). (4) **Team work merged** — analytics container (Tommy), child-node compose (Juan, WIP), anomaly-explaining train.py (Nick). (5) **Whole system verified end-to-end** (21 tests + DDIL + eval + API/seal). (6) **Real UDS deploy launched** (uds-core/k3d + Theseus Job + Pepr admission + SBOM/cosign). Day 2 = per-person execute plan in TEAM_LANES.
 - **Jun 17 (eve+)** — **Explainable-alert layer** (`demo/explainer.py`, NV063): deterministic detection → local LLM (qwen2.5:1.5b = team's Pi model; verified real grounded alerts via qwen3.6) → watch alert + action, sealed; template fallback. **+ autoencoder** (ROC-AUC 0.978). **THESEUS track delivered**: NV063 technical approach, MODEL_BENCHMARKS, eval results, NV061 fuller run. Team KANBAN: Pi models = Qwen2.5-1.5B / Gemma-3-1B via llama.cpp; Juan MLflow compose; Carolina ZAP scan. Repo-hygiene catch: `data/` gitignore lost in a merge (2.2GB at risk) — fixed, never committed (.git=2.8M). Demo machine = this Mac; ports moved off 5000 (AirPlay).
 - **Jun 17 (eve)** — **Stack live on this machine + Pi-1.** Tier-1 **MLflow** running (containerized on :5001 — host py3.14 server is broken by an `importlib.abc.Traversable` removal, which *validates* containerizing it). **Trained 3 real datasets through MLflow**: theseus-gt_compressor_decay (RMSE 0.0038), theseus-rul (41.3 cyc), theseus-is_anomaly (0.042). **Pi-1 = machinery node**: the CBM loop runs **containerized via podman 5.4.2** on real data (RMSE 0.0059, record PASS), stdlib-only (no deps). Merged Juan's `deploy/mlflow-compose/`. SSH (key) to both Pis working. Frontend (impressive Streamlit) building.
