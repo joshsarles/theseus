@@ -80,3 +80,7 @@ deploy/pi/.pi-access.md
 **/*.creds
 deploy/mlflow/mlartifacts/
 deploy/mlflow/.venv312/
+
+# River trainer outputs + uv lockfile (runtime)
+outputs/
+uv.lock
