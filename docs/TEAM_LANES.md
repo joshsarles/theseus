@@ -16,7 +16,7 @@
 | **Data / research** | **THESEUS agent** | `docs/research/datasets/` (catalog + A–F + ROADMAP), license clearing, SDR capture plan, NV061 trajectory data | the **data contract** (CSV shape stage_data expects) | demo/ code, deploy/ |
 | **Orchestration / trust** | **WARHACKER** | the demo scaffold (`demo/`), the **record/trust layer** (the moat), **DU/UDS integration**, SBIR + strategy framing, compliance, repo coherence + push cadence | the record contract; the lanes doc; the build plan; folds in everyone's pushes | others' in-flight files (pull before push) |
 
-## Team roster (10)
+## Team roster (11)
 | Member | Lane |
 |---|---|
 | **Joshua** — Team Lead | direction · system scaffolding |

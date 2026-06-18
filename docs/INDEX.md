@@ -2,32 +2,36 @@
 *The map. Start at the top.*
 
 ## Start here
-- **`../ROADMAP.md`** — the master plan (phases 0–3, hardware, status); living doc.
-- **`TEAM_LANES.md`** — who owns what + the TODAY/TOMORROW execute plan (run in your lane).
-- **`../demo/README.md`** — the runnable loop: `bash demo/run.sh` (Stage → Retrain → Update, all sealed).
-- **`vision/TEAM_OBJECTIVES_AND_LOG.md`** — what we're building + the stack + the living log (update as Slack evolves).
-- **`../KANBAN.md`** — the board.
-- **`vision/BUILD_VISION.md`** — the build decision (council synthesis): what to build first, the moat, the architecture, the honest framing.
-- **`vision/PLAN.md`** — the shareable team plan (rallying narrative).
+- **`../README.md`** — the front door (what THESEUS is + what's real + how to run it).
+- **`JUDGE_REVIEW.md`** — **guided walkthrough** to review the system without a live demo (real command output, beat by beat).
+- **`vision/UUV_FLEET_ARCHITECTURE.md`** — **THE locked plan**: the 3-node topology (UUV Pis + fleet coordinator), the flywheel, the data-honesty fork.
+- **`ONBOARDING.md`** — new teammate? get running + contributing in ~20 min.
+- **`WARHACKER_HANDOFF.md`** — revive the AI copilot (WARHACKER) in a fresh session with full state.
+- **`../ROADMAP.md`** — state, phases, and the update log (newest on top).
 
-## Setup / runbooks
-- **`setup/MLFLOW_PODMAN.md`** — run the MLflow central server on Podman; offline/airgap staging; how it maps to the objectives.
-- **`setup/PI_NODES.md`** — stand up the 2× Pi 5 4GB Tier-2 nodes (Pi-1 machinery, Pi-2 contacts); DDIL beat; 4GB gotchas.
+## Vision & plan
+- **`vision/FLEET_LEARNING_VISION.md`** — the big vision (why fleet-learning is a category, not a tool).
+- **`vision/BUILD_VISION.md`** — the build decision (council synthesis): what to build first, the moat, the honest framing.
+- **`vision/PLAN.md`** — the shareable team plan (rallying narrative).
+- **`TEAM_LANES.md`** — who owns what + the execute plan (run in your lane).
 
 ## Research
-- **`research/sbir/NAVSEA_SBIR_TOPICS.md`** — the demand signal: NV063 (lead) + NV061, SOTA, SBIR mechanics, combat-system integration reality (SSDS/Aegis/ICS).
-- **`research/datasets/DATASETS.md`** — open datasets, ranked. Bullseyes: UCI #316 (naval gas-turbine, PROP) + OMTAD (AIS anomaly, NAV/NV063).
-- **`research/council/COUNCIL_BRIEFS.md`** — the 4-lens design council (Architect / Visionary / Strategist / Red Team), raw.
-- **`research/sota/`**, **`research/naming/`** — landscape + naming (key findings folded into COUNCIL_BRIEFS; expand as needed).
+- **`research/DECK_BLUE_OCEAN.md`** — the market + why the lane is open (DECK opens the loop; THESEUS closes it).
+- **`research/sbir/NAVSEA_SBIR_TOPICS.md`** — the demand signal: NV063 (the surface-contact / Framing-A track) + SOTA + SBIR mechanics.
+- **`research/datasets/DATASETS.md`** — open datasets, ranked + license-cleared (and the honest proxy/UUV-data gap).
+- **`research/council/COUNCIL_BRIEFS.md`** — the 4-lens design council (Architect / Visionary / Strategist / Red Team).
 
 ## Integration & compliance
-- **`integration/DEFENSE_UNICORNS.md`** — Theseus-on-UDS: inherit the ATO (18mo→2wk) + the DU+Leidos hull on-ramp; UDS Core / Zarf / Pepr / LeapfrogAI.
-- **`integration/INFERENCE_AND_FIPS.md`** — explainer engine: **Triton-TRT-LLM (Iron Bank, shore GPU) + llama.cpp/GGUF (edge)**; NOT archived vLLM. FIPS = crypto boundary, not the model.
-- **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild); the build-now choices that keep it cheap.
+- **`INTEGRATION_SPEC.md`** — buy/borrow/build: compose best-of-breed (in-toto/SLSA/cosign, OSCAL/Lula, Stone Soup, PyOD/River); build only the Navy-specific inch.
+- **`DAY2_PREP.md`** — the red-team brief (the known weaknesses — read before any pitch/review).
+- **`integration/DEFENSE_UNICORNS.md`** — THESEUS-on-UDS: inherit the ATO + the DU/Leidos delivery on-ramp.
+- **`integration/INFERENCE_AND_FIPS.md`** — explainer engine (shore GPU + edge GGUF); FIPS = crypto boundary, not the model.
+- **`compliance/IL_ROADMAP.md`** — unclass now → IL5 → IL6/Secret (inherit, don't rebuild).
 
-## Architecture
-- **`architecture/COMPUTE_TIERS.md`** — target = DDG/CG (real onboard compute). Two tiers: ship GPU brain (Blackwell-emulated) + Pi system-components. The Pi cluster is the sensing subset, not the whole brain.
-- **`architecture/`** — more design docs as they mature (the spine is `referee/` etc. in the repo root, being reframed imagery→ship-systems).
+## Setup / runbooks
+- **`setup/MLFLOW_PODMAN.md`** — the Node-3 MLflow registry (Podman; offline/airgap staging).
+- **`setup/PI_NODES.md`** — stand up the 2× Pi 5 (4 GB) as the UUV nodes (Node 1 / Node 2); DDIL beat; 4 GB gotchas.
+- **`../KANBAN.md`** — the board.
 
 ## The rails (everywhere)
-Human-in-command · decision-support not autonomous control · SWAN-side only (combat air-gapped) · integrate-not-replace · real not mock.
+Human always in command — never autonomous · **all-real** (proxies + in-progress labeled) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** (what the platform *watches* vs the platform's *own* UUV systems — kept separate) · **OPSEC** (no real names / commands in this public repo).
