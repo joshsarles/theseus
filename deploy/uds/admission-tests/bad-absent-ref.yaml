@@ -1,0 +1,56 @@
+# BAD — canonical, well-formed ref + a wired verify gate, but it names a
+# kind/obs_id that was NEVER sealed (no such leaf in the record). Expect DENIED.
+#
+# Distinct from bad-forged-ref (wrong hash on an EXISTING obs_id): here the
+# decision "overridden:CTC-999" simply does not exist in the chain at all. Layer B
+# resolve finds no leaf "human_decision:overridden:CTC-999" -> DENIED. Proves the
+# rail rejects an *absent* reference, not just a tampered hash.
+#
+# The leaf_hash is a valid-looking sha256 (all 1's) so A2 parseRef passes and the
+# denial is genuinely on chain-resolution, not on malformation.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-absent-ref
+  namespace: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    theseus.forceos.ai/action: autonomy
+  annotations:
+    theseus.forceos.ai/human-approved-by: "sailor-id:ghost/ticket-NONE"
+    theseus.forceos.ai/approval-record-ref: "theseus-record://human_decision/overridden:CTC-999@sha256:1111111111111111111111111111111111111111111111111111111111111111"
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  initContainers:
+    - name: theseus-approval-verify
+      image: theseus-edge:0.1.0
+      command: ["python3", "/app/referee/verify_record.py", "--record", "/var/lib/theseus/record"]
+      env:
+        - name: THESEUS_APPROVAL_REF
+          value: "theseus-record://human_decision/overridden:CTC-999@sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      volumeMounts:
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
+  containers:
+    - name: actor
+      image: theseus-edge:0.1.0
+      command: ["sleep", "30"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      volumeMounts:
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
+  volumes:
+    - name: theseus-record
+      emptyDir: {}

@@ -1,0 +1,32 @@
+# BAD — the LITERAL kill-shot: the pre-fix world. A non-empty approver string and a
+# non-canonical "ref" that is just a file path + line anchor. Expect DENIED at A2.
+#
+# Before this brief, rail-1 admitted ANY non-empty approver and only WARNED on a
+# missing record-ref — so "type x = approved" passed. Now parseRef() rejects this
+# legacy "out/record/chain.jsonl#leaf2" form: it is not a canonical
+# theseus-record://<kind>/<obs_id>@sha256:<64hex> ref, so it pins no leaf_hash and
+# binds to nothing. This fixture is exactly what USED to be admitted and now is not.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-legacy-ref
+  namespace: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    theseus.forceos.ai/action: model-promote
+  annotations:
+    theseus.forceos.ai/human-approved-by: "x"
+    theseus.forceos.ai/approval-record-ref: "out/record/chain.jsonl#leaf2"
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+    - name: promoter
+      image: theseus-edge:0.1.0
+      command: ["sleep", "30"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }

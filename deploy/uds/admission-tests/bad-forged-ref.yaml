@@ -1,0 +1,56 @@
+# BAD — canonical, well-formed ref + a wired verify gate, but the pinned leaf_hash
+# is FORGED (it names a leaf that was never sealed with that hash). Expect DENIED.
+#
+# This is the heart of the kill-shot fix: the ref is *structurally* perfect (passes
+# A1/A2/A3) yet does NOT chain to a real sealed leaf, so Layer B (in-process chain
+# resolve against the controller-mounted record) DENIES at admission. There is
+# nothing you can type that resolves to a sealed leaf unless one was actually sealed.
+#
+# The forged hash below is all-f's — a syntactically valid sha256 that no real leaf
+# will ever have. verify.mjs keeps it as-is (it must NOT match the sealed record).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-forged-ref
+  namespace: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    theseus.forceos.ai/action: model-promote
+  annotations:
+    theseus.forceos.ai/human-approved-by: "sailor-id:attacker/ticket-FAKE-1"
+    theseus.forceos.ai/approval-record-ref: "theseus-record://human_decision/accepted:CTC-7@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  initContainers:
+    - name: theseus-approval-verify
+      image: theseus-edge:0.1.0
+      command: ["python3", "/app/referee/verify_record.py", "--record", "/var/lib/theseus/record"]
+      env:
+        - name: THESEUS_APPROVAL_REF
+          value: "theseus-record://human_decision/accepted:CTC-7@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      volumeMounts:
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
+  containers:
+    - name: promoter
+      image: theseus-edge:0.1.0
+      command: ["sleep", "30"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      volumeMounts:
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
+  volumes:
+    - name: theseus-record
+      emptyDir: {}

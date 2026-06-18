@@ -9,9 +9,15 @@
 //
 // RAILS ENFORCED (decision-support, NOT autonomous ship control):
 //   1. human-in-command — a Pod/Job that declares an autonomy/decision *action*
-//      must carry an explicit human-approval annotation, or it is denied.
-//      (Theseus drafts the call; a human approves. The webhook makes "no human,
-//       no autonomy action" a hard cluster rule.)
+//      must carry an explicit human-approval annotation that is BOUND to a real
+//      sealed decision in the tamper-evident record, or it is denied.
+//      (Theseus drafts the call; a human approves; the approval is sealed; the
+//       webhook makes "no sealed human decision, no autonomy action" a hard rule.)
+//      This is NOT a presence check: a non-empty approver string is necessary but
+//      NOT sufficient. The pod must also carry a canonical approval-record-ref that
+//      pins a leaf_hash, plus a verify init-container wired to that same ref — and,
+//      when the record is mounted to the controller, the webhook chain-verifies the
+//      ref against the record at admission time. "type x = approved" -> DENIED.
 //   2. no-egress / contained — Theseus model + explainer pods may not run with
 //      hostNetwork, hostPID, hostIPC, privileged, or privilege-escalation. They
 //      must declare the in-mesh egress posture label so UDS default-deny + a
@@ -42,6 +48,13 @@
 
 import { Capability, a, Log } from "pepr";
 import type { V1Container, V1PodSpec, V1SecurityContext, V1Volume } from "@kubernetes/client-node";
+import {
+  parseRef,
+  resolveAgainstControllerRecord,
+  verifyGateProblem,
+  VERIFY_INIT_NAME,
+  VERIFY_REF_ENV,
+} from "./record-binding";
 
 /** Pod spec or an empty spec — keeps the V1PodSpec shape instead of widening to `{}`. */
 const EMPTY_SPEC: V1PodSpec = { containers: [] };
@@ -56,12 +69,16 @@ const NS_THESEUS = ["theseus", "theseus-edge"]; // edit to match your deploy ns
 const LBL_PART_OF = "app.kubernetes.io/part-of"; // value "theseus"
 const VAL_PART_OF = "theseus";
 
-// rule 1: declares an autonomy / decision action -> requires human approval.
+// rule 1: declares an autonomy / decision action -> requires a human approval that
+//   is BOUND to a sealed leaf in the tamper-evident record (not just a non-empty string).
 //   theseus.forceos.ai/action: "decision" | "autonomy" | "model-promote" | ...
 const LBL_ACTION = "theseus.forceos.ai/action";
-//   theseus.forceos.ai/human-approved-by: "<sailor-id / ticket>"  (must be non-empty)
+//   theseus.forceos.ai/human-approved-by: "<sailor-id / ticket>"  (necessary, NOT sufficient)
 const ANN_APPROVED_BY = "theseus.forceos.ai/human-approved-by";
-//   optional corroborating annotation pointing at the sealed approval leaf.
+//   REQUIRED canonical ref pinning the sealed approval leaf:
+//     theseus-record://<kind>/<obs_id>@sha256:<64hex>
+//   e.g. theseus-record://human_decision/accepted:CTC-7@sha256:2547e578…6628
+//   This is what the webhook resolves + chain-verifies; without it the action is DENIED.
 const ANN_APPROVAL_REF = "theseus.forceos.ai/approval-record-ref";
 
 // rule 2: model / explainer pods must declare the contained-egress posture so
@@ -88,7 +105,7 @@ function allContainers(pod: a.Pod): V1Container[] {
   return [
     ...(s.containers ?? []),
     ...(s.initContainers ?? []),
-    ...(s.ephemeralContainers ?? []) as unknown as V1Container[],
+    ...((s.ephemeralContainers ?? []) as unknown as V1Container[]),
   ];
 }
 
@@ -96,7 +113,13 @@ function allContainers(pod: a.Pod): V1Container[] {
 function effective(
   pod: a.Pod,
   c: V1Container,
-): { runAsNonRoot?: boolean; readOnlyRootFilesystem?: boolean; allowPrivilegeEscalation?: boolean; privileged?: boolean; dropsAll: boolean } {
+): {
+  runAsNonRoot?: boolean;
+  readOnlyRootFilesystem?: boolean;
+  allowPrivilegeEscalation?: boolean;
+  privileged?: boolean;
+  dropsAll: boolean;
+} {
   const podSc = pod.spec?.securityContext ?? ({} as V1SecurityContext);
   const cSc = c.securityContext ?? ({} as V1SecurityContext);
 
@@ -125,43 +148,153 @@ export const TheseusPolicies = new Capability({
 
 const { When } = TheseusPolicies;
 
-// === RULE 1 — HUMAN-IN-COMMAND ============================================
-// Any Pod that declares an autonomy/decision action must carry a non-empty
-// human-approval annotation. No human, no autonomy action. Applies to bare Pods
-// and to Pods created by Jobs/Deployments alike (we validate the Pod, which is
-// what actually schedules). Action-labeled Pods need not be part-of=theseus —
-// the *action* label is the trigger, so a stray autonomy pod can't sneak in.
+// === RULE 1 — HUMAN-IN-COMMAND (record-bound) =============================
+// Any Pod that declares an autonomy/decision action must carry a human approval
+// that BINDS to a real, sealed, chain-verifying decision in the tamper-evident
+// record. A non-empty approver string is necessary but NOT sufficient — this is
+// the fix for the "type any string = approved" kill-shot.
+//
+// Enforced here, in order (deny on the first failure):
+//   A1. non-empty approver id           (who approved)
+//   A2. canonical approval-record-ref   (WHICH sealed leaf; pins a leaf_hash)
+//   A3. a verify init-container wired to the SAME ref + a record mount (Layer C
+//       apparatus must be present — the runtime gate that re-verifies in-cluster)
+//   B.  IF the record is mounted to the controller (env THESEUS_RECORD_DIR): read
+//       chain.jsonl and chain-verify the ref against it NOW. Forged hash / absent
+//       leaf / SNAPped chain -> DENIED at admission. (When not mounted, B is
+//       skipped as advisory and A3's init-container is the binding — stated plainly
+//       in the warning so the operator knows what is enforced vs deferred.)
+//
+// The decision is factored into the pure, exported `evaluateRule1` so the offline
+// verify harness (deploy/uds/admission-tests/verify.mjs) exercises the EXACT code
+// admission runs — against a genuinely sealed record — with no logic duplication or
+// drift. The .Validate wrapper only translates the decision into Pepr's
+// req.Deny / req.Approve. (Pepr v1.2.1: Validate supports async; Deny(msg, code?,
+// warnings?); Approve(warnings?).)
+
+/** Minimal pod shape evaluateRule1 reads — kept structural so the harness can call
+ *  it with a parsed-YAML pod without depending on the full V1Pod type machinery. */
+export interface Rule1Pod {
+  metadata?: {
+    name?: string;
+    namespace?: string;
+    labels?: Record<string, string>;
+    annotations?: Record<string, string>;
+  };
+  spec?: { initContainers?: Parameters<typeof verifyGateProblem>[0] };
+}
+
+/** The rule-1 admission decision: deny (with message+code) or approve (with warnings).
+ *  This IS the enforcement logic; the .Validate callback below is a thin translator. */
+export type Rule1Decision =
+  | { deny: true; message: string; code: number }
+  | { deny: false; warnings: string[] };
+
+/**
+ * Pure, dependency-light rule-1 evaluator. Same ordered checks A1 -> A2 -> A3 -> B.
+ * `recordDir` (defaults to THESEUS_RECORD_DIR) lets the harness drive Layer B against
+ * a real sealed record dir; pass null to force the Layer-B-skipped (advisory) path.
+ */
+export function evaluateRule1(pod: Rule1Pod, recordDir?: string | null): Rule1Decision {
+  const md = pod.metadata ?? {};
+  const action = (md.labels ?? {})[LBL_ACTION] ?? "";
+  const ann = md.annotations ?? {};
+  const approver = ann[ANN_APPROVED_BY]?.trim();
+  const refRaw = ann[ANN_APPROVAL_REF]?.trim();
+
+  // A1 — who approved.
+  if (!approver) {
+    return {
+      deny: true,
+      code: 403,
+      message:
+        `THESEUS rail 1 (human-in-command): pod declares action "${action}" but has no ` +
+        `human approver. Set annotation "${ANN_APPROVED_BY}" to a non-empty approver id. ` +
+        `Theseus drafts the call; a human approves it.`,
+    };
+  }
+
+  // A2 — WHICH sealed leaf. The ref is REQUIRED and must be canonical (it pins a
+  // leaf_hash). This is the line that kills "type x = approved": a non-empty
+  // approver alone no longer passes; there must be a ref naming a real leaf.
+  const ref = parseRef(refRaw);
+  if (!ref) {
+    return {
+      deny: true,
+      code: 403,
+      message:
+        `THESEUS rail 1 (human-in-command): pod declares action "${action}" approved by ` +
+        `"${approver}" but its "${ANN_APPROVAL_REF}" is ${refRaw ? "MALFORMED" : "MISSING"}. ` +
+        `A human approver string is not enough — it must be bound to a sealed decision. ` +
+        `Provide a canonical ref: theseus-record://<kind>/<obs_id>@sha256:<64hex> ` +
+        `(e.g. theseus-record://human_decision/accepted:CTC-7@sha256:<leafhash>). ` +
+        `This is the leaf the watch officer's ACCEPT/OVERRIDE sealed via POST /api/decision.`,
+    };
+  }
+
+  // A3 — the runtime verify gate must be present and wired to THIS ref. Even when
+  // the controller cannot read the record (Layer B skipped), the pod cannot run
+  // its decision action until this init-container re-verifies the ref in-cluster.
+  const gateProblem = verifyGateProblem(pod.spec?.initContainers, ref.raw, RECORD_MOUNT_PATHS);
+  if (gateProblem) {
+    return {
+      deny: true,
+      code: 403,
+      message:
+        `THESEUS rail 1 (human-in-command): the approval ref must be backed by a runtime ` +
+        `verify gate. ${gateProblem} The gate runs referee/chain.py verify_dir against the ` +
+        `mounted record and fails the pod if the ref does not chain to a sealed leaf.`,
+    };
+  }
+
+  // B — in-process chain resolve at admission when the record is mounted to the
+  // controller. This is the live flex: a forged ref is rejected HERE, before the
+  // pod is ever admitted, not only at runtime.
+  const warnings: string[] = [];
+  const probe = resolveAgainstControllerRecord(ref, recordDir);
+  if (probe.reachable) {
+    if (!probe.result.ok) {
+      return {
+        deny: true,
+        code: 403,
+        message:
+          `THESEUS rail 1 (human-in-command): approval ref does NOT resolve to a sealed, ` +
+          `chain-verifying decision in the tamper-evident record. ${probe.result.message}. ` +
+          `The cluster admits a decision action only when its approval chains to a real sealed leaf.`,
+      };
+    }
+    warnings.push(
+      `THESEUS rail 1: approval ref VERIFIED at admission against the controller-mounted ` +
+        `record — ${probe.result.message}. Approved by "${approver}".`,
+    );
+  } else {
+    // Honest disclosure of what is enforced vs deferred when B can't run.
+    warnings.push(
+      `THESEUS rail 1: ref structurally bound (canonical + wired to the "${VERIFY_INIT_NAME}" ` +
+        `init-container via ${VERIFY_REF_ENV}); the chain-verify of this ref runs in-cluster at ` +
+        `pod start. Set env THESEUS_RECORD_DIR on the controller to also chain-verify at admission.`,
+    );
+  }
+
+  return { deny: false, warnings };
+}
+
+// Applies to bare Pods and Pods created by Jobs/Deployments alike (we validate the
+// Pod, which is what schedules). The *action* label is the trigger, so a stray
+// autonomy pod cannot sneak in regardless of part-of.
 When(a.Pod)
   .IsCreatedOrUpdated()
   .InNamespace(...NS_THESEUS)
   .WithLabel(LBL_ACTION)
-  .Validate(req => {
-    const action = (req.Raw.metadata?.labels ?? {})[LBL_ACTION] ?? "";
-    const approver = (req.Raw.metadata?.annotations ?? {})[ANN_APPROVED_BY]?.trim();
-
-    if (!approver) {
-      Log.warn(
-        { action, ns: req.Raw.metadata?.namespace, name: req.Raw.metadata?.name },
-        "THESEUS rail 1 (human-in-command): denied autonomy/decision action without human approval",
-      );
-      return req.Deny(
-        `THESEUS rail 1 (human-in-command): pod declares action "${action}" ` +
-          `but has no human approval. Set annotation "${ANN_APPROVED_BY}" to a ` +
-          `non-empty approver id (and ideally "${ANN_APPROVAL_REF}" pointing at the ` +
-          `sealed approval leaf). Theseus drafts the call; a human approves it.`,
-        // 403 Forbidden — the request is well-formed but disallowed by policy.
-        403,
-      );
+  .Validate(async req => {
+    const md = req.Raw.metadata ?? {};
+    const ctx = { action: (md.labels ?? {})[LBL_ACTION] ?? "", ns: md.namespace, name: md.name };
+    const decision = evaluateRule1(req.Raw as Rule1Pod);
+    if (decision.deny) {
+      Log.warn({ ...ctx }, `THESEUS rail 1: denied — ${decision.message.split(".")[0]}`);
+      return req.Deny(decision.message, decision.code);
     }
-
-    const warnings: string[] = [];
-    if (!(req.Raw.metadata?.annotations ?? {})[ANN_APPROVAL_REF]) {
-      warnings.push(
-        `THESEUS rail 1: approved by "${approver}" but no "${ANN_APPROVAL_REF}" ` +
-          `linking the sealed approval record. Recommended for the audit trail.`,
-      );
-    }
-    return req.Approve(warnings);
+    return req.Approve(decision.warnings);
   });
 
 // === RULE 2 — CONTAINED / NO-EGRESS POSTURE ===============================
@@ -323,8 +456,8 @@ When(a.Pod)
     const warnings: string[] = [];
     const seccompType =
       pod.spec?.securityContext?.seccompProfile?.type ??
-      allContainers(pod).find(c => c.securityContext?.seccompProfile?.type)
-        ?.securityContext?.seccompProfile?.type;
+      allContainers(pod).find(c => c.securityContext?.seccompProfile?.type)?.securityContext
+        ?.seccompProfile?.type;
     if (seccompType !== "RuntimeDefault" && seccompType !== "Localhost") {
       warnings.push(
         "THESEUS rail 3: seccompProfile.type is not RuntimeDefault/Localhost. " +

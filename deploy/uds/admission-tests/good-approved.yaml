@@ -1,3 +1,18 @@
+# GOOD — a decision action whose approval BINDS to a real sealed leaf. Expect ADMIT.
+#
+# Rule-1 (human-in-command, record-bound) passes all four checks:
+#   A1 human-approved-by present;
+#   A2 approval-record-ref is CANONICAL (theseus-record://<kind>/<obs_id>@sha256:<64hex>)
+#      and pins the leaf_hash of a genuinely sealed human_decision leaf;
+#   A3 the "theseus-approval-verify" init-container is wired to the SAME ref (env
+#      THESEUS_APPROVAL_REF) and mounts the record read-only — the runtime gate;
+#   B  when the controller has the record mounted (THESEUS_RECORD_DIR), the ref
+#      chain-verifies against it at admission.
+#
+# NOTE: the leaf_hash below is a PLACEHOLDER. verify.mjs seals a fresh real record
+# at runtime and substitutes the actual hash (__LEAF_HASH__) — so the ADMIT is
+# proven against a genuinely sealed, chain-verified leaf, never a hardcoded string.
+# It is also rail-2/rail-3 clean so it passes the full policy stack, not just rule 1.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -6,19 +21,42 @@ metadata:
   labels:
     app.kubernetes.io/part-of: theseus
     theseus.forceos.ai/action: model-promote
+    theseus.forceos.ai/role: edge-runner
+    theseus.forceos.ai/egress: none
   annotations:
     theseus.forceos.ai/human-approved-by: "sailor-id:J.Sarles/ticket-THESEUS-42"
-    theseus.forceos.ai/approval-record-ref: "out/record/chain.jsonl#leaf2"
+    theseus.forceos.ai/approval-record-ref: "theseus-record://human_decision/accepted:CTC-7@sha256:__LEAF_HASH__"
 spec:
   restartPolicy: Never
   securityContext:
     runAsNonRoot: true
     runAsUser: 65534
     seccompProfile: { type: RuntimeDefault }
+  initContainers:
+    # Layer C — the runtime verify gate. Runs referee/verify_record.py (which calls
+    # referee/chain.py verify_dir) against the mounted record and FAILS the pod (exit 1
+    # -> initContainer error -> workload never starts) unless the record chain-verifies
+    # with no SNAP. The ref it is bound to is carried in THESEUS_APPROVAL_REF so the gate
+    # checks the SAME ref admission saw; the leaf-specific resolve is enforced at admission
+    # (Layer B) and structurally (Layer A). Today's verify_record.py CLI is --record/--json.
+    - name: theseus-approval-verify
+      image: theseus-edge:0.1.0
+      command: ["python3", "/app/referee/verify_record.py", "--record", "/var/lib/theseus/record"]
+      env:
+        - name: THESEUS_APPROVAL_REF
+          value: "theseus-record://human_decision/accepted:CTC-7@sha256:__LEAF_HASH__"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      volumeMounts:
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
   containers:
     - name: promoter
       image: theseus-edge:0.1.0
-      command: ["sleep","30"]
+      command: ["sleep", "30"]
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -26,6 +64,13 @@ spec:
       volumeMounts:
         - name: work
           mountPath: /work
+        - name: theseus-record
+          mountPath: /var/lib/theseus/record
+          readOnly: true
   volumes:
     - name: work
+      emptyDir: {}
+    - name: theseus-record
+      # In-cluster this is the PVC/configMap carrying the sealed record; the rail only
+      # requires it be mounted read-only (rail 3) and present for the verify gate.
       emptyDir: {}

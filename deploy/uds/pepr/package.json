@@ -36,7 +36,8 @@
     "build": "pepr build",
     "format:check": "pepr format --validate-only",
     "format:fix": "pepr format",
-    "deploy": "pepr deploy"
+    "deploy": "pepr deploy",
+    "verify:rail1": "node ../admission-tests/verify.mjs"
   },
   "dependencies": {
     "pepr": "1.2.1"

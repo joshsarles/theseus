@@ -185,6 +185,23 @@ body {
   outline-offset: 1px;
 }
 
+/* SIM-FEED banner — high-contrast attention pulse. Must be impossible to miss
+   or to mistake for a calm live state. Two-step opacity blink, never a fade. */
+@keyframes sim-feed-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-sim-banner] {
+    animation: none !important;
+  }
+}
+
 /* tiny live tick — used sparingly on the one live indicator */
 @keyframes live-pulse {
   0%,

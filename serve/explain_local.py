@@ -29,6 +29,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -110,6 +111,102 @@ def _template(ev: dict) -> dict:
             "action": ev.get("recommended_action", "") or "Refer to watch officer."}
 
 
+# ───────────────────────── deterministic grounding gate ─────────────────────────
+#
+# The LLM is a NARRATOR over deterministic findings, but nothing yet *enforces* that.
+# A small edge model can — and has been observed to — invent a ship NAME (the facts carry
+# only an MMSI number, never a name), restate the wrong event type, or fabricate a cause.
+# Sealing that ungrounded text would make a hallucination look cryptographically trustworthy.
+#
+# This gate sits BETWEEN the LLM parse and the seal. It is fully deterministic — pure
+# string/set/regex logic, no LLM, no network — so an offline zero-trust verifier can replay
+# it on the edge node. It enforces the 2026 grounding pattern (entity cross-referencing +
+# schema-constrained extractive faithfulness): the alert may only speak about entities present
+# in the structured detection facts, and must not contradict them. On any violation the gate
+# REFUSES to seal the LLM text as model-grounded and the caller falls back LOUDLY to the
+# deterministic template (grounded by construction). Kept identical to demo/explainer.py so the
+# Tier-1 and edge paths gate the same way.
+
+_GROUNDING_VOCAB = {
+    "loiter", "loitering", "overspeed", "dark", "gap", "dark-gap", "darkgap",
+    "position", "jump", "position-jump", "spoof", "spoofing", "gnss", "ais",
+    "cargo", "tanker", "passenger", "fishing", "other", "vessel", "ship", "track",
+    "contact", "mmsi",
+    "theseus", "navy", "watch", "officer", "sensor", "sensors", "verify", "flag",
+    "intent", "rendezvous", "surveillance", "transit", "transited", "anomalous",
+    "underway", "anchor", "knots", "kn", "nm", "min", "hours", "h", "sog",
+    "recommend", "recommended", "action", "alert", "possible", "identity", "swap",
+    "behavior", "behaviour", "quality", "cue", "another", "near", "zero",
+    "a", "an", "the", "this", "that", "vessel's", "ship's", "while", "no", "if",
+}
+
+_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+
+
+def _facts_token_set(ev: dict) -> set[str]:
+    """Every lowercase word that legitimately appears in the structured detection facts."""
+    toks: set[str] = set()
+    for key in ("type", "vessel_class", "why", "recommended_action"):
+        val = ev.get(key)
+        if val is None:
+            continue
+        for w in _WORD_RE.findall(str(val).lower()):
+            toks.add(w)
+    if ev.get("mmsi") is not None:
+        toks.add(str(ev["mmsi"]).lower())
+    return toks
+
+
+def ground_alert(ev: dict, parsed: dict) -> tuple[bool, str]:
+    """Deterministic grounding gate. Returns (grounded, reason).
+
+    grounded=True  ⇒ the LLM text invents no entity outside the structured facts AND is
+                     consistent with them; safe to seal as model-grounded.
+    grounded=False ⇒ a specific violation (named in `reason`); the caller MUST fall back to
+                     the deterministic template and seal source=template.
+
+    Checks (all deterministic, replayable offline on the edge):
+      1. NON-EMPTY    — an empty alert is not a grounded explanation.
+      2. NO INVENTED ENTITY — no capitalized proper-noun token in alert/action that is not in
+                        the facts and not in the allowed domain vocabulary (the ship-name case).
+      3. NO FOREIGN IDENTIFIER — any 7+ digit run (MMSI/IMO/MID) must equal the detection's MMSI.
+      4. CONSISTENT CLASS — a named vessel class must be the detected one.
+    """
+    alert = (parsed.get("alert") or "").strip()
+    action = (parsed.get("action") or "").strip()
+    if not alert:
+        return False, "empty alert"
+
+    text = f"{alert} {action}"
+    facts = _facts_token_set(ev)
+
+    for tok in _WORD_RE.findall(text):
+        low = tok.strip("'-").lower()
+        if not low:
+            continue
+        if not tok[0].isupper():
+            continue
+        if tok.isupper():
+            continue
+        if low in _GROUNDING_VOCAB or low in facts:
+            continue
+        return False, f"invented entity not in detection facts: {tok!r}"
+
+    own = str(ev.get("mmsi") or "")
+    for num in re.findall(r"\d{7,}", text):
+        if num != own:
+            return False, f"invented identifier {num!r} != detection MMSI {own!r}"
+
+    detected_class = str(ev.get("vessel_class") or "").lower()
+    classes = {"cargo", "tanker", "passenger", "fishing"}
+    mentioned = {w for w in (_WORD_RE.findall(text.lower())) if w in classes}
+    if mentioned and detected_class in classes and detected_class not in mentioned:
+        return False, (f"class mismatch: alert says {sorted(mentioned)} "
+                       f"but detection is {detected_class!r}")
+
+    return True, "grounded in detection facts"
+
+
 # ───────────────────────── events from the edge's own record ─────────────────────────
 
 def _events(record_dir: Path, n: int) -> list[dict]:
@@ -157,25 +254,40 @@ def explain(record_dir: Path, n: int, backend: str, model: str | None,
         chosen = "goose" if shutil.which("goose") else "openai"
 
     used_llm = 0
+    gated = 0
     alerts = []
     for ev in events:
         facts = (f"event_type={ev.get('type')}; vessel_class={ev.get('vessel_class')}; "
                  f"mmsi={ev.get('mmsi')}; confidence={ev.get('confidence')}; "
                  f"evidence=\"{ev.get('why')}\"")
         source = "template"
+        grounded = True
         parsed = _template(ev)
         if chosen != "template":
             try:
                 if chosen == "goose":
-                    parsed = _llm_goose(model, facts, timeout)
+                    llm_parsed = _llm_goose(model, facts, timeout)
                 else:
-                    parsed = _llm_openai(base_url, model or "qwen2.5:3b", facts, timeout)
-                if not parsed.get("alert"):
+                    llm_parsed = _llm_openai(base_url, model or "qwen2.5:3b", facts, timeout)
+                if not llm_parsed.get("alert"):
                     parsed = _template(ev)
                     source = f"template ({chosen} empty)"
                 else:
-                    source = f"{chosen}:{model or 'configured'}"
-                    used_llm += 1
+                    # DETERMINISTIC GROUNDING GATE — between the LLM parse and the seal.
+                    # If the model invented an entity (e.g. a ship name) or contradicts the
+                    # detection, REFUSE to seal it as model-grounded; fall back LOUDLY to template.
+                    ok, reason = ground_alert(ev, llm_parsed)
+                    if ok:
+                        parsed = llm_parsed
+                        source = f"{chosen}:{model or 'configured'}"
+                        used_llm += 1
+                    else:
+                        parsed = _template(ev)
+                        source = f"template (grounding gate: {reason})"
+                        grounded = False
+                        gated += 1
+                        print(f"  ⚠ GROUNDING GATE blocked {chosen} on MMSI {ev.get('mmsi')}: "
+                              f"{reason} — sealing template, NOT model-grounded", file=sys.stderr)
             except Exception as e:
                 parsed = _template(ev)
                 source = f"template ({chosen} error: {str(e)[:50]})"
@@ -186,7 +298,7 @@ def explain(record_dir: Path, n: int, backend: str, model: str | None,
         rec = {"mmsi": ev.get("mmsi"), "type": ev.get("type"),
                "confidence": ev.get("confidence"), "alert": parsed["alert"],
                "action": parsed["action"], "explainer": source,
-               "grounded_in": ev.get("why")}
+               "grounded": grounded, "grounded_in": ev.get("why")}
         if seal is not None:
             try:
                 rec["leaf_hash"] = seal(record_dir, "explained_alert",
@@ -196,7 +308,73 @@ def explain(record_dir: Path, n: int, backend: str, model: str | None,
         alerts.append(rec)
 
     return {"ok": True, "backend": chosen, "n": len(alerts),
-            "llm": used_llm, "template": len(alerts) - used_llm, "alerts": alerts}
+            "llm": used_llm, "gated": gated, "template": len(alerts) - used_llm,
+            "alerts": alerts}
+
+
+def _selftest() -> int:
+    """FLEX (no LLM, no network): prove the edge grounding gate (a) passes a faithful alert,
+    (b) CATCHES a ship-name hallucination, (c) seals the gated alert as explainer=template +
+    grounded=False in an ISOLATED temp record dir that verifies PASS (never touches demo/out)."""
+    import tempfile
+
+    ev = {"mmsi": "338901234", "type": "loiter", "vessel_class": "cargo", "confidence": 0.7,
+          "why": "transited then loitered: 24/30 fixes <0.5kn over 3.1h (peak 14kn)",
+          "recommended_action": "verify intent; flag for watch — possible surveillance/rendezvous"}
+
+    ok, why = ground_alert(ev, {
+        "alert": "Cargo track MMSI 338901234 transited then loitered near zero knots for 3.1h.",
+        "action": "Verify intent and flag for watch — possible surveillance or rendezvous."})
+    assert ok, f"faithful alert wrongly blocked: {why}"
+
+    ok, why = ground_alert(ev, {
+        "alert": "Cargo vessel Sea Dragon loitered suspiciously near the strait.",
+        "action": "Verify intent."})
+    assert not ok and "invented entity" in why, f"ship-name hallucination not caught: {why}"
+    print(f"  ✓ gate caught invented ship name: {why}")
+
+    ok, why = ground_alert(ev, {
+        "alert": "Track MMSI 999888777 loitered near zero knots.", "action": "Verify."})
+    assert not ok and "invented identifier" in why, f"foreign MMSI not caught: {why}"
+    print(f"  ✓ gate caught foreign identifier: {why}")
+
+    ok, why = ground_alert({**ev, "vessel_class": "tanker"}, {
+        "alert": "Fishing vessel loitered near zero knots.", "action": "Verify."})
+    assert not ok and "class mismatch" in why, f"class mismatch not caught: {why}"
+    print(f"  ✓ gate caught vessel-class mismatch: {why}")
+
+    # End-to-end through explain(): force a hallucinating "LLM" and assert the gate seals
+    # the gated alert as template/grounded=False and the record verifies.
+    with tempfile.TemporaryDirectory() as td:
+        rec_dir = Path(td) / "record"
+        from _record import seal as _seal
+        # seed one ais_anomaly leaf so _events() picks it up
+        _seal(rec_dir, "ais_anomaly", f"{ev['type']}:{ev['mmsi']}",
+              {"mmsi": ev["mmsi"], "type": ev["type"], "vessel_class": ev["vessel_class"],
+               "confidence": ev["confidence"], "why": ev["why"],
+               "recommended_action": ev["recommended_action"]})
+        # monkeypatch the openai backend to return a hallucinated ship name
+        global _llm_openai
+        orig = _llm_openai
+        _llm_openai = lambda *a, **k: {"alert": "Cargo vessel Sea Dragon loitered.",
+                                       "action": "Verify."}
+        try:
+            res = explain(rec_dir, n=1, backend="openai", model="stub",
+                          base_url="http://stub/v1", timeout=1, seal_alerts=True)
+        finally:
+            _llm_openai = orig
+        a0 = res["alerts"][0]
+        assert a0["grounded"] is False, f"gated alert not grounded=False: {a0}"
+        assert a0["explainer"].startswith("template"), f"gated alert not template: {a0}"
+        assert "Sea Dragon" not in json.dumps(a0), "hallucinated text leaked into the sealed alert"
+        assert res["gated"] == 1 and res["llm"] == 0, res
+        from referee.chain import verify_dir
+        vok, _, msg = verify_dir(rec_dir)
+        assert vok, f"record did not verify after gated seal: {msg}"
+        print(f"  ✓ end-to-end: hallucination gated→template/grounded=False; record verifies: {msg}")
+
+    print("\n  EDGE GROUNDING GATE self-test PASSED — hallucination caught, refused as model-grounded.")
+    return 0
 
 
 def main() -> int:
@@ -213,7 +391,12 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=int(os.environ.get("EXPLAIN_TIMEOUT", "60")))
     ap.add_argument("--no-seal", action="store_true", help="do not seal alerts (dry run)")
     ap.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    ap.add_argument("--selftest", action="store_true",
+                    help="run the deterministic grounding-gate self-test (no LLM, no network)")
     a = ap.parse_args()
+
+    if a.selftest:
+        return _selftest()
 
     res = explain(Path(a.record_dir), a.n, a.backend, a.model, a.base_url, a.timeout,
                   seal_alerts=not a.no_seal)
@@ -229,8 +412,8 @@ def main() -> int:
         print(f"\n  ⚠ [{r.get('type')} · MMSI {r.get('mmsi')}]  ({r['explainer']})")
         print(f"    ALERT : {r['alert']}")
         print(f"    ACTION: {r['action']}")
-    print(f"\n  {res['n']} alerts ({res['llm']} via LLM, {res['template']} via template) "
-          f"— human-in-command")
+    print(f"\n  {res['n']} alerts ({res['llm']} via LLM grounded, {res.get('gated', 0)} "
+          f"gated→template, {res['template']} total via template) — human-in-command")
     return 0
 
 

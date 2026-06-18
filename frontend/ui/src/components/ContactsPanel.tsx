@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SectionHead } from "./Hairline";
 import { CONTACT_COLOR, CONTACT_LABEL, CONTACT_ORDER } from "../lib/palette";
 import { fmtLat, fmtLon, fmtPct } from "../lib/format";
@@ -15,9 +15,24 @@ interface ContactsPanelProps {
 
 type Ruling = { verdict: Verdict; serverSealed: boolean };
 
+/** Risk #7: hold the button locked this long after a click so a presenter's
+ * rapid double-tap cannot fire a second POST / seal a second leaf. */
+const DEBOUNCE_MS = 1000;
+
 export function ContactsPanel({ contacts, selectedId, onSelect, onDecision }: ContactsPanelProps) {
   const [rulings, setRulings] = useState<Record<string, Ruling>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  // Synchronous re-entrancy guards — set BEFORE any await so two clicks landing
+  // in the same React batch (before `busy` re-renders) can never both proceed.
+  const inFlight = useRef<Set<string>>(new Set());
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      for (const id of Object.keys(timers)) clearTimeout(timers[id]);
+    };
+  }, []);
 
   const sorted = useMemo(
     () =>
@@ -32,7 +47,21 @@ export function ContactsPanel({ contacts, selectedId, onSelect, onDecision }: Co
   const pending = sorted.filter((c) => !rulings[c.id]);
 
   async function decide(c: Contact, verdict: Verdict) {
+    // Re-entrancy guard #1: already ruled. Re-entrancy guard #2: a POST for this
+    // contact is in flight OR inside its post-click debounce window. Both are
+    // checked synchronously (refs, not async state) so a double-click seals once.
+    if (rulings[c.id] || inFlight.current.has(c.id)) return;
+    inFlight.current.add(c.id);
     setBusy(c.id);
+
+    // Hold the lock for at least DEBOUNCE_MS even if the POST returns instantly,
+    // so the button stays disabled across a rapid double-tap on stage.
+    if (debounceTimers.current[c.id]) clearTimeout(debounceTimers.current[c.id]);
+    debounceTimers.current[c.id] = setTimeout(() => {
+      inFlight.current.delete(c.id);
+      delete debounceTimers.current[c.id];
+    }, DEBOUNCE_MS);
+
     const res = await postDecision(c.id, verdict);
     setRulings((r) => ({ ...r, [c.id]: { verdict, serverSealed: res.serverSealed } }));
     setBusy(null);

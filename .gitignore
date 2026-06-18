@@ -13,6 +13,11 @@ mlruns/
 # --- OS noise ---
 .DS_Store
 
+# --- record-signing keys (referee/chain.py): private key NEVER committed; .pub is safe ---
+referee/keys/*.key
+referee/keys/record_ed25519.key
+*.ed25519.key
+
 # --- datasets + derived data (NEVER commit; CONTRIBUTING.md: no dataset files in git) ---
 data/
 out/
@@ -58,3 +63,4 @@ deploy/mlflow-sync/*.pid
 deploy/mlflow-sync/.venv/
 deploy/mlflow-sync/out/
 deploy/mlflow-sync/transfer/
+*.tsbuildinfo

@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -46,29 +47,71 @@ def _leaves(record_dir: Path) -> list[dict]:
     return out
 
 
-_POS_CACHE: dict = {}
+# Tiny pre-computed contact-positions cache (cold-start fix, DAY2_PREP risk #9). At stage
+# time demo/stage_data.py writes demo/data/positions.json holding last-known (lat,lon) for
+# ONLY the flagged MMSIs. Loading ~50 entries is <1ms, so a COLD /api/state responds in
+# well under 1s and never times out the UI into the mock fixture. The big ~773MB AIS CSV is
+# only ever touched by the lazy fallback below (for an MMSI the cache somehow missed), so the
+# request path no longer does a multi-second synchronous full scan. The schema + the fallback
+# scan are imported from stage_data so the writer and reader cannot drift.
+# Default cache path is demo/data/positions.json; THESEUS_POSITIONS_JSON env var overrides it
+# (lets a pre-flight warmer or an isolated test point at a custom cache without clobbering live).
+_POSITIONS_JSON = Path(os.environ.get("THESEUS_POSITIONS_JSON", str(HERE / "data" / "positions.json")))
+_POS_CACHE: dict = {}          # mmsi -> (lat, lon), from the pre-computed JSON
+_POS_FALLBACK: dict = {}       # mmsi -> (lat, lon), from a lazy CSV scan (cache-miss path)
+_POS_CACHE_LOADED = False
+
+
+def _load_positions_cache() -> dict:
+    """Load the tiny pre-computed positions JSON (once). Returns {mmsi: (lat,lon)}.
+
+    Missing/corrupt cache is non-fatal: returns {} and the lazy CSV fallback covers it."""
+    global _POS_CACHE, _POS_CACHE_LOADED
+    if _POS_CACHE_LOADED:
+        return _POS_CACHE
+    _POS_CACHE_LOADED = True
+    try:
+        payload = json.loads(_POSITIONS_JSON.read_text())
+        for m, ll in (payload.get("positions") or {}).items():
+            if isinstance(ll, (list, tuple)) and len(ll) == 2:
+                _POS_CACHE[str(m)] = (ll[0], ll[1])
+    except (FileNotFoundError, ValueError, KeyError, TypeError):
+        pass  # no/invalid cache → fallback handles it
+    return _POS_CACHE
 
 
 def _positions(mmsis: set) -> dict:
-    """Last known (lat,lon) for the flagged MMSIs, from the real AIS CSV. Cached once."""
-    global _POS_CACHE
-    if not _POS_CACHE:
-        csv_path = HERE.parent / "data" / "datasets" / "marinecadastre_us" / "AIS_2024_01_01.csv"
-        if csv_path.exists():
-            import csv as _csv
-            with csv_path.open() as f:
-                r = _csv.reader(f)
-                next(r, None)
-                for i, row in enumerate(r):
-                    if i > 1_500_000:
-                        break
-                    try:
-                        _POS_CACHE[row[0]] = (round(float(row[2]), 5), round(float(row[3]), 5))
-                    except (IndexError, ValueError):
-                        pass
-        else:
-            _POS_CACHE["__none__"] = (0, 0)  # mark "tried" so we don't rescan every request
-    return {m: _POS_CACHE[m] for m in mmsis if m in _POS_CACHE}
+    """Last-known (lat,lon) for the flagged MMSIs.
+
+    FAST PATH: the pre-computed positions.json (cold /api/state stays <1s). FALLBACK: for any
+    requested MMSI absent from the cache (e.g. the cache wasn't built, or new contacts appeared
+    after staging), lazily scan the real AIS CSV ONCE and memoize the result — so correctness
+    never depends on the cache existing, while the common case never touches the 773MB file.
+    Same (lat,lon) shape as before; build_state is unchanged downstream."""
+    global _POS_FALLBACK
+    cache = _load_positions_cache()
+    out = {m: cache[m] for m in mmsis if m in cache}
+    out.update({m: _POS_FALLBACK[m] for m in mmsis if m not in out and m in _POS_FALLBACK})
+
+    missing = {m for m in mmsis if m not in out}
+    if missing:
+        try:
+            # Reuse stage_data's scan (single source of truth for schema + scan logic), so the
+            # fallback resolves positions identically to the pre-computed cache. Early-exits once
+            # all `missing` MMSIs are found. Memoized so a given miss is scanned at most once.
+            import stage_data  # sibling demo module (sys.path includes demo/)
+            found = stage_data.scan_positions({str(m) for m in missing})
+            for m, ll in found.items():
+                if isinstance(ll, (list, tuple)) and len(ll) == 2:
+                    _POS_FALLBACK[m] = (ll[0], ll[1])
+            out.update({m: _POS_FALLBACK[m] for m in missing if m in _POS_FALLBACK})
+            # Mark MMSIs that aren't in the file at all as "tried" so we don't rescan them
+            # on every poll (a contact with no fix just gets lat/lon=None, as before).
+            for m in missing:
+                _POS_FALLBACK.setdefault(m, None)
+        except Exception:
+            pass  # fallback is best-effort; a missing position renders as lat/lon=None
+    return {m: v for m, v in out.items() if v is not None}
 
 
 def build_state(record_dir: Path) -> dict:

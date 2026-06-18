@@ -9,6 +9,9 @@ export const STATE_URL = `${API_BASE}/api/state`;
 export const DECISION_URL = `${API_BASE}/api/decision`;
 
 const POLL_MS = 4000;
+// First /api/state scans a large AIS CSV before responding; give it room so a
+// slow-but-real cold start is never mis-latched as a dead link / SIM FEED.
+const FETCH_TIMEOUT_MS = 6000;
 
 export type ConnState = "connecting" | "live" | "stale" | "mock";
 
@@ -30,7 +33,7 @@ export function useShipState(): UseShipState {
   const poll = useCallback(async () => {
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 3500);
+      const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
       const res = await fetch(STATE_URL, { signal: ctrl.signal });
       clearTimeout(t);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

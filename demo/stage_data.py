@@ -28,6 +28,104 @@ STAGED = DATA / "staged.csv"
 # UCI #316 target we predict in the demo: GT compressor decay state coefficient.
 TARGET = "gt_compressor_decay"
 
+# ── Contact-positions cache (cold-start fix, DAY2_PREP risk #9) ───────────────
+# The CONTACTS beat needs lat/lon for the handful of FLAGGED MMSIs to drop pins on
+# the CIC map. The source is the real ~773MB MarineCadastre AIS CSV. Scanning it
+# synchronously on the first /api/state took multiple seconds (full file = 7.3M
+# rows ≈ 5.5s) → the UI's first poll timed out → it latched to the mock fixture →
+# an ugly, dishonest cold-open. Fix: pre-compute the last-known (lat,lon) for ONLY
+# the flagged MMSIs into a tiny JSON ONCE at stage time, so a cold /api/state just
+# loads ~50 entries (<1s) and never has to touch the big CSV on the request path.
+# api.py imports these symbols so the cache schema + the fallback scan are one
+# source of truth (no drift between the writer here and the reader/fallback there).
+AIS_CSV = HERE.parent / "data" / "datasets" / "marinecadastre_us" / "AIS_2024_01_01.csv"
+POSITIONS_CACHE = DATA / "positions.json"
+# MarineCadastre AIS schema (header row 0): MMSI=col0, LAT=col2, LON=col3.
+_AIS_MMSI_COL, _AIS_LAT_COL, _AIS_LON_COL = 0, 2, 3
+
+
+def flagged_mmsis(record_dir: Path) -> set[str]:
+    """The MMSIs the AIS-PoL cell sealed as anomalies — exactly the contacts the CIC
+    map must pin. Read straight from the tamper-evident record (the `ais_anomaly`
+    leaves), so the cache covers precisely what /api/state will render, no more.
+
+    Stdlib-only, reads chain.jsonl directly (the record is the authority); returns an
+    empty set if there is no record yet (then there is nothing to pre-compute)."""
+    import base64 as _b64
+    import json as _json
+
+    out: set[str] = set()
+    cp = record_dir / "chain.jsonl"
+    if not cp.exists():
+        return out
+    for line in cp.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = _json.loads(line)
+            if row.get("kind") != "ais_anomaly":
+                continue
+            data = _json.loads(_b64.b64decode(row["record_b64"]))
+            mmsi = data.get("mmsi")
+            if mmsi is not None:
+                out.add(str(mmsi))
+        except Exception:
+            continue
+    return out
+
+
+def scan_positions(mmsis: set[str], csv_path: Path = AIS_CSV) -> dict[str, list]:
+    """Last-known (lat,lon) for `mmsis` from the real AIS CSV — one full pass.
+
+    Returns {mmsi: [lat, lon]} for every requested MMSI found in the file. Scans the
+    WHOLE file (last fix wins) so a contact whose only fixes are late in the day still
+    gets a correct pin — the previous in-API scan capped at 1.5M rows and silently
+    dropped those. Early-exits once every requested MMSI has a position, so the common
+    case (a few flagged contacts that appear early) returns fast. Pure stdlib."""
+    found: dict[str, list] = {}
+    if not mmsis or not csv_path.exists():
+        return found
+    want = set(mmsis)
+    with csv_path.open() as f:
+        r = csv.reader(f)
+        next(r, None)  # header
+        for row in r:
+            try:
+                m = row[_AIS_MMSI_COL]
+                if m in want:
+                    found[m] = [round(float(row[_AIS_LAT_COL]), 5),
+                                round(float(row[_AIS_LON_COL]), 5)]
+                    if len(found) == len(want):
+                        break  # have every requested contact — stop scanning
+            except (IndexError, ValueError):
+                continue
+    return found
+
+
+def precompute_positions(record_dir: Path = RECORD,
+                         csv_path: Path = AIS_CSV,
+                         out_path: Path = POSITIONS_CACHE) -> dict:
+    """Build the tiny contact-positions cache for the flagged MMSIs and write it to
+    `out_path` as JSON. Idempotent; safe to run every stage. Returns a small summary.
+
+    This is the cold-start fix: do the one expensive CSV pass HERE (stage time, off
+    the demo's critical path), so /api/state never scans the big file on a request."""
+    import json as _json
+
+    mmsis = flagged_mmsis(record_dir)
+    positions = scan_positions(mmsis, csv_path) if mmsis else {}
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "theseus/contact-positions/v1",
+        "source": str(csv_path.name),
+        "csv_present": csv_path.exists(),
+        "flagged_count": len(mmsis),
+        "resolved_count": len(positions),
+        "positions": positions,  # {mmsi: [lat, lon]}
+    }
+    out_path.write_text(_json.dumps(payload, indent=2))
+    return payload
+
 
 def _fetch_real() -> list[dict] | None:
     """Real UCI #316 via ucimlrepo (needs network on first call; then cache)."""
@@ -80,13 +178,44 @@ def _placeholder() -> list[dict]:
     return rows
 
 
+def _emit_positions(record_dir: Path, csv_path: Path, out_path: Path) -> None:
+    """Build + report the flagged-contact positions cache (cold-start fix). Best-effort:
+    a failure here must never break staging — /api/state still has its lazy CSV fallback."""
+    try:
+        summary = precompute_positions(record_dir, csv_path, out_path)
+        rel = out_path.relative_to(HERE.parent) if out_path.is_relative_to(HERE.parent) else out_path
+        print(f"  positions cache → {rel} · flagged={summary['flagged_count']} "
+              f"resolved={summary['resolved_count']} (cold /api/state stays <1s)")
+    except Exception as e:  # pragma: no cover - defensive; cache is an optimization, not a gate
+        print(f"  (positions pre-compute skipped: {e}; /api/state will lazy-scan as fallback)")
+
+
 def main() -> int:
     import argparse
     import shutil
     ap = argparse.ArgumentParser(description="Stage operational data for the loop.")
     ap.add_argument("--input", help="pre-normalized CSV (last column = target) from an ingest/ adapter")
+    ap.add_argument("--positions-only", action="store_true",
+                    help="ONLY (re)build the flagged-contact positions cache from the record + AIS CSV "
+                         "(run AFTER demo/ais_pol.py has sealed the ais_anomaly leaves). The cold-start fix.")
+    ap.add_argument("--record", default=str(RECORD),
+                    help="record dir to read flagged MMSIs from (default: demo/out/record)")
+    ap.add_argument("--ais-csv", default=str(AIS_CSV), help="MarineCadastre AIS CSV to scan for positions")
+    ap.add_argument("--positions-out", default=str(POSITIONS_CACHE),
+                    help="where to write the tiny positions cache JSON")
     a = ap.parse_args()
+    record_dir = Path(a.record)
+    ais_csv = Path(a.ais_csv)
+    pos_out = Path(a.positions_out)
     DATA.mkdir(parents=True, exist_ok=True)
+
+    # Cold-start fix entry point: just (re)build the positions cache and exit. Used by the
+    # demo flow AFTER ais_pol.py seals the flagged contacts (they don't exist at stage time).
+    if a.positions_only:
+        print("THESEUS demo · positions cache — pre-compute flagged-contact lat/lon")
+        _emit_positions(record_dir, ais_csv, pos_out)
+        return 0
+
     print("THESEUS demo · STEP 1 — Stage Operational Data")
 
     # Plug-in path: an ingest/ adapter (THESEUS lane) already normalized a dataset to the
@@ -104,6 +233,7 @@ def main() -> int:
         seal(RECORD, "data_staged", "staged.csv",
              {"source": f"ingest:{src.name}", "rows": n, "sha256": sha, "target": tgt})
         print(f"  staged from {src} · rows={n} · target={tgt} · sha256={sha[:12]}…")
+        _emit_positions(record_dir, ais_csv, pos_out)
         return 0
 
     rows = _fetch_real()
@@ -119,6 +249,7 @@ def main() -> int:
             seal(RECORD, "data_staged", "staged.csv",
                  {"source": "cache", "rows": n, "sha256": sha, "target": tgt})
             print(f"  sealed data_staged · rows={n} · target={tgt} · sha256={sha[:12]}…")
+            _emit_positions(record_dir, ais_csv, pos_out)
             return 0
         print("  ⚠ PLACEHOLDER DATA (offline + no cache) — NOT REAL.")
         print("    Run online once with `pip install ucimlrepo` to cache real UCI #316.")
@@ -137,6 +268,7 @@ def main() -> int:
     print(f"  source: {source}")
     print(f"  staged {len(rows)} rows -> {STAGED.relative_to(HERE.parent)} · target={fields[-1]}")
     print(f"  sealed data_staged · sha256={sha[:12]}…")
+    _emit_positions(record_dir, ais_csv, pos_out)
     return 0
 
 

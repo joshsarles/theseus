@@ -1,0 +1,34 @@
+# BAD — approver present AND a canonical ref to the REAL sealed leaf, but NO
+# "theseus-approval-verify" init-container. Expect DENIED at A3.
+#
+# This proves the binding is enforced even when the Pepr controller has no record
+# mount (Layer B skipped): the pod must still carry the runtime verify gate that
+# re-checks the ref in-cluster before the workload starts. A perfect ref with no
+# gate is not enough — there must be apparatus that actually re-verifies it.
+#
+# verify.mjs substitutes the REAL leaf_hash here (__LEAF_HASH__) so the ONLY thing
+# wrong is the missing gate — the denial is unambiguously A3, not a forged ref.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-nogate
+  namespace: theseus
+  labels:
+    app.kubernetes.io/part-of: theseus
+    theseus.forceos.ai/action: model-promote
+  annotations:
+    theseus.forceos.ai/human-approved-by: "sailor-id:J.Sarles/ticket-THESEUS-42"
+    theseus.forceos.ai/approval-record-ref: "theseus-record://human_decision/accepted:CTC-7@sha256:__LEAF_HASH__"
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+    - name: promoter
+      image: theseus-edge:0.1.0
+      command: ["sleep", "30"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }

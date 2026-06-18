@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useShipState } from "./hooks/useShipState";
 import { CommandHeader } from "./components/CommandHeader";
+import { SimFeedBanner } from "./components/SimFeedBanner";
 import { SystemsColumn } from "./components/SystemsColumn";
 import { MachineryPanel } from "./components/MachineryPanel";
 import { TacticalPicture } from "./components/TacticalPicture";
@@ -10,7 +11,7 @@ import { mintDecisionLeaf, parseRecordMessage } from "./lib/format";
 import type { Leaf, Verdict } from "./lib/types";
 
 export function App() {
-  const { state, conn } = useShipState();
+  const { state, conn, refetch } = useShipState();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [localLeaves, setLocalLeaves] = useState<Leaf[]>([]);
 
@@ -27,12 +28,22 @@ export function App() {
         leaf.local = !serverSealed;
         return [...prev, leaf];
       });
+      // Risk #7: the spine must tick on the same beat the officer clicks — pull
+      // the authoritative leaf_count NOW instead of waiting up to 4s for the
+      // next poll, which reads on stage as "the seal didn't work".
+      if (serverSealed) refetch();
     },
-    [state?.record.leaf_count, merkleSeed],
+    [state?.record.leaf_count, merkleSeed, refetch],
   );
+
+  // Risk #1: a giant red SIM-FEED bar shows whenever the link is not truly live.
+  // It is position:fixed, so reserve its height at the top of the app shell to
+  // avoid occluding the command header.
+  const simBannerActive = conn !== "live";
 
   return (
     <>
+      <SimFeedBanner conn={conn} />
       <div className="vignette" />
       <div className="grain" />
       <div
@@ -40,6 +51,7 @@ export function App() {
           position: "relative",
           zIndex: 1,
           height: "100vh",
+          paddingTop: simBannerActive ? 62 : 0,
           display: "flex",
           flexDirection: "column",
           background: "var(--base)",
