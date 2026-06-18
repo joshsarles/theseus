@@ -61,7 +61,7 @@ Three tiers, all on components from `INTEGRATION_SPEC.md` (build only the glue):
 
 1. **Subsystem organs (per-system, onboard edge).** Each subsystem runs its own small anomaly model (PyOD / Merlion / River; ONNX on a 4GB-class node). Recommends, human commands.
 2. **Master ship brain (onboard, DDIL).** Fuses organs into one ship-state (Stone Soup cross-system fusion + automerge CRDT for partition-tolerant state + Zenoh, with its DDS plugin reading the SWAN-side ship bus). Runs the local learning + the eval-gate + the rollback. Seals everything to the record.
-3. **Fleet brain (shore / squadron, syncs when safe).** Aggregates **attested** model deltas from many hulls (Byzantine-robust + provenance-gated merge), eval-gates the global model, signs it (in-toto / SLSA / cosign), and pushes it back via **UDS Fleet + Tactical Edge**. The whole exchange is OSCAL-recorded as cATO evidence.
+3. **Fleet brain (shore / squadron, syncs when safe).** Aggregates **attested** model deltas from many hulls (provenance-gated FedAvg merge; Byzantine-robust aggregation is the named roadmap upgrade), eval-gates the global model, signs it (in-toto / SLSA / cosign), and pushes it back via **UDS Fleet + Tactical Edge**. The whole exchange is OSCAL-recorded as cATO evidence.
 
 The data that crosses the link is **model updates + attestations, never raw sensor data** (federated-learning's core property is also the contested-environment property: nothing sensitive leaves the hull).
 

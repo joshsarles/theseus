@@ -32,6 +32,7 @@ Then just **ask it** (it answers from the actual code + docs):
 
 ## 3. See it run (5 minutes)
 ```bash
+pip install -r requirements.txt              # numpy + cryptography (the only third-party deps)
 bash deploy/demo_up.sh                       # brings the demo to GO (record + API + preflight gate)
 cd frontend/ui && npm install && npm run dev # the UI → http://localhost:5173
 #   OPERATIONS scene = the ship/UUV digital twin · FLEET LEARNING scene = the flywheel

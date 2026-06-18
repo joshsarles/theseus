@@ -15,7 +15,7 @@
 
 1. **UUV brains = the 2 Raspberry Pis (Nodes 1 + 2).** Each Pi is one unmanned vehicle's onboard brain. Submerged = **hard DDIL** (Denied/Degraded/Intermittent/Limited-bandwidth — the DoD-standard meaning). It runs **lightweight models locally** (machinery health, anomaly/contact detection) doing real-time onboard analytics + decisions with zero connectivity. The onboard anomaly models double as Tesla-style **"trigger classifiers"** — only *flagged/interesting* deltas surface, never raw sensor data.
 2. **The fleet node = the coordinator.** A central node (Mac/Ryzen now; an afloat/relay/shore coordinator in reality) running **MLflow as the model registry + the fleet brain**. It **pushes models down** to the vehicles and **pulls signed model deltas up** when a vehicle surfaces (an opportunistic comms window), then **coordinates the merge**.
-3. **The loop = the flywheel.** Learn local (DDIL) → surface → push signed deltas → fleet node **merges (provenance-gated) + eval-gates + registers** → pushes the improved model back down → the whole fleet gets smarter. Tesla's loop, adapted for DDIL via **federated learning** (deltas, not raw data) with a **Byzantine-robust / provenance-gated** merge and a **pre-deployment eval-gate** (you cannot recall a bad model from a submerged vehicle).
+3. **The loop = the flywheel.** Learn local (DDIL) → surface → push signed deltas → fleet node **merges (provenance-gated) + eval-gates + registers** → pushes the improved model back down → the whole fleet gets smarter. Tesla's loop, adapted for DDIL via **federated learning** (deltas, not raw data) with a **provenance-gated FedAvg** merge and a **pre-deployment eval-gate** (you cannot recall a bad model from a submerged vehicle). *(Byzantine-robust aggregation — e.g. Krum / trimmed-mean — is the named roadmap upgrade; provenance-gating already excludes unattested/unregistered nodes before the average.)*
 
 ---
 
@@ -38,9 +38,9 @@
 | Always-connected, 5M cars | **DDIL**, 10–50 vehicles → round-based sync on surface |
 | Upload raw clips, train centrally | **Federated learning: upload signed *deltas*, not raw sonar** (bandwidth + classification) |
 | Regressions caught in the field across millions | **No field signal / no recall to a submerged vehicle → eval-gate must be airtight PRE-deployment** |
-| No adversary | **Captured-UUV poisoning is the threat → provenance-gated / Byzantine-robust merge** (our poison-rejection beat) |
+| No adversary | **Captured-UUV poisoning is the threat → provenance-gated FedAvg merge** (our poison-rejection beat; Byzantine-robust aggregation is the roadmap upgrade) |
 
-**Say:** *"We adopt Tesla's proven fleet-learning loop, adapted for UUVs via federated learning + Byzantine-robust aggregation + pre-deployment validation."* **Don't say:** "Tesla for the Navy" / "real-time regression detection" / "raw data on-device uploaded." Naming the disanalogies out loud is what an informed judge respects.
+**Say:** *"We adopt Tesla's proven fleet-learning loop, adapted for UUVs via federated learning + provenance-gated FedAvg + pre-deployment validation (Byzantine-robust aggregation is the named roadmap upgrade)."* **Don't say:** "Tesla for the Navy" / "real-time regression detection" / "raw data on-device uploaded." Naming the disanalogies out loud is what an informed judge respects.
 
 ---
 
@@ -59,7 +59,7 @@ Two framings are easy to tangle; keep them **separate and honestly labeled** (an
 - **A UUV sim with fault injection** (HoloOcean / Stonefish / UUV-Sim) — fault-labeled thruster/battery/ballast/leak data at scale.
 - Model: a small **sequence autoencoder** (LSTM/TCN/transformer; reconstruction-error = anomaly, supports RUL) — better than IsolationForest for streaming subsystem data. Train ashore (MLflow-tracked, GPU optional) → **ONNX-int8 → runs on the 4 GB Pi.**
 
-**Owner:** Claire Shen (NAVSEA intern) trains the new UUV own-systems model on real UUV-shaped data (this supersedes the first AIS IsolationForest model, which moves to the Framing-A / NV063 surface-contact track). The fleet node registers it in **MLflow** and the flywheel coordinates it across Nodes 1+2. **The flywheel mechanism is data-agnostic** — it improves whatever model is registered; the *honesty* is in using the right data per framing.
+**Owner:** Claire (NAVSEA intern) trains the new UUV own-systems model on real UUV-shaped data (this supersedes the first AIS IsolationForest model, which moves to the Framing-A / NV063 surface-contact track). The fleet node registers it in **MLflow** and the flywheel coordinates it across Nodes 1+2. **The flywheel mechanism is data-agnostic** — it improves whatever model is registered; the *honesty* is in using the right data per framing.
 
 ---
 

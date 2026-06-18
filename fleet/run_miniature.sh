@@ -13,8 +13,9 @@
 #   8. Tamper one byte → chain SNAPS
 #
 # CONSTRAINTS met:
-#   - All real: real data (749-observation EO-FMV detections), real Ridge regression,
-#     real Ed25519 signing (cryptography package), real FedAvg, real eval-gate
+#   - Honest data: deterministic SYNTHETIC contact-tracking data (600 obs, 300/ship,
+#     numpy.RandomState seeds — reproducible), with REAL mechanics on top:
+#     real Ed25519 signing (cryptography package), real FedAvg, real eval-gate, real Ridge
 #   - CPU-only by default
 #   - Isolated record dir: fleet/out/fleet_record (NOT demo/out)
 #   - Two local processes mapping onto Pi architecture (pi1=MACHINERY, pi2=CONTACTS)
@@ -259,7 +260,7 @@ echo -e "${BOLD}${CYAN}  THESEUS FLEET-LEARNING MINIATURE — COMPLETE${END}"
 echo -e "${BOLD}${CYAN}$BAR${END}"
 echo ""
 echo -e "${DIM}What is REAL in this run:${END}"
-echo -e "  - Real disjoint sensor data: 300 obs/ship, different range strata (DDIL, no cross-ship access)"
+echo -e "  - Real merge mechanics on SYNTHETIC disjoint data: 300 obs/ship, seed-fixed range strata (DDIL, no cross-ship access)"
 echo -e "  - Real Ridge regression: closed-form numpy training, CPU-only, deterministic seeds"
 echo -e "  - Real Ed25519 DSSE signing: per-ship attestation envelope (cryptography package)"
 echo -e "  - Real FedAvg: n_samples-weighted average of model params — no hand-tuning"

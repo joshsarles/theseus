@@ -27,12 +27,13 @@ Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + retired Navy/Marine 
 
 ## Run / review it
 ```bash
-bash deploy/demo_up.sh        # brings the whole stack to GO (record + API + preflight gate)
-bash deploy/preflight.sh      # GO/NO-GO — refuses a broken or silently-mock stack
-bash fleet/run_miniature.sh   # the fleet-learning flywheel, end to end
-python3 -m pytest tests/      # the test suite (21)
+pip install -r requirements.txt   # numpy + cryptography — the only third-party deps
+bash deploy/demo_up.sh            # brings the whole stack to GO (stages record + starts :8501 API + runs the gate)
+bash fleet/run_miniature.sh       # the fleet-learning flywheel, end to end
+python3 -m pytest tests/          # the test suite (21)
+bash deploy/preflight.sh          # GO/NO-GO gate — run AFTER demo_up (standalone it's NO-GO until the record is staged)
 ```
-UI → `http://localhost:5173` (needs the state API on `:8501`, which `demo_up.sh` starts).
+UI → `http://localhost:5173` (needs the state API on `:8501`, which `demo_up.sh` starts). The explain beat wants a local llama-server on `:8080`; without one, run `SKIP_EXPLAINER=1 bash deploy/preflight.sh`.
 
 ## Where to look (judges + new teammates)
 - **`docs/JUDGE_REVIEW.md`** — guided walkthrough (review the system without a live demo)
