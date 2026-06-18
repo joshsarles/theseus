@@ -167,13 +167,15 @@ echo -e "$BAR"
 echo -e "${BOLD}PHASE 5: TAMPER DEMONSTRATION — the chain snaps${END}"
 echo -e "$BAR"
 
-step "7. Tamper one byte in fleet chain leaf 0"
+step "7. Tamper one byte in fleet chain leaf 0 (on a COPY — the canonical record stays intact + verifying)"
+TAMPER_DIR="${RECORD_DIR}.tampertest"
+rm -rf "$TAMPER_DIR"; cp -r "$RECORD_DIR" "$TAMPER_DIR"
 python3 -c "
 import sys
 sys.path.insert(0, '$REPO_ROOT')
 from referee.chain import tamper
 from pathlib import Path
-msg = tamper(Path('$RECORD_DIR'), 0)
+msg = tamper(Path('$TAMPER_DIR'), 0)
 print(f'  {msg}')
 "
 tamper_result=$(python3 -c "
@@ -181,13 +183,14 @@ import sys
 sys.path.insert(0, '$REPO_ROOT')
 from referee.chain import verify_dir
 from pathlib import Path
-ok, bad, msg = verify_dir(Path('$RECORD_DIR'))
+ok, bad, msg = verify_dir(Path('$TAMPER_DIR'))
 print(msg)
 sys.exit(0 if ok else 2)
 " 2>&1) && tamper_exit=0 || tamper_exit=$?
 echo "  $tamper_result"
+rm -rf "$TAMPER_DIR"   # discard the tampered copy; the real $RECORD_DIR is untouched
 if [ "$tamper_exit" -ne 0 ]; then
-    pass "Chain SNAPPED after tamper — tamper-evidence holds"
+    pass "Chain SNAPPED after tamper — tamper-evidence holds (canonical record untouched, still verifies)"
 else
     fail "Expected chain snap but verify passed — investigate"
 fi
