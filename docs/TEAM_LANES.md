@@ -29,8 +29,9 @@
 | **Juan** | Networking / MLOps — Tailscale + MLflow container |
 | **Aaron** | Data + Frontend |
 | **Mark** | Strategy / engagement (Force; retired Marine) |
+| **Claire** | Models — trains the UUV own-systems model on Node 3 (NAVSEA intern) |
 
-*Team = 10: NAVSEA + retired Navy/Marine engineers + analysts (no NIWC). Surnames kept out of this public repo (OPSEC); accurate roster lives in the team channel. The NIWC official referenced in an earlier draft is NOT on the team — scrubbed. Force AI agents (not team members): WARHACKER = orchestration/build/record/DU · THESEUS = data/research/eval.*
+*Team = 11: NAVSEA (incl. intern) + retired Navy/Marine engineers + analysts (no NIWC). Surnames kept out of this public repo (OPSEC); accurate roster lives in the team channel. The NIWC official referenced in an earlier draft is NOT on the team — scrubbed. Force AI agents (not team members): WARHACKER = orchestration/build/record/DU · THESEUS = data/research/eval.*
 
 ## Collision rules (we share one repo)
 - **Pull before you push** (`git pull --no-edit origin main` then push). **Push often.**

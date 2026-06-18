@@ -8,7 +8,12 @@
 
 ## §1 — The three layers
 
-1. **UUV brains = the 2 Raspberry Pis.** Each Pi is one unmanned vehicle's onboard brain. Submerged = **hard DDIL** (Denied/Degraded/Intermittent/Limited-bandwidth — the DoD-standard meaning). It runs **lightweight models locally** (machinery health, anomaly/contact detection) doing real-time onboard analytics + decisions with zero connectivity. The onboard anomaly models double as Tesla-style **"trigger classifiers"** — only *flagged/interesting* deltas surface, never raw sensor data.
+**Node topology (locked, prototype scale):**
+- **Node 1 = UUV 1** · **Node 2 = UUV 2** — Raspberry Pi 5 (4 GB) onboard brains.
+- **Node 3 = this machine (the Mac)** — **fleet coordination**: hosts **MLflow** (Juan's `deploy/mlflow-compose/` — Postgres + MLflow server) + the **UI**, and **manages the Pis**. It aggregates the improvements from Nodes 1+2, picks the best (eval-gate), and pushes the improved model back down to 1+2.
+- **No Node 4** for the prototype — the explainer/command-center role folds into Node 3 at this scale (it's the natural "shore/fleet-brain" expansion node later). *(The same topology scales: Node 3 can be a ship-brain with the UUVs as subsystems, or a fleet-brain with more vehicles — the model is N-node.)*
+
+1. **UUV brains = the 2 Raspberry Pis (Nodes 1 + 2).** Each Pi is one unmanned vehicle's onboard brain. Submerged = **hard DDIL** (Denied/Degraded/Intermittent/Limited-bandwidth — the DoD-standard meaning). It runs **lightweight models locally** (machinery health, anomaly/contact detection) doing real-time onboard analytics + decisions with zero connectivity. The onboard anomaly models double as Tesla-style **"trigger classifiers"** — only *flagged/interesting* deltas surface, never raw sensor data.
 2. **The fleet node = the coordinator.** A central node (Mac/Ryzen now; an afloat/relay/shore coordinator in reality) running **MLflow as the model registry + the fleet brain**. It **pushes models down** to the vehicles and **pulls signed model deltas up** when a vehicle surfaces (an opportunistic comms window), then **coordinates the merge**.
 3. **The loop = the flywheel.** Learn local (DDIL) → surface → push signed deltas → fleet node **merges (provenance-gated) + eval-gates + registers** → pushes the improved model back down → the whole fleet gets smarter. Tesla's loop, adapted for DDIL via **federated learning** (deltas, not raw data) with a **Byzantine-robust / provenance-gated** merge and a **pre-deployment eval-gate** (you cannot recall a bad model from a submerged vehicle).
 
@@ -39,10 +44,22 @@
 
 ---
 
-## §4 — Per-dataset lightweight models (the UUV "brain")
+## §4 — Models + the data-honesty fork (read this carefully)
 
-8 datasets → **lightweight, Pi-runnable models** (ONNX, CPU): CBM machinery (UCI #316), RUL (C-MAPSS, N-CMAPSS), PdM anomaly (MetroPT autoencoder), AIS Pattern-of-Life (MarineCadastre/Ushant), trajectory (TrAISformer), environmental (EnvShip). **Each vehicle's brain = the subset for its mission.** The fleet node trains/registers them in MLflow and coordinates which vehicle runs which.
-- **Demo scope (honest):** lead with the **3 already-built + Pi-proven** — CBM + AIS-PoL + autoencoder. The rest are *"and the same loop scales to N models,"* not all-trained-by-demo.
+Two framings are easy to tangle; keep them **separate and honestly labeled** (an SME will catch a slip):
+
+| Framing | What it is | Right data today? |
+|---|---|---|
+| **A — what the platform WATCHES** (NV063, the funded SBIR) | Pattern-of-Life anomaly of surface+air **contacts** around the platform (AIS+ADS-B+radar → SSDS) | **YES** — AIS (MarineCadastre/Ushant/TrAISformer) is exactly this. Surface/USV-relevant. |
+| **B — the platform's OWN UUV systems** (the fleet-learning vision) | Onboard health/anomaly of an **unmanned vehicle's** subsystems (thrusters, battery/energy, ballast/trim, INS/DVL nav, leak, acoustic comms) | **NO — the machinery sets are proxies.** UCI #316 = frigate gas turbine, C-MAPSS/N-CMAPSS = aircraft turbofans, MetroPT = metro compressor. **No UUV.** And a *submerged* UUV gets no AIS (surface RF) — "AIS PoL on a UUV" is a category slip unless it's a surface USV. |
+
+**The honest fix (for Framing B — the UUV own-systems demo):** train on a genuinely **UUV-shaped** source, not a jet engine:
+- **BlueROV2 / ArduSub dataflash (MAVLink) logs** — real underwater-vehicle telemetry (battery V/I, thruster PWM, depth, attitude, leak), open + **self-capturable** by the team (the credibility difference).
+- **IOOS Glider DAC / Rutgers Slocum** — real long-endurance AUV-class vehicle-health telemetry.
+- **A UUV sim with fault injection** (HoloOcean / Stonefish / UUV-Sim) — fault-labeled thruster/battery/ballast/leak data at scale.
+- Model: a small **sequence autoencoder** (LSTM/TCN/transformer; reconstruction-error = anomaly, supports RUL) — better than IsolationForest for streaming subsystem data. Train ashore (MLflow-tracked, GPU optional) → **ONNX-int8 → runs on the 4 GB Pi.**
+
+**Owner:** Claire Shen (NAVSEA intern) trains the new UUV own-systems model on real UUV-shaped data (this supersedes the first AIS IsolationForest model, which moves to the Framing-A / NV063 surface-contact track). The fleet node registers it in **MLflow** and the flywheel coordinates it across Nodes 1+2. **The flywheel mechanism is data-agnostic** — it improves whatever model is registered; the *honesty* is in using the right data per framing.
 
 ---
 
