@@ -1,46 +1,44 @@
 # THESEUS
 
-**Onboard ship-systems analytics & edge model-management under DDIL — decision-support, human always in command.**
+**The accreditable fleet-learning layer for unmanned maritime vehicles under DDIL — human always in command.**
 
-When a warship loses its link to shore (DDIL: denied, degraded, intermittent, limited), its systems data is on its own — scattered across stovepiped systems, watched by a handful of sailors. Theseus deploys, manages, and runs AI models **at the edge** on a resource-limited shipboard-analog cluster: it fuses available (SWAN-side) systems data into one live picture, flags what's failing or off-normal, and drafts the call for a human to approve — running fully disconnected, from one signed bundle, with **every model update and decision sealed in a tamper-evident, offline-verifiable record.** Human always commands. Integrate, never replace.
+Unmanned vehicles (UUVs) operate cut off from comms (**DDIL**: denied, degraded, intermittent, limited). Each vehicle has to learn from what it sees *locally* — and when a fleet of them surfaces, their hard-won improvements must be combined **safely and accountably**, because you cannot recall a bad model from a submerged vehicle. **THESEUS is that layer:** each UUV learns onboard; a **fleet node** merges the improvements as **model deltas (never raw data)** through a **provenance-gated, eval-gated, signed** merge; and **every model update + human decision is sealed in a tamper-evident, standards-based record (in-toto/DSSE + Ed25519, NIST OSCAL)** an accreditor can trust. *Tesla-FSD-for-a-UUV-fleet — but DDIL-native and accreditable.*
+
+The Navy's data engine (DECK) *opens* that learning loop; nothing today closes it onboard, coordinates models across a fleet, or makes a *changing* model accreditable. **That's the open lane THESEUS fills.**
 
 > *Like the Ship of Theseus — every plank can be replaced and she's still herself, because the brain that runs her is one.*
 
 Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + retired Navy/Marine engineers (Force AI). AGPL-3.0.
 
-## What it does (team objectives)
-1. **Deploy** AI models at the edge (shipboard-like, resource-limited).
-2. **Centrally manage** models at the edge (MLflow registry / tracking / monitoring).
-3. **Live-update** models from the edge.
-4. **Stage** model updates from shore **without sneakernetting** (UDS/Zarf airgap bundle).
+## The architecture (3 nodes)
+- **Node 1 + Node 2 = the UUVs** — Raspberry Pi 5 (4 GB) onboard brains; learn locally, airgapped (DDIL); run lightweight ONNX models onboard.
+- **Node 3 = the fleet coordinator** — hosts the **MLflow** model registry + the **UI**; aggregates the UUVs' improvements, **eval-gates** the best, pushes it back down.
+- **The flywheel:** learn local → push **signed deltas** → **merge** (a captured/poisoned node is *rejected*) → **eval-gate** (a worse model never ships) → push back. Every step **sealed + accreditable** (cATO-for-AI).
 
-## Stack
-**Python 3.14.4** · PyTorch (train) → ONNX (edge) · **MLflow 3.13** (central server) · **Podman** (rootless OCI) · Raspberry Pi cluster (AI HAT+2) · **UDS/Zarf** (airgap deploy) · tamper-evident hash-chained record · Force OS (orchestration option).
+## What's real today (verifiable in this repo)
+| Capability | Where | Try it |
+|---|---|---|
+| Tamper-evident **signed record** (hash chain + Merkle + Ed25519 + in-toto/DSSE) | `referee/chain.py` | `python3 -m pytest tests/` |
+| **Fleet-learning flywheel** — provenance-gated merge, poison **rejected**, eval-gate | `fleet/` | `bash fleet/run_miniature.sh` |
+| **DDIL** edge loop (learn → update → disconnect → last-good / rollback) | `demo/`, `serve/` | `bash demo/run.sh` |
+| **Digital-twin UI** (OPERATIONS + FLEET LEARNING scenes) | `frontend/ui/` | `npm install && npm run dev` |
+| Real **airgap UDS deploy** (Zarf + SBOM + cosign + Pepr admission) | `deploy/` | see `deploy/UDS_DEPLOY_EVIDENCE.md` |
+| Edge inference (ONNX, fits a 4 GB Pi) | `models/` | — |
 
-## Where to look first
-- **`docs/INDEX.md`** — the map of everything.
-- **`docs/vision/TEAM_OBJECTIVES_AND_LOG.md`** — objectives + stack + living log (updated as Slack evolves).
-- **`KANBAN.md`** — the board.
-- **`docs/setup/MLFLOW_PODMAN.md`** — run MLflow on Podman (with offline/airgap staging).
-- **`docs/research/`** — SBIR demand (NV063), datasets (UCI #316, OMTAD), the design council.
-- **`docs/integration/DEFENSE_UNICORNS.md`** — Theseus-on-UDS (inherit the ATO + the hull on-ramp).
-
-## The spine in this repo (the trust/record layer — transfers directly to Theseus)
-The code here is the **tamper-evident record + advisory-only (human-in-command) gate + UDS/Zarf packaging** — i.e. Theseus's *moat* layer. It currently observes vendor-AI decisions; for Theseus it reframes to **ship-systems telemetry** (same engine, new observation source). Every model promotion/rollback and every alert/decision gets sealed here.
-
+## Run / review it
 ```bash
-make smoke    # ingest -> advisory-only policy gate -> hash chain -> proof bundle
-make verify   # offline verification of the record -> PASS
-make tamper   # flip one byte -> chain SNAPS (tamper-evident)
-make demo     # narrated end-to-end run
+bash deploy/demo_up.sh        # brings the whole stack to GO (record + API + preflight gate)
+bash deploy/preflight.sh      # GO/NO-GO — refuses a broken or silently-mock stack
+bash fleet/run_miniature.sh   # the fleet-learning flywheel, end to end
+python3 -m pytest tests/      # the test suite (21)
 ```
-- `referee/chain.py` — SHA-256 hash-chained tamper-evident record + offline verifier (→ seals model versions + decisions).
-- `referee/policy.py` — fail-closed, **advisory-only** gate (→ the human-in-command recommend→approve loop).
-- `referee/intake.py` — observation ingest (→ ship-systems `Observation` schema; see `docs/research/council/COUNCIL_BRIEFS.md`).
-- `zarf/` + `lula/` — UDS packaging + compliance-as-code skeletons (→ the airgap bundle / ATO evidence).
+UI → `http://localhost:5173` (needs the state API on `:8501`, which `demo_up.sh` starts).
 
-## Rails (carry into every demo and slide)
-SWAN-side data only (combat systems are air-gapped/classified) · decision-support, human-in-command — never autonomous ship control · tamper-**evident**, not tamper-proof · integrate-not-replace · real/representative data, stated as such.
+## Where to look (judges + new teammates)
+- **`docs/JUDGE_REVIEW.md`** — guided walkthrough (review the system without a live demo)
+- **`docs/vision/UUV_FLEET_ARCHITECTURE.md`** — the locked plan (topology + the data-honesty fork)
+- **`docs/vision/FLEET_LEARNING_VISION.md`** — the vision · **`docs/research/DECK_BLUE_OCEAN.md`** — the open lane
+- **`docs/ONBOARDING.md`** — get running in ~20 min · **`ROADMAP.md`** — state + update log
 
-## New teammate
-Run the Quickstart, read `docs/INDEX.md` and `docs/vision/TEAM_OBJECTIVES_AND_LOG.md`, grab a card off `KANBAN.md`, and read `CONTRIBUTING.md` before your first commit (the IP guard is real and enforced).
+## Rails (carried into everything)
+Human always in command — never autonomous · **all-real** (proxies + in-progress labeled as such) · tamper-**evident**, not tamper-proof · integrate-not-replace · **data honesty** — what the platform *watches* (surface contacts; AIS, real) vs the platform's *own* UUV systems (real UUV telemetry, not jet-engine proxies) are kept separate · **OPSEC**: no real names / commands in this public repo.
