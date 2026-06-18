@@ -1,0 +1,12 @@
+stream:
+  topic: all
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "localhost"
+  port: 5000
+model:
+  path: model-UUV1-all.pkl
+  checkpoint_dir: checkpoints
+  save_checkpoints: true
+  experiment: "uuv1_anomaly_train"
