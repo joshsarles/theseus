@@ -29,6 +29,7 @@ from referee.chain import verify_dir  # noqa: E402
 import node_registry  # noqa: E402  (demo/node_registry.py — edge-node report registry)
 
 RECORD = HERE / "out" / "record"
+FLEET_RECORD = HERE.parent / "fleet" / "out" / "fleet_record"   # the fleet-learning miniature's sealed chain
 
 
 def _leaves(record_dir: Path) -> list[dict]:
@@ -264,6 +265,33 @@ def build_state(record_dir: Path) -> dict:
     }
 
 
+def build_fleet_state(fleet_record_dir: Path = FLEET_RECORD) -> dict:
+    """The fleet-learning flywheel state, from the miniature's sealed fleet record.
+    Honest: reflects the last `fleet/run_miniature.sh` run; empty (verify_ok False) if not yet run.
+    Frame in the UI as: human-authorized · eval-gated · provenance-attested (never 'self-updating')."""
+    leaves = _leaves(fleet_record_dir)
+    by_kind: dict[str, list[dict]] = {}
+    for lf in leaves:
+        by_kind.setdefault(lf["kind"], []).append(lf)
+    ships = [{"id": lf["data"].get("ship_id"), "n_samples": lf["data"].get("n_samples"),
+              "local_train_rmse": lf["data"].get("local_train_rmse"), "status": "merged"}
+             for lf in by_kind.get("fleet_delta_accepted", [])]
+    rejected = [{"id": lf["data"].get("ship_id"), "reason": lf["data"].get("reason")}
+                for lf in by_kind.get("fleet_merge_rejected", [])]
+    merges = by_kind.get("fleet_merge_accepted", [])
+    merge = merges[-1]["data"] if merges else None
+    ok, bad, msg = verify_dir(fleet_record_dir) if (fleet_record_dir / "chain.jsonl").exists() \
+        else (False, None, "no fleet record — run fleet/run_miniature.sh")
+    return {
+        "posture": "fleet learning · human-authorized · eval-gated · provenance-attested",
+        "ships": ships,
+        "rejected": rejected,                  # poisoned/unattested deltas the provenance gate refused
+        "merge": merge,                        # {accepted_ships, fedavg_weights, incumbent_rmse, merged_rmse, rmse_delta, held_out_n}
+        "eval_gate_pass": (merge["merged_rmse"] < merge["incumbent_rmse"]) if merge else None,
+        "record": {"verify_ok": ok, "message": msg, "leaf_count": len(leaves)},
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     record_dir = RECORD
 
@@ -300,6 +328,12 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("", "/index", "/cic"):     # the dashboard
             self._send_html()
             return
+        if path == "/api/fleet":                # fleet-learning flywheel (independent fleet record)
+            try:
+                self._send(build_fleet_state())
+            except Exception as e:
+                self._send({"error": str(e)}, 500)
+            return
         try:
             state = build_state(self.record_dir)
         except Exception as e:
@@ -312,7 +346,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/health":
             self._send({"ok": True, "record_verifies": state["record"]["verify_ok"], "leaves": state["record"]["leaf_count"]})
         else:
-            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health"]}, 404)
+            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health", "/api/fleet"]}, 404)
 
     def do_POST(self):
         """Seal a watch-officer decision into the tamper-evident record (the human-in-command beat)."""
