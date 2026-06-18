@@ -1,0 +1,42 @@
+# machine-b/istio/k3s-remote-config.yaml
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: remote
+spec:
+  profile: remote
+  values:
+    global:
+      meshID: mesh1
+      multiCluster:
+        clusterName: k3s-remote
+      network: network2
+      # Points to Machine A's istiod via east-west gateway
+      remotePilotAddress: ${MACHINE_A_IP}
+    istiodRemote:
+      injectionURL: https://${MACHINE_A_IP}:15017/inject/:ENV:cluster=k3s-remote:ENV:net=network2
+  components:
+    ingressGateways:
+      - name: istio-eastwestgateway
+        enabled: true
+        label:
+          istio: eastwestgateway
+          app: istio-eastwestgateway
+          topology.istio.io/network: network2
+        k8s:
+          service:
+            type: NodePort
+            ports:
+              - name: status-port
+                port: 15021
+                targetPort: 15021
+              - name: tls
+                port: 15443
+                targetPort: 15443
+                nodePort: 30000
+              - name: tls-istiod
+                port: 15012
+                targetPort: 15012
+              - name: tls-webhook
+                port: 15017
+                targetPort: 15017

@@ -15,7 +15,6 @@ services:
     image: vllm/vllm-openai:latest
     container_name: model-server
     restart: unless-stopped
-    runtime: nvidia           # remove if not using GPU
     ports:
       - "8000:8000"
     environment:

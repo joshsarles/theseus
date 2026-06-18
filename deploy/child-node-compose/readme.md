@@ -28,3 +28,31 @@ curl http://192.168.x.x:5000/health
 
 #Should return: {"status": "OK"}
 ```
+
+
+## k3s / calico setup
+
+sudo sed -i '$ s/$/ cgroup_memory=1 cgroup_enable=memory/' /boot/firmware/cmdline.txt
+
+sudo reboot
+
+curl -LO "https://k8s.io(curl -L -s https://k8s.io)/bin/linux/arm64/kubectl"
+
+sudo mv kubectl /usr/local/bin/
+
+curl -sfL https://get.k3s.io | sh -s - \
+  --flannel-backend=none \
+  --disable-network-policy \
+  --disable=traefik \          # don't conflict with istio ingress
+  --write-kubeconfig-mode=644
+
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+sudo k3s kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+
+sudo k3s kubectl wait --for=condition=ready pod \
+  -l k8s-app=calico-node \
+  -n kube-system \
+  --timeout=120s
+
+k3s kubectl get pods -n kube-system -l k8s-app=calico-node
