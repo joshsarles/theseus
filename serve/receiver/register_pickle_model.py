@@ -63,13 +63,33 @@ def main() -> int:
     for x in feats:
         model.learn_one(x)
 
+    # Labeled eval (the RESULTS the UI surfaces) — precision@k / F1 / FAR vs the -ANOMALY
+    # ground truth tagged in record_id. The model is unsupervised; labels only score it.
+    labels = [1 if "ANOMALY" in str(r.get("record_id", "")).upper() else 0 for r in records]
+    scores = [model.score_one(x) for x in feats]
+    K = sum(labels)
+    metrics = {"n_records": len(records), "n_anomalies": K}
+    if 0 < K < len(scores):
+        cut = sorted(scores, reverse=True)[K - 1]
+        fl = [1 if s >= cut else 0 for s in scores]
+        tp = sum(1 for f, y in zip(fl, labels) if f and y); fp = sum(1 for f, y in zip(fl, labels) if f and not y)
+        fn = sum(1 for f, y in zip(fl, labels) if not f and y); tn = sum(1 for f, y in zip(fl, labels) if not f and not y)
+        topk = sorted(range(len(scores)), key=lambda i: -scores[i])[:K]
+        metrics.update({
+            "precision_at_k": round(sum(labels[i] for i in topk) / K, 4),
+            "precision": round(tp / (tp + fp), 4) if (tp + fp) else 0.0,
+            "recall": round(tp / (tp + fn), 4) if (tp + fn) else 0.0,
+            "f1": round(2 * tp / (2 * tp + fp + fn), 4) if (2 * tp + fp + fn) else 0.0,
+            "false_alarm_rate": round(fp / (fp + tn), 4) if (fp + tn) else 0.0,
+        })
+
     mlflow.set_tracking_uri(TRACKING_URI)
-    mlflow.set_experiment("uuv1_anomaly_train")
+    mlflow.set_experiment(MODEL_NAME.replace("_deploy", "_train"))
     with tempfile.TemporaryDirectory() as td:
         pkl = Path(td) / "river_model.pkl"
         with open(pkl, "wb") as f:
             pickle.dump(model, f)
-        with mlflow.start_run(run_name="register-uuv1-production"):
+        with mlflow.start_run(run_name=f"register-{MODEL_NAME}"):
             try:
                 mlflow.pyfunc.log_model(
                     name="model", python_model=RiverAnomalyWrapper(),
@@ -80,6 +100,9 @@ def main() -> int:
                     artifact_path="model", python_model=RiverAnomalyWrapper(),
                     artifacts={"river_pkl": str(pkl)},
                     registered_model_name=MODEL_NAME)
+            mlflow.log_params({"model": "HalfSpaceTrees", "n_trees": 25, "height": 12,
+                               "window_size": 50, "data": DATA.name})
+            mlflow.log_metrics({k: float(v) for k, v in metrics.items()})
 
     client = MlflowClient()
     latest = max(client.search_model_versions(f"name='{MODEL_NAME}'"), key=lambda v: int(v.version))
