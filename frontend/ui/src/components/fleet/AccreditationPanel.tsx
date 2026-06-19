@@ -21,7 +21,7 @@ export function AccreditationPanel({ record }: AccreditationPanelProps) {
   const dsse = /(\d+)\s+in-toto/i.exec(record.message ?? "")?.[1];
 
   return (
-    <section style={{ display: "flex", flexDirection: "column" }}>
+    <section style={{ borderRight: "1px solid var(--hair-lit)", display: "flex", flexDirection: "column" }}>
       <SectionHead index="C" title="Accreditation" meta="cATO-FOR-AI" />
       <div style={{ padding: "12px 15px", flex: 1 }}>
         {/* verify banner */}

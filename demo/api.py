@@ -30,6 +30,7 @@ import node_registry  # noqa: E402  (demo/node_registry.py — edge-node report 
 
 RECORD = HERE / "out" / "record"
 FLEET_RECORD = HERE.parent / "fleet" / "out" / "fleet_record"   # the fleet-learning miniature's sealed chain
+MLFLOW_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5050").rstrip("/")
 
 
 def _leaves(record_dir: Path) -> list[dict]:
@@ -292,6 +293,81 @@ def build_fleet_state(fleet_record_dir: Path = FLEET_RECORD) -> dict:
     }
 
 
+# --- MLflow status + results (proxied; the UI can't reach MLflow directly) ----------------
+# Uses stdlib urllib against MLflow's REST API so this works on py3.14 (the mlflow *client*
+# import is broken there, but plain HTTP is fine). Surfaces: registered models + their
+# @production version + that version's run metrics (the "results"), and recent runs.
+def _mlflow_get(path: str, params: dict | None = None) -> dict:
+    import urllib.parse, urllib.request
+    url = f"{MLFLOW_URI}/api/2.0/mlflow/{path}"
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=6) as r:
+        return json.loads(r.read())
+
+
+def _mlflow_post(path: str, body: dict) -> dict:
+    import urllib.request
+    req = urllib.request.Request(
+        f"{MLFLOW_URI}/api/2.0/mlflow/{path}", data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=6) as r:
+        return json.loads(r.read())
+
+
+def _run_metrics(run_id: str) -> dict:
+    try:
+        run = _mlflow_get("runs/get", {"run_id": run_id})["run"]
+        return {m["key"]: m["value"] for m in run["data"].get("metrics", [])}
+    except Exception:
+        return {}
+
+
+def build_mlflow_state() -> dict:
+    """Registry status + result metrics for the UI. Returns {connected, tracking_uri, models, runs}.
+    Never raises — on any MLflow error returns connected:false so the UI degrades gracefully."""
+    try:
+        rms = _mlflow_get("registered-models/search").get("registered_models", [])
+        models = []
+        for m in rms:
+            prod = next((a["version"] for a in m.get("aliases", []) if a["alias"] == "production"), None)
+            entry = {"name": m["name"], "production_version": prod,
+                     "version_count": len(m.get("latest_versions", [])) or None,
+                     "metrics": {}, "params": {}}
+            if prod:
+                try:
+                    mv = _mlflow_get("model-versions/get", {"name": m["name"], "version": prod})["model_version"]
+                    entry["run_id"] = mv.get("run_id")
+                    if mv.get("run_id"):
+                        run = _mlflow_get("runs/get", {"run_id": mv["run_id"]})["run"]
+                        entry["metrics"] = {x["key"]: x["value"] for x in run["data"].get("metrics", [])}
+                        entry["params"] = {x["key"]: x["value"] for x in run["data"].get("params", [])}
+                except Exception:
+                    pass
+            models.append(entry)
+        exps = _mlflow_get("experiments/search", {"max_results": 50}).get("experiments", [])
+        eid2name = {e["experiment_id"]: e["name"] for e in exps}
+        runs = []
+        try:
+            rr = _mlflow_post("runs/search", {"experiment_ids": list(eid2name.keys()),
+                                              "max_results": 12, "order_by": ["attributes.start_time DESC"]})
+            for r in rr.get("runs", []):
+                info = r["info"]
+                runs.append({
+                    "run_name": info.get("run_name") or info["run_id"][:8],
+                    "experiment": eid2name.get(info["experiment_id"], info["experiment_id"]),
+                    "status": info.get("status"),
+                    "metrics": {x["key"]: x["value"] for x in r["data"].get("metrics", [])},
+                })
+        except Exception:
+            pass
+        return {"connected": True, "tracking_uri": MLFLOW_URI, "models": models,
+                "experiments": [{"id": e["experiment_id"], "name": e["name"]} for e in exps], "runs": runs}
+    except Exception as e:
+        return {"connected": False, "tracking_uri": MLFLOW_URI, "models": [], "runs": [],
+                "error": type(e).__name__}
+
+
 class Handler(BaseHTTPRequestHandler):
     record_dir = RECORD
 
@@ -333,6 +409,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(build_fleet_state())
             except Exception as e:
                 self._send({"error": "internal error"}, 500)   # don't leak exception text / filesystem paths
+            return
+        if path == "/api/mlflow":               # MLflow registry status + result metrics (proxied)
+            self._send(build_mlflow_state())     # never raises; returns connected:false on error
             return
         try:
             state = build_state(self.record_dir)

@@ -127,4 +127,38 @@ export interface FleetState {
   record: FleetRecord;
 }
 
+/* ====================================================================== */
+/*  MLFLOW REGISTRY — GET /api/mlflow                                     */
+/*  registry status + result metrics, proxied from the Node-3 MLflow      */
+/*  server so the UI can render them (the UI can't reach MLflow directly). */
+/* ====================================================================== */
+
+/** A registered model + its @production alias + that version's eval results. */
+export interface MlflowModel {
+  name: string;
+  production_version: string | null;
+  version_count?: number | null;
+  run_id?: string;
+  /** result metrics logged on the @production run: precision_at_k, f1, false_alarm_rate, … */
+  metrics: Record<string, number>;
+  params?: Record<string, string>;
+}
+
+/** A recent training/registration run with its logged metrics. */
+export interface MlflowRun {
+  run_name: string;
+  experiment: string;
+  status: string | null;
+  metrics: Record<string, number>;
+}
+
+export interface MlflowState {
+  connected: boolean;
+  tracking_uri: string;
+  models: MlflowModel[];
+  experiments?: { id: string; name: string }[];
+  runs: MlflowRun[];
+  error?: string;
+}
+
 export type SceneMode = "operations" | "fleet";

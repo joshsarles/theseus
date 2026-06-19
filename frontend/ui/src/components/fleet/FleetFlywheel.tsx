@@ -5,6 +5,7 @@ import { FleetStage } from "./FleetStage";
 import { ProvenanceGatePanel } from "./ProvenanceGatePanel";
 import { EvalGatePanel } from "./EvalGatePanel";
 import { AccreditationPanel } from "./AccreditationPanel";
+import { MlflowPanel } from "./MlflowPanel";
 
 interface FleetFlywheelProps {
   fleet: FleetState;
@@ -80,11 +81,11 @@ export function FleetFlywheel({ fleet, conn }: FleetFlywheelProps) {
         <FleetStage fleet={fleet} acceptedShips={accepted} conn={conn} />
       </div>
 
-      {/* the three gate panels */}
+      {/* the instrument panels — gates + the live model registry */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
           borderTop: "1px solid var(--hair-lit)",
           background: "var(--panel)",
         }}
@@ -92,6 +93,7 @@ export function FleetFlywheel({ fleet, conn }: FleetFlywheelProps) {
         <ProvenanceGatePanel rejected={fleet.rejected} accepted={fleet.merge?.accepted_ships ?? []} />
         <EvalGatePanel merge={fleet.merge} pass={fleet.eval_gate_pass} />
         <AccreditationPanel record={fleet.record} />
+        <MlflowPanel />
       </div>
     </div>
   );
