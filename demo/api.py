@@ -393,13 +393,14 @@ _DESTROYER_SUBSYSTEMS: list[dict] = [
 
 
 def _severity_from_score(score: float | None) -> str:
-    """Map a live anomaly score in [0,1] to CIC severity (contract banding).
-    None → standby (no live score). <0.40 nominal · 0.40–0.70 warning · ≥0.70 critical."""
+    """Map a smoothed anomaly score in [0,1] to CIC severity. Bands are wide so a calm ship
+    reads NOMINAL and only a clear, sustained deviation escalates — normal z-scores sit ~0.2,
+    real anomalies ~0.85+. None → standby. <0.60 nominal · 0.60–0.85 warning · ≥0.85 critical."""
     if score is None:
         return "standby"
-    if score >= 0.70:
+    if score >= 0.85:
         return "critical"
-    if score >= 0.40:
+    if score >= 0.60:
         return "warning"
     return "nominal"
 
