@@ -32,10 +32,10 @@ Then just **ask it** (it answers from the actual code + docs):
 
 ## 3. See it run (5 minutes)
 ```bash
-pip install -r requirements.txt              # numpy + cryptography (the only third-party deps)
+pip install -r requirements.txt              # numpy + cryptography + scikit-learn (the only third-party deps)
 bash deploy/demo_up.sh                       # brings the demo to GO (record + API + preflight gate)
 cd frontend/ui && npm install && npm run dev # the UI → http://localhost:5173
-#   OPERATIONS scene = the ship/UUV digital twin · FLEET LEARNING scene = the flywheel
+#   OPERATIONS · FLEET LEARNING · STRIKE GROUP (three-hull strike group, tactical contacts map, shore fleet-brain sync)
 bash fleet/run_miniature.sh                  # the flywheel: local learn → merge → eval-gate → sealed (poison delta REJECTED)
 python3 -m pytest tests/                     # 21 tests
 ```
@@ -67,7 +67,7 @@ python3 -m pytest tests/                     # 21 tests
 - **OPSEC** — **no secrets/credentials in the public repo** (keys, tokens, private endpoints). The team is credited by full name — intended.
 
 ## 8. Where we are (snapshot — `ROADMAP.md` is authoritative)
-Verified + on `main`: the tamper-evident **signed record** (in-toto/DSSE + Ed25519), the model-delivery loop, the **fleet-learning flywheel** (provenance-gated merge, poison rejected, eval-gate, verifies), the **digital-twin UI** (OPERATIONS + FLEET LEARNING), real **airgap UDS deploy** (Zarf + SBOM + cosign + live Pepr admission), ONNX edge inference (fits a 4 GB Pi), the OSCAL/cATO compliance emit, and a clean CodeQL security tab. **In flight (the team's lanes):** a real **UUV-shaped** dataset + Claire's **sequence-autoencoder** model (registers in MLflow as `theseus-uuv`), the live **MLflow** server on Node 3, and the 2 Pis as live UUV nodes. Team = 11.
+Verified + on `main`: the tamper-evident **signed record** (in-toto/DSSE + Ed25519), the model-delivery loop, the **fleet-learning flywheel** (provenance-gated merge, poison rejected, eval-gate, verifies), the **digital-twin UI** (OPERATIONS · FLEET LEARNING · STRIKE GROUP), real **airgap UDS deploy** (Zarf + SBOM + cosign + live Pepr admission), ONNX edge inference (fits a 4 GB Pi), the OSCAL/cATO compliance emit, a clean CodeQL security tab, the **`theseus-uuv` Conv1d sequence autoencoder** (BlueROV2/ArduSub, ONNX, registered @production, live in its own container :54547), and the **live Node-3 MLflow server** (:5050, 9 models @production). **In flight:** the 2 Pis connecting as live UUV nodes (emulated natively now; hardware connection is the next step). Team = 11.
 
 ---
 *Stuck? Boot the copilot and ask. It runs overwatch on Node 3 and keeps the repo coherent — `git pull` before you start, and push small + often.*

@@ -21,13 +21,13 @@ Built at Warhacker (Jun 16–19 2026) by a team of NAVSEA + retired Navy/Marine 
 | Tamper-evident **signed record** (hash chain + Merkle + Ed25519 + in-toto/DSSE) | `referee/chain.py` | `python3 -m pytest tests/` |
 | **Fleet-learning flywheel** — provenance-gated merge, poison **rejected**, eval-gate | `fleet/` | `bash fleet/run_miniature.sh` |
 | **DDIL** edge loop (learn → update → disconnect → last-good / rollback) | `demo/`, `serve/` | `bash demo/run.sh` |
-| **Digital-twin UI** (OPERATIONS + FLEET LEARNING scenes) | `frontend/ui/` | `npm install && npm run dev` |
+| **Digital-twin UI** (OPERATIONS · FLEET LEARNING · STRIKE GROUP scenes) | `frontend/ui/` | `npm install && npm run dev` |
 | Real **airgap UDS deploy** (Zarf + SBOM + cosign + Pepr admission) | `deploy/` | see `deploy/UDS_DEPLOY_EVIDENCE.md` |
 | Edge inference (ONNX, fits a 4 GB Pi) | `models/` | — |
 
 ## Run / review it
 ```bash
-pip install -r requirements.txt   # numpy + cryptography — the only third-party deps
+pip install -r requirements.txt   # numpy + cryptography + scikit-learn — the only third-party deps
 bash deploy/demo_up.sh            # brings the whole stack to GO (stages record + starts :8501 API + runs the gate)
 bash fleet/run_miniature.sh       # the fleet-learning flywheel, end to end
 python3 -m pytest tests/          # the test suite (21)

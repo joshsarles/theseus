@@ -70,12 +70,18 @@ Two framings are easy to tangle; keep them **separate + honestly labeled** (a NA
 
 ---
 
-## 6. What's in-flight (the team's lanes — as of this handoff)
-- **Claire** (NAVSEA intern, Node 3) — trains the **UUV own-systems sequence-autoencoder** on real UUV-shaped data → **registers in MLflow as `theseus-uuv`**. *(Supersedes the first AIS IsolationForest model, which moves to the Framing-A/NV063 track.)*
-- **THESEUS agent** (data) — pulling a real UUV-shaped dataset + the ingest adapter.
-- **Tommy / Juan** (Node 3 orchestration) — standing up the live **MLflow server** (`deploy/mlflow-compose/`) + zero-trust between nodes.
-- **William** — the **2 Pis** as live UUV nodes (Tailscale mesh, DDIL failover).
-- **Caroline** — security + **OSCAL** compliance packet.
+## 6. Current state — all major lanes resolved
+
+All major lanes are resolved:
+
+- **`theseus-uuv`** — Conv1d sequence autoencoder registered @production in Node-3 MLflow + live in its own container (`uuv-ae:latest`, :54547). No longer in-flight.
+- **MLflow server** — live at :5050 with **9 models @production** (machinery, propulsion, auxiliary, sonar, c2, nav, uuv1\_anomaly, uuv2\_anomaly, theseus-uuv). No longer in-flight.
+- **2 Pi-emulation nodes** — running as native arm64 containers (:54321/:54322), connecting to real Pis is the next hardware step (emulated path works for demo).
+- **21 live containers** — flagship DDG-118 is 8/8 live; sister hulls are 6/8 live (own\_systems + contacts standing by on the registry model).
+
+Open items (not blocking judge review):
+- Branch reconciliation: Nick's `edge-mlflow-demo` uses a parallel `receiver/` dir vs the integrated `serve/receiver/` — needs a rebase before merge (Nick's lane).
+- Pepr human-in-command rail is a presence check, not a record-binding verify (known; framed honestly in the demo).
 
 ---
 

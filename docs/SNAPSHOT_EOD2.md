@@ -26,7 +26,7 @@
 - Models cloudpickled by value; edge container needs no custom class import.
 
 ### Destroyer STRIKE GROUP (Day-2 late round)
-- **Three live destroyers on one laptop**: USS Theseus (DDG-118), USS Daedalus (DDG-119), USS Ariadne (DDG-120). Each runs its **own 6 subsystem containers** — **18 containers total** — on offset ports (DDG-118 `54541-54546`, DDG-119 `54551-54556`, DDG-120 `54561-54566`), each loading its own onboard model and scoring its own real data with a per-hull phase so they don't move in lockstep. (`deploy/ship-emulation/` + `gen_hull.py`; sister hulls regenerated on `up.sh --fleet`.)
+- **Three live destroyers on one laptop**: USS Theseus (DDG-118), USS Daedalus (DDG-119), USS Ariadne (DDG-120). **21 live containers total**: 18 subsystem containers across three hulls (DDG-118 `54541-54546`, DDG-119 `54551-54556`, DDG-120 `54561-54566`), 2 UUV Pi-emulation nodes (sonar :54321, contacts :54322), and 1 AE own-systems container (`uuv-ae:latest`, :54547). Flagship DDG-118 is **8/8 subsystems live** (the AE own-systems node is a live container, not standby); sister hulls are 6/8 live (own_systems + contacts read the registry model, standing by). Each hull loads its own onboard model and scores its own real data with per-hull phase offsets. (`deploy/ship-emulation/` + `gen_hull.py`; sister hulls regenerated on `up.sh --fleet`.)
 - **9 models @production** in Node-3 MLflow (`:5050`), one per ship subsystem:
 
 | Subsystem | Model | Dataset (real) | ROC-AUC |
@@ -42,7 +42,7 @@
 
   \* auxiliary is honestly noisier (real industrial compressor) — not hidden.
 - **UI — new "Strike Group" scene** (`frontend/ui/src/components/strike/`): all subsystems lit live by severity, a deck.gl **tactical contacts map** (AIS + flagged spoof/jump/loiter/dark-gap), the **shore fleet brain**, animated **signed-delta sync** ship→shore, and the **provenance gate refusing a poisoned delta**. Believable fixture fallback; live now via `GET /api/destroyer`.
-- **One-command launcher**: `deploy/strike_group_up.sh` (MLflow + models + 2 UUV nodes + all 3 destroyers live-fed + API) / `strike_group_down.sh`. Validated from a clean teardown → **18/18 containers, 19 live subsystems**. (Complements `deploy/demo_up.sh`, which repopulates the tamper-evident records + flywheel + preflight.)
+- **One-command launcher**: `deploy/strike_group_up.sh` (MLflow + models + 2 UUV nodes + all 3 destroyers live-fed + API) / `strike_group_down.sh`. Validated from a clean teardown → **21 live containers (18 subsystem + 2 UUV Pi-emulation nodes + 1 AE own-systems `uuv-ae:latest` :54547)**; flagship 8/8 live. (Complements `deploy/demo_up.sh`, which repopulates the tamper-evident records + flywheel + preflight.)
 - **DDIL "cut the cord" verified**: stop the MLflow registry → every container keeps scoring its last-good in-memory model.
 - Still present from earlier today: BlueROV2 autoencoder import, the MLflow registry panel (`/api/mlflow` → `MlflowPanel`), the 2 Pi-emulation sonar/contacts nodes, the z-score detection fix above.
 
@@ -67,7 +67,7 @@ git log --oneline -1          # current HEAD (advances past eod2 as the build co
 **One command (the strike group):**
 ```bash
 bash deploy/strike_group_up.sh            # MLflow + 9 models + 2 UUV nodes + 3 destroyers
-                                          # (18 containers) live-fed + API on :8501
+                                          # (21 containers: 18 subsystem + 2 UUV nodes + 1 AE own-systems) live-fed + API on :8501
 cd frontend/ui && npm run dev             # then open http://localhost:5173 → "STRIKE GROUP"
 # Tear down:  bash deploy/strike_group_down.sh
 ```
@@ -84,7 +84,7 @@ MLFLOW_TRACKING_URI=http://localhost:5050 deploy/mlflow/.venv312/bin/python mode
 
 # 3. Edge containers + feeds
 bash deploy/pi-emulation/up.sh --feed                      # 2 UUV nodes (:54321/:54322)
-bash deploy/ship-emulation/up.sh --fleet --feed --interval=2   # 3 destroyers (18 containers)
+bash deploy/ship-emulation/up.sh --fleet --feed --interval=2   # 3 destroyers (18 subsystem + 1 AE own-systems = 19 flagship-side containers)
 
 # 4. API + UI
 python3 demo/api.py                                        # :8501
