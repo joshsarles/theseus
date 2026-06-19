@@ -25,62 +25,78 @@
 - Score is **explainable** (which sensor channel deviated, by how many σ) — T&E / accreditation asset.
 - Models cloudpickled by value; edge container needs no custom class import.
 
-### Destroyer / strike-group build
-- **Subsystem models registered** in Node-3 MLflow (`:5050`): `uuv1_anomaly_deploy@production` (MACHINERY / C2) + `uuv2_anomaly_deploy@production` (CONTACTS / sonar). Both alias-based (MLflow 3.x — stages removed).
-- **Containers up**: `deploy/pi-emulation/up.sh` brings the two ship-node containers onto the `fleet` bridge network, each loading its model from `host.docker.internal:5050`.
-- **API**: `demo/api.py` on `:8501` — `/api/state`, `/api/decision`, `/api/health`.
-- **CIC dashboard**: `frontend/ui` on `:5173` — instrument-grade (amber-on-off-black, record-as-spine, deck.gl tactical). `POST /api/decision` seals ACCEPT/OVERRIDE into the tamper-evident chain live.
-- **Full UUV dataset suite** committed to `serve/receiver/data/`: C2 link + sonar/water sensors + nav telemetry + combined, 25 labeled anomalies each (William).
-- **DDIL fault-injection harness** (`serve/ddil_profiles.py`): 7 reproducible profiles (NOMINAL → DENIED). Last-good held 50/50 across all profiles.
-- **BlueROV2/ArduSub autoencoder** (`models/uuv/`) imported: real UUV telemetry, ONNX-int8, Pi-bench verified. Registered as `theseus-uuv` in MLflow.
-- **MLflow fleet-registry panel** in the CIC (`/api/mlflow` → `MlflowPanel` component) — shows registered models + aliases live.
+### Destroyer STRIKE GROUP (Day-2 late round)
+- **Three live destroyers on one laptop**: USS Theseus (DDG-118), USS Daedalus (DDG-119), USS Ariadne (DDG-120). Each runs its **own 6 subsystem containers** — **18 containers total** — on offset ports (DDG-118 `54541-54546`, DDG-119 `54551-54556`, DDG-120 `54561-54566`), each loading its own onboard model and scoring its own real data with a per-hull phase so they don't move in lockstep. (`deploy/ship-emulation/` + `gen_hull.py`; sister hulls regenerated on `up.sh --fleet`.)
+- **9 models @production** in Node-3 MLflow (`:5050`), one per ship subsystem:
+
+| Subsystem | Model | Dataset (real) | ROC-AUC |
+|---|---|---|---|
+| Machinery / Gas Turbine | `machinery_deploy` | naval CBM 316 | 1.00 |
+| Propulsion / Engines | `propulsion_deploy` | turbofan C-MAPSS | 0.99 |
+| Auxiliary / Air Plant | `auxiliary_deploy` | MetroPT compressor | 0.68* |
+| Sonar / Water | `sonar_deploy` | UUV sensors | 0.9995 |
+| C2 / Comms Link | `c2_deploy` | UUV command-link | 0.97 |
+| Navigation | `nav_deploy` | UUV telemetry | 0.98 |
+| UUV Own-Systems | `theseus-uuv` (autoencoder) | BlueROV2/ArduSub | 0.77 |
+| Contacts / Tactical | `uuv2_anomaly_deploy` + AIS | UUV sonar / MarineCadastre | 0.94 |
+
+  \* auxiliary is honestly noisier (real industrial compressor) — not hidden.
+- **UI — new "Strike Group" scene** (`frontend/ui/src/components/strike/`): all subsystems lit live by severity, a deck.gl **tactical contacts map** (AIS + flagged spoof/jump/loiter/dark-gap), the **shore fleet brain**, animated **signed-delta sync** ship→shore, and the **provenance gate refusing a poisoned delta**. Believable fixture fallback; live now via `GET /api/destroyer`.
+- **One-command launcher**: `deploy/strike_group_up.sh` (MLflow + models + 2 UUV nodes + all 3 destroyers live-fed + API) / `strike_group_down.sh`. Validated from a clean teardown → **18/18 containers, 19 live subsystems**. (Complements `deploy/demo_up.sh`, which repopulates the tamper-evident records + flywheel + preflight.)
+- **DDIL "cut the cord" verified**: stop the MLflow registry → every container keeps scoring its last-good in-memory model.
+- Still present from earlier today: BlueROV2 autoencoder import, the MLflow registry panel (`/api/mlflow` → `MlflowPanel`), the 2 Pi-emulation sonar/contacts nodes, the z-score detection fix above.
 
 ---
 
 ## Git commit at time of writing
 
 ```
-918b654  theseus: import theseus-uuv autoencoder (real BlueROV2/ArduSub telemetry, ONNX-int8, Pi-benched)
+9f4e7b9  theseus: destroyer strike-group — 8 subsystem models, ship containers, live API, UI   ← tag eod2
 ```
 
-*This commit is tagged `eod2` at rollback time. Verify:*
+*The `eod2` tag marks the rollback anchor (commit `9f4e7b9`). Newer commits — the multi-hull strike group (3 live destroyers), the tactical contacts map, and the one-command launcher — advance `main` past it. Verify:*
 ```bash
-git -C /path/to/theseus log --oneline -1   # should show 918b654
-git tag eod2                                # if not already tagged
+git show -s --oneline eod2    # 9f4e7b9
+git log --oneline -1          # current HEAD (advances past eod2 as the build continues)
 ```
 
 ---
 
 ## How to run the whole thing
 
+**One command (the strike group):**
+```bash
+bash deploy/strike_group_up.sh            # MLflow + 9 models + 2 UUV nodes + 3 destroyers
+                                          # (18 containers) live-fed + API on :8501
+cd frontend/ui && npm run dev             # then open http://localhost:5173 → "STRIKE GROUP"
+# Tear down:  bash deploy/strike_group_down.sh
+```
+`strike_group_up.sh --fast` skips model re-registration if they're already `@production`.
+
+**Manual / piece-by-piece (fallback):**
 ```bash
 # 1. Fleet brain
-bash deploy/mlflow/run.sh
-curl http://localhost:5050/health          # expect 200
+bash deploy/mlflow/run.sh && curl http://localhost:5050/health         # expect 200
 
-# 2. Register models (py3.12 venv — cloudpickle cross-compat with Pi containers)
-MLFLOW_TRACKING_URI=http://localhost:5050 \
-  deploy/mlflow/.venv312/bin/python serve/receiver/register_pickle_model.py
+# 2. Register models (py3.12 venv — cloudpickle cross-compat with the containers)
+MLFLOW_TRACKING_URI=http://localhost:5050 deploy/mlflow/.venv312/bin/python models/subsystems/train_subsystems.py
+MLFLOW_TRACKING_URI=http://localhost:5050 deploy/mlflow/.venv312/bin/python models/uuv/register_uuv_ae.py
 
-# 3. Ship containers + synthetic feed
-bash deploy/pi-emulation/up.sh --feed
-curl http://127.0.0.1:54321/health        # uuv1-node
-curl http://127.0.0.1:54322/health        # uuv2-node
+# 3. Edge containers + feeds
+bash deploy/pi-emulation/up.sh --feed                      # 2 UUV nodes (:54321/:54322)
+bash deploy/ship-emulation/up.sh --fleet --feed --interval=2   # 3 destroyers (18 containers)
 
-# 4. API
-python3 demo/api.py --port 8501
-curl http://localhost:8501/api/health     # expect {"connection":"live"}
+# 4. API + UI
+python3 demo/api.py                                        # :8501
+curl http://localhost:8501/api/destroyer                   # 3 hulls, subsystems live
+cd frontend/ui && npm run dev                              # :5173
 
-# 5. CIC dashboard
-cd frontend/ui && npm run dev
-# Open http://localhost:5173
-
-# 6. Tests
-python3 -m pytest tests/ -q              # all green
-
-# 7. DDIL beat (with internet off)
-bash deploy/ddil_beat.sh                 # all PASS
+# 5. DDIL beat: stop MLflow -> containers keep scoring last-good
+bash deploy/mlflow/run.sh stop
 ```
+
+**The original records/flywheel demo** (separate from the container fleet) still runs via
+`bash deploy/demo_up.sh` (repopulates the tamper-evident record + fleet flywheel + preflight).
 
 ---
 
@@ -109,10 +125,9 @@ git checkout -b hotfix/from-eod2 eod2
 
 ### Verify rollback state
 ```bash
-git log --oneline -3         # should start at 918b654
-bash deploy/mlflow/run.sh    # MLflow comes up
-bash deploy/pi-emulation/up.sh --feed   # both nodes load models
-curl http://127.0.0.1:54321/history | jq '.[-1].active_anomaly_score'   # ~0.2 normal
+git show -s --oneline eod2          # 9f4e7b9 (the rollback anchor)
+bash deploy/strike_group_up.sh      # MLflow + models + edge fleet + API come up
+curl http://localhost:8501/api/destroyer | python3 -m json.tool | head   # hulls + subsystems live
 ```
 
 ---
