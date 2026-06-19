@@ -163,11 +163,39 @@ export function useStrikeContacts(): UseStrikeContacts {
     };
   }, [poll]);
 
+  const shown = contacts ?? FIXTURE_CONTACTS;
   return {
-    feed: { contacts: contacts ?? FIXTURE_CONTACTS, ownShips: OWN_SHIPS, conn },
+    // Station the own-ship screen at the ACTUAL contact field's centroid. The live AIS
+    // contacts can be anywhere on earth (these are off Los Angeles, ~118°W); a hardcoded
+    // notional box (~128°E) would put own-ships half a globe away, blowing the plot's
+    // bounding box to ~250° of longitude and squashing every contact to the far-left edge.
+    // Deriving the formation from the contacts keeps the operating area tight + centered.
+    feed: { contacts: shown, ownShips: stationOwnShips(shown), conn },
     conn,
     refetch: poll,
   };
+}
+
+/** Median — robust to a stray far-flung contact dragging the formation off the cluster. */
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** Place the 3 own-ship destroyers in a triangular screen around the contact field's
+ *  centroid, so the formation sits in the middle of the actual operating area. Falls back
+ *  to the notional box only when there are no positioned contacts at all. */
+function stationOwnShips(contacts: AisContact[]): OwnShip[] {
+  const lats = contacts.map((c) => c.lat).filter((n) => Number.isFinite(n));
+  const lons = contacts.map((c) => c.lon).filter((n) => Number.isFinite(n));
+  const cLat = lats.length ? median(lats) : OA_LAT;
+  const cLon = lons.length ? median(lons) : OA_LON;
+  return [
+    { hull: "DDG-118", name: "USS THESEUS", flagship: true, lat: cLat + 0.06, lon: cLon - 0.02 },
+    { hull: "DDG-119", name: "USS DAEDALUS", flagship: false, lat: cLat - 0.05, lon: cLon - 0.13 },
+    { hull: "DDG-120", name: "USS ARIADNE", flagship: false, lat: cLat - 0.05, lon: cLon + 0.11 },
+  ];
 }
 
 /* ====================================================================== */
@@ -180,13 +208,6 @@ export function useStrikeContacts(): UseStrikeContacts {
 /** Operating-area centroid the formation screens around. */
 const OA_LAT = 35.0;
 const OA_LON = 128.5;
-
-/** Three own-ship destroyers in a triangular screen around the centroid. */
-const OWN_SHIPS: OwnShip[] = [
-  { hull: "DDG-118", name: "USS THESEUS", flagship: true, lat: OA_LAT + 0.06, lon: OA_LON - 0.02 },
-  { hull: "DDG-119", name: "USS HALSEY-II", flagship: false, lat: OA_LAT - 0.05, lon: OA_LON - 0.13 },
-  { hull: "DDG-120", name: "USS DECATUR-III", flagship: false, lat: OA_LAT - 0.05, lon: OA_LON + 0.11 },
-];
 
 /** Deterministic pseudo-random in [0,1) seeded by an integer (no flicker). */
 function rng(seed: number): number {
