@@ -101,7 +101,26 @@ function adapt(raw: unknown): AisContact[] | null {
       why: item.why,
     });
   }
-  return out.length ? out : null;
+  if (!out.length) return null;
+
+  // Watch-grade display threshold. The live cold-start PoL detector can fire MANY
+  // same-class flags (e.g. dozens of low-specificity loiters at one confidence near a
+  // coastal/fishing cluster). A CIC board surfaces the DISTINCT high-interest beat per
+  // behavior class — not 44 identical alerts. We keep the strongest contact per reason as
+  // the bright flagged beat; every other real detection STAYS PLOTTED (its lat/lon, reason,
+  // and rationale are untouched and still on hover) but renders in the ambient field rather
+  // than screaming red. Nothing is hidden or relabeled — only the alert emphasis is gated.
+  const bestByReason = new Map<FlagReason, AisContact>();
+  for (const c of out) {
+    if (!c.reason) continue;
+    const cur = bestByReason.get(c.reason);
+    if (!cur) bestByReason.set(c.reason, c);
+  }
+  const beats = new Set(bestByReason.values());
+  for (const c of out) {
+    if (c.reason && !beats.has(c)) c.flagged = false; // surplus same-class → ambient (reason kept)
+  }
+  return out;
 }
 
 export function useStrikeContacts(): UseStrikeContacts {
