@@ -102,7 +102,7 @@ Run both before a high-stakes demo.
 
 ### Beat 1 — "Three ships. Eight systems each. One picture." *(0:00)*
 **Say:** *"This is a destroyer strike group — three hulls, 21 live containers (18 subsystem + 2 UUV nodes + 1 AE own-systems), each with its own model, its own alert channel. Flagship is 8/8 subsystems live. One watch officer in command. Every subsystem isolated, low-RAM, airgap-capable."*
-**Do:** sweep the Strike Group scene. Point at the three destroyer cards (DDG-118/119/120) showing all systems green. Point at the TACTICAL CONTACTS MAP — ~52 AIS contacts, the own-ship formation triangulated. Point at the record spine: **CHAIN VERIFIED · PASS**.
+**Do:** sweep the Strike Group scene. Point at the three destroyer cards (DDG-118/119/120) showing all systems green. Point at the TACTICAL CONTACTS MAP — ~50 **real AIS vessel tracks** (MarineCadastre), the own-ship formation triangulated. Point at the record spine: **CHAIN VERIFIED · PASS**. *(Honest framing: the flagged contacts are the **sealed cold-start Pattern-of-Life detection set** on real AIS data — the live-changing signal is the per-subsystem anomaly scores, per the "what's live vs sealed" note above. If the map shows a MOCK/REPLAY badge, the demo record isn't staged — run `bash deploy/demo_up.sh`.)*
 
 ---
 
@@ -148,11 +148,28 @@ bash deploy/mlflow/run.sh
 
 ---
 
-### Beat 6 — "The provenance gate rejects the poisoned delta." *(3:45 — the differentiator)*
-**Say:** *"This is the moat. Federated learning has two killers: model poisoning and 'you can't accredit a model that changes.' Theseus kills both."*
-**Do:** show the provenance gate panel in the CIC. An unattested delta — `keyid` not in the trust registry — is refused by the shore brain with a **REJECTED** leaf (red). The signed delta from a trusted hull sits beside it as a **ACCEPTED** leaf (green). Both have timestamps and model version hashes. Auditor-grade.
+### Beat 6 — "Fire a forged delta. Watch the fleet refuse it." *(3:45 — the differentiator, LIVE + INTERACTIVE)*
+**Say:** *"This is the moat. Federated learning has two killers: model poisoning and 'you can't accredit a model that changes.' Theseus kills both — and I'll do it live, right now, not on a slide."*
+**Do:** in the Strike Group gate column, click **⚠ INJECT FORGED DELTA**. A model delta signed by a key **not in the trust registry** is fired at the shore brain. On screen, in real time:
+- **✕ REJECTED · POISON_NODE** — "unknown ship keyid (no .pub in the trust registry)". The forgery never reaches FedAvg.
+- **2 ATTESTED · ADMITTED · MACHINERY · CONTACTS** — the trusted deltas merge.
+- **EVAL GATE · RMSE Δ −0.0018** — the merged model must beat the baseline before it promotes.
+- **✓ CHAIN RE-VERIFIES · N LEAVES** — the tamper-evident record re-seals and re-verifies, leaf count climbing.
 
-**Say:** *"A captured node can send a delta. It cannot forge the attestation chain. The fleet brain merges only what's signed and eval-gated. That's how fleet learning stays accreditable under denied comms."*
+(Backed by the real `fleet/fleet_brain.py` merge — `POST /api/fleet/inject`. Press it again; it reproduces every time.)
+
+**Say:** *"A captured node can send a delta. It cannot forge the attestation chain — so the fleet brain rejects it, merges only what's signed and eval-gated, and the record re-verifies. One compromised vehicle cannot move the model every other hull is steering by."*
+
+---
+
+### Beat 6b — "Now read it back as the package an auditor signs." *(4:15 — the accreditation proof)*
+**Say:** *"Everything you just watched isn't a log file — it's accreditation evidence in the Authorizing Official's own language."*
+**Do:** point at the **ACCREDITATION EVIDENCE · OSCAL** panel directly below the gate. It re-pulled in lockstep the instant the gate decided. It shows the same sealed events projected onto **NIST SP 800-53 rev5** as OSCAL 1.1.3 assessment-results:
+- **RECORD VERIFIES** · all controls **SATISFIED** · full Ed25519 + in-toto/DSSE coverage.
+- The poison rejection maps to **SI-7 (integrity)**; the merges to **CM-3 (config change control)**; the fleet monitoring to **CA-7**; the chain itself to **AU-9**.
+- Status reads **EVIDENCE_LOGGED**, never CERTIFIED — *"no AO has signed this yet; the point is that the evidence is machine-emitted and auditor-readable today."*
+
+**Say:** *"The AO doesn't re-verify a frozen model — they verify the pipeline's provenance. That's what lets a model that learns at sea stay accredited. Nobody else brings this to the table."*
 
 ---
 
@@ -253,6 +270,10 @@ If asked whether this is Byzantine-robust: *"The eval-gate is the robust-aggrega
 ## If asked — detection landscape
 
 > *"We use explainable z-score (per-channel σ) plus a sequence autoencoder; the approach is PyOD-benchmarkable against 60+ detectors. HalfSpaceTrees and attention-based methods are the cold-start frontier — we chose z-score deliberately: the edge decision-support use case requires the watch officer to see exactly which channel deviated and by how many σ. Explainability is the trade, not a limitation."*
+
+## If asked — operating-point F1 (propulsion / auxiliary)
+
+> *"propulsion_deploy (AUC 0.99) and auxiliary_deploy (AUC 0.68) are AUC-strong but threshold-untuned on proxy data — at the deployed operating point their F1 is near-zero, so they'd flag almost nothing as set. That's a threshold-calibration gap, not a broken detector: AUC says the signal is separable; the operating point needs ship-grade data to tune. The detectors that matter for the anchor — the UUV C2-link (uuv1_anomaly_deploy, F1 0.96) and sonar (F1 0.96) — are tuned and strong. We say this plainly rather than hide behind AUC."*
 
 ## If asked — DECK positioning
 

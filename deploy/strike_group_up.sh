@@ -60,6 +60,18 @@ nohup python3 "$REPO/demo/api.py" > "$REPO/demo/.api.log" 2>&1 </dev/null &
 sleep 3
 curl -fsS http://localhost:8501/api/destroyer >/dev/null 2>&1 && echo "  ✓ /api/destroyer live" || echo "  ⚠ API not answering yet — see demo/.api.log"
 
+# 5b. Ensure the DEMO record (Operations scene + tactical contacts + /api/state) is staged too.
+#     strike_group_up stages the FLEET record (4b); the gitignored demo/out/record is staged by
+#     demo_up.sh. If it's empty/missing, the Operations scene + contacts map read empty and the
+#     map shows a MOCK badge — stage it so all three scenes are live. (Only fires when needed.)
+DEMO_LEAVES="$(curl -fsS http://localhost:8501/api/health 2>/dev/null | sed -n 's/.*"leaves": *\([0-9]*\).*/\1/p' | head -1)"
+if [ "${DEMO_LEAVES:-0}" = "0" ]; then
+  echo "  · demo record empty — staging (Operations + contacts) via demo_up.sh…"
+  bash "$REPO/deploy/demo_up.sh" >/dev/null 2>&1 \
+    && echo "  ✓ demo record staged (contacts + operations live)" \
+    || echo "  ⚠ demo staging had issues — run: bash deploy/demo_up.sh"
+fi
+
 # 6. The UI.
 say "6/6  Strike-Group UI"
 cat <<EOF

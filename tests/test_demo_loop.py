@@ -10,13 +10,40 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = ROOT / "demo"
 RECORD = DEMO / "out" / "record"
 sys.path.insert(0, str(ROOT))
 from referee.chain import verify_dir  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _preserve_live_demo_state():
+    """The loop scripts write to the LIVE demo/{out,models,registry} (hardcoded paths), and
+    this suite clobbers + TAMPERS them — which would destroy the tamper-evident record the
+    :8501 API serves (and silently flip the live demo to NO-GO). Snapshot whatever exists,
+    let the test run in place, then restore it, so running the tests never damages a staged
+    demo. This is why a mid-session `pytest` used to wipe the served record."""
+    bak = Path(tempfile.mkdtemp(prefix="theseus-demo-bak-"))
+    saved = {}
+    for d in ("out", "models", "registry"):
+        src = DEMO / d
+        if src.exists():
+            shutil.move(str(src), str(bak / d))
+            saved[d] = True
+    try:
+        yield
+    finally:
+        for d in ("out", "models", "registry"):
+            shutil.rmtree(DEMO / d, ignore_errors=True)
+            if saved.get(d):
+                shutil.move(str(bak / d), str(DEMO / d))
+        shutil.rmtree(bak, ignore_errors=True)
 
 
 def _run(script: str) -> subprocess.CompletedProcess:
