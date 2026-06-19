@@ -442,20 +442,29 @@ def _prod_model_metrics(name: str) -> tuple[str | None, dict]:
         return None, {}
 
 
-def _build_destroyer_subsystems(*, represented: bool) -> list[dict]:
-    """Build the 8-subsystem list for one hull. The lead hull (represented=False) pulls LIVE
-    node health + scores + @production AUC; a represented sister hull is honestly live:false."""
+def _build_destroyer_subsystems(*, port_offset: int = 0, live_contacts: bool = True) -> list[dict]:
+    """Build the 8-subsystem list for one hull. Each ship subsystem's container port is the
+    base port + this hull's offset (DDG-118 +0, DDG-119 +10, DDG-120 +20) — so every hull
+    pulls its OWN live node health + score + @production AUC. own_systems (the AE) has no
+    container, so it shows the registered model standing by; contacts is the flagship's Pi
+    node only (sisters: standing by)."""
     out: list[dict] = []
     for spec in _DESTROYER_SUBSYSTEMS:
-        port, model = spec["port"], spec["model"]
+        base_port, model = spec["port"], spec["model"]
+        if base_port is None:                 # own_systems — registered AE, no container
+            port = None
+        elif base_port >= 54541:              # ship subsystem — this hull's offset port
+            port = base_port + port_offset
+        else:                                 # contacts — flagship Pi node only
+            port = base_port if live_contacts else None
+
         live = False
         score: float | None = None
         auc: float | None = None
         version: str | None = None
-        detail = "organ instrumented · represented hull (same spine, not yet instrumented)" \
-            if represented else "organ instrumented · model pending"
+        detail = "organ instrumented · model pending"
 
-        if not represented and port is not None and _node_health(port):
+        if port is not None and _node_health(port):
             live = True
             score = _node_latest_score(port)
             if model:
@@ -465,14 +474,13 @@ def _build_destroyer_subsystems(*, represented: bool) -> list[dict]:
             ac = f"{auc:.4f}" if auc is not None else "—"
             detail = (f"edge node :{port} live · {model} v{version} @production · "
                       f"anomaly score {sc} · AUC {ac}")
-        elif not represented and model is not None:
-            # Node dark but registry model exists — show the @production model standing by.
+        elif model is not None:
+            # No live node (own_systems AE, or sister contacts) — registry model standing by.
             version, metrics = _prod_model_metrics(model)
             auc = metrics.get("roc_auc")
             if version is not None:
-                detail = (f"edge node :{port} dark · {model} v{version} @production standing by · "
-                          f"AUC {auc:.4f}" if auc is not None else
-                          f"edge node :{port} dark · {model} v{version} @production standing by")
+                detail = (f"{model} v{version} @production standing by · AUC {auc:.4f}"
+                          if auc is not None else f"{model} v{version} @production standing by")
 
         out.append({
             "key": spec["key"],
@@ -496,10 +504,13 @@ def build_destroyer_state(fleet_record_dir: Path = FLEET_RECORD) -> dict:
     Honest by construction: live:true only where an edge node actually answers /health; AUC
     and @production version come straight from Node-3 MLflow; the shore block reads the sealed
     fleet record. Never raises — any unreachable piece degrades to live:false / null."""
-    lead_subs = _build_destroyer_subsystems(represented=False)
-    live_count = sum(1 for s in lead_subs if s["live"])
-    crit = sum(1 for s in lead_subs if s["severity"] == "critical")
-    warn = sum(1 for s in lead_subs if s["severity"] == "warning")
+    # Each hull runs its OWN 6 subsystem containers (base port + offset). All three stream
+    # live; own_systems (AE) + sisters' contacts show their registry model standing by.
+    hull_specs = [
+        ("DDG-118", "USS Theseus",  0, True,  "lead"),
+        ("DDG-119", "USS Daedalus", 10, False, "sister"),
+        ("DDG-120", "USS Ariadne",  20, False, "sister"),
+    ]
 
     def _hull_status(subs: list[dict]) -> str:
         if any(s["severity"] == "critical" for s in subs):
@@ -510,41 +521,21 @@ def build_destroyer_state(fleet_record_dir: Path = FLEET_RECORD) -> dict:
             return "nominal"
         return "represented"
 
-    ships = [
-        {
-            "hull": "DDG-118",
-            "name": "USS Theseus",
-            "class": "Arleigh Burke (DDG)",
-            "role": "lead",
-            "represented": False,
-            "status": _hull_status(lead_subs),
-            "subsystems_live": live_count,
-            "subsystems_total": len(lead_subs),
-            "subsystems": lead_subs,
-        },
-        {
-            "hull": "DDG-119",
-            "name": "USS Daedalus",
-            "class": "Arleigh Burke (DDG)",
-            "role": "sister",
-            "represented": True,
-            "status": "represented",
-            "subsystems_live": 0,
-            "subsystems_total": len(_DESTROYER_SUBSYSTEMS),
-            "subsystems": _build_destroyer_subsystems(represented=True),
-        },
-        {
-            "hull": "DDG-120",
-            "name": "USS Ariadne",
-            "class": "Arleigh Burke (DDG)",
-            "role": "sister",
-            "represented": True,
-            "status": "represented",
-            "subsystems_live": 0,
-            "subsystems_total": len(_DESTROYER_SUBSYSTEMS),
-            "subsystems": _build_destroyer_subsystems(represented=True),
-        },
-    ]
+    ships = []
+    for hull, name, off, live_contacts, role in hull_specs:
+        subs = _build_destroyer_subsystems(port_offset=off, live_contacts=live_contacts)
+        live_n = sum(1 for s in subs if s["live"])
+        ships.append({
+            "hull": hull, "name": name, "class": "Arleigh Burke (DDG)", "role": role,
+            "represented": live_n == 0,
+            "status": _hull_status(subs),
+            "subsystems_live": live_n, "subsystems_total": len(subs),
+            "subsystems": subs,
+        })
+    lead_subs = ships[0]["subsystems"]
+    live_count = ships[0]["subsystems_live"]
+    crit = sum(1 for s in lead_subs if s["severity"] == "critical")
+    warn = sum(1 for s in lead_subs if s["severity"] == "warning")
 
     # ── Shore fleet-brain block — the provenance-gated, eval-gated merge over the fleet ──
     fleet = build_fleet_state(fleet_record_dir)
@@ -630,9 +621,10 @@ def _destroyer_ui_shape(rich: dict) -> dict:
             else:
                 subs.append({"key": s["key"], "label": s["label"], "live": s["live"],
                              "severity": s["severity"], "detail": s["detail"]})
+        flagship = sh.get("role") == "lead"
         destroyers.append({
-            "hull": sh["hull"], "name": sh["name"].upper(), "flagship": not represented,
-            "posture": "decision-support · human-in-command" + ("" if represented else " · flagship"),
+            "hull": sh["hull"], "name": sh["name"].upper(), "flagship": flagship,
+            "posture": "decision-support · human-in-command" + (" · flagship" if flagship else ""),
             "station": {"x": _STATIONS[i % 3][0], "y": _STATIONS[i % 3][1]},
             "subsystems": subs,
             "model": _HULL_MODEL[i % 3], "sync": _HULL_SYNC[i % 3],

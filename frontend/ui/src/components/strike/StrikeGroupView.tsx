@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import type { DestroyerState } from "../../lib/types";
+import type { DestroyerState, Severity } from "../../lib/types";
 import type { DestroyerConn } from "../../hooks/useDestroyerState";
 import { DestroyerCard } from "./DestroyerCard";
+import { StrikeContactsMap } from "./StrikeContactsMap";
 import { StrikeGroupStage } from "./StrikeGroupStage";
 
 interface StrikeGroupViewProps {
@@ -41,13 +42,20 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
 
   const shore = destroyer.shore;
 
+  // contacts subsystem severity from the flagship (falls back to worst across hulls)
+  const contactsSeverity: Severity = useMemo(() => {
+    const flagship = destroyer.destroyers.find((d) => d.flagship) ?? destroyer.destroyers[0];
+    const c = flagship?.subsystems.find((s) => s.key === "contacts");
+    return c?.live ? c.severity : "warning";
+  }, [destroyer]);
+
   return (
     <div
       style={{
         flex: 1,
         minHeight: 0,
         display: "grid",
-        gridTemplateRows: "auto auto minmax(0, 1fr)",
+        gridTemplateRows: "auto auto auto minmax(0, 1fr)",
         background: "var(--base)",
         overflow: "auto",
       }}
@@ -103,6 +111,11 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
             onSelect={() => setSelected(d.hull)}
           />
         ))}
+      </div>
+
+      {/* tactical contacts map — the "contacts" subsystem made tangible */}
+      <div style={{ borderTop: "1px solid var(--hair-lit)", padding: "0 14px 14px" }}>
+        <StrikeContactsMap contactsSeverity={contactsSeverity} />
       </div>
 
       {/* the animated sync stage + the gate readout */}

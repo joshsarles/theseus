@@ -14,5 +14,13 @@ fi
 pkill -f "ship_feed.py stream" 2>/dev/null || true
 pkill -f "gen_synthetic_sensors.py --stream --interval .* --url http://127.0.0.1:5454" 2>/dev/null || true
 
+# Sister hulls (separate compose projects), if they were brought up with --fleet.
+for slug in ddg-119 ddg-120; do
+  if [ -f "$HERE/docker-compose.$slug.yml" ]; then
+    docker compose -p "theseus-$slug" -f "$HERE/docker-compose.$slug.yml" down 2>/dev/null \
+      && echo "  · $slug down" || true
+  fi
+done
+
 docker compose -f "$HERE/docker-compose.yml" down
-echo "  ✓ ship down (MLflow :5050 left running — stop with: bash deploy/mlflow/run.sh stop)"
+echo "  ✓ ship(s) down (MLflow :5050 left running — stop with: bash deploy/mlflow/run.sh stop)"

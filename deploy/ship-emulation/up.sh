@@ -8,10 +8,11 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 COMPOSE="$HERE/docker-compose.yml"
-FEED=0; INTERVAL=30; REPLAY=0
+FEED=0; INTERVAL=30; REPLAY=0; FLEET=0
 for a in "$@"; do case "$a" in
   --feed) FEED=1;;
   --replay) REPLAY=1;;
+  --fleet) FLEET=1;;          # also bring up sister hulls DDG-119 + DDG-120 (18 containers total)
   --interval=*) INTERVAL="${a#*=}";;
 esac; done
 
@@ -62,14 +63,26 @@ for n in "${NODES[@]}"; do
   done
 done
 
+# 4b. Optional: bring up the SISTER HULLS (DDG-119 +10, DDG-120 +20) as their own
+#     6-container ships, so all three destroyers stream live (the full strike group).
+if [ "$FLEET" = 1 ]; then
+  for spec in "DDG-119 10" "DDG-120 20"; do
+    set -- $spec; hull="$1"; off="$2"; slug="$(echo "$hull" | tr 'A-Z' 'a-z')"
+    python3 "$HERE/gen_hull.py" "$hull" "$off" >/dev/null
+    docker compose -p "theseus-$slug" -f "$HERE/docker-compose.$slug.yml" up -d >/dev/null 2>&1 \
+      && echo "  ✓ $hull up (ports $((54541+off))-$((54546+off)))" \
+      || echo "  ✗ $hull failed to start"
+  done
+fi
+
 # 5. Optional: drive every subsystem with its OWN real data (correct feature set + clearly-
 #    labeled synthetic faults on the CSV streams) via ship_feed.py — one threaded process
-#    feeding all 6 nodes. (--replay is the default behaviour now; the flag is kept for compat.)
+#    feeding all hulls' nodes (dark ports skipped). (--replay kept for compat.)
 if [ "$FEED" = 1 ]; then
   pkill -f "ship_feed.py stream" 2>/dev/null || true
   nohup python3 "$HERE/ship_feed.py" stream --interval "$INTERVAL" > "$HERE/.ship_feed.log" 2>&1 </dev/null &
   echo "$!" > "$HERE/.feed.pids"
-  echo "  ✓ feeding all 6 subsystems their own data (1 rec / ${INTERVAL}s) — log: deploy/ship-emulation/.ship_feed.log"
+  echo "  ✓ feeding all subsystems their own data (1 rec / ${INTERVAL}s) — log: deploy/ship-emulation/.ship_feed.log"
 fi
 
 cat <<EOF

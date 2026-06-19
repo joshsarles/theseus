@@ -91,4 +91,5 @@ deploy/pi-emulation/.feed*
 # Emulated ship fleet + demo API — runtime artifacts (features.*.json ARE committed)
 deploy/ship-emulation/.feed*
 deploy/ship-emulation/.ship_feed.log
+deploy/ship-emulation/docker-compose.ddg-1*.yml   # generated per-hull composes (gen_hull.py)
 demo/.api.log

@@ -26,7 +26,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
-# key -> (dataset path, host port). Matches docker-compose.yml + the <key>_deploy models.
+# key -> (dataset path, base host port). Matches docker-compose.yml + the <key>_deploy models.
 SUBSYSTEMS = {
     "machinery":  (REPO / "ingest/out/cbm.csv", 54541),
     "propulsion": (REPO / "ingest/out/cmapss.csv", 54542),
@@ -35,6 +35,9 @@ SUBSYSTEMS = {
     "c2":         (REPO / "serve/receiver/data/uuv1-c2-anom.json", 54545),
     "nav":        (REPO / "serve/receiver/data/uuv1-telemetry-anom.json", 54546),
 }
+# Each hull's subsystem ports are the base + offset. Sisters are fed too (ports skipped if dark),
+# with a per-hull phase + seed so the three destroyers don't show identical anomalies in lockstep.
+HULL_OFFSETS = {"DDG-118": 0, "DDG-119": 10, "DDG-120": 20}
 SKIP = {"record_id", "vehicle_id", "vehicle_type", "timestamp_utc", "sequence_num"}
 
 
@@ -99,36 +102,41 @@ def _inject_fault(rec: dict, rng: random.Random, feats: list[str]) -> dict:
     return rec
 
 
-def stream_subsystem(key: str, interval: float, anom_rate: float, stop: threading.Event):
-    path, port = SUBSYSTEMS[key]
+def stream_subsystem(key: str, port: int, hull: str, off: int,
+                     interval: float, anom_rate: float, stop: threading.Event):
+    path = SUBSYSTEMS[key][0]
     recs = load_records(path)
     is_json = path.suffix == ".json"      # json already carries labelled anomalies
     feats = numeric_feats(recs[0]) if recs else []
-    rng = random.Random(hash(key) & 0xffff)
+    rng = random.Random((hash(key) ^ (off * 7919)) & 0xffffffff)   # per-hull seed
+    phase = (off * 13) % max(1, len(recs))                          # per-hull phase offset
     i = 0
     sent = 0
     while not stop.is_set():
-        base = recs[i % len(recs)]
+        base = recs[(i + phase) % len(recs)]
         rec = {k: base[k] for k in feats if k in base}
         rec["record_id"] = base.get("record_id", f"{key}-{i:05d}")
         if not is_json and rng.random() < anom_rate:        # inject labelled synthetic fault into CSV stream
             rec = _inject_fault(rec, rng, feats)
-        rec["vehicle_id"] = "DDG-118"
+        rec["vehicle_id"] = hull
         try:
             _post(port, rec)
             sent += 1
         except Exception:
-            pass
+            pass            # port dark (sister hull not up) — skip silently
         i += 1
         stop.wait(interval)
-    print(f"  {key}: stopped after {sent} records")
 
 
 def cmd_stream(interval: float, anom_rate: float) -> int:
-    print(f"  feeding {len(SUBSYSTEMS)} subsystems @ 1 rec/{interval:g}s each (Ctrl-C to stop)")
+    targets = [(k, SUBSYSTEMS[k][1] + off, hull, off)
+               for hull, off in HULL_OFFSETS.items() for k in SUBSYSTEMS]
+    print(f"  feeding up to {len(targets)} subsystem nodes across {len(HULL_OFFSETS)} hulls "
+          f"@ 1 rec/{interval:g}s each (dark ports skipped; Ctrl-C to stop)")
     stop = threading.Event()
-    threads = [threading.Thread(target=stream_subsystem, args=(k, interval, anom_rate, stop), daemon=True)
-               for k in SUBSYSTEMS]
+    threads = [threading.Thread(target=stream_subsystem,
+                                args=(k, port, hull, off, interval, anom_rate, stop), daemon=True)
+               for (k, port, hull, off) in targets]
     for t in threads:
         t.start()
     try:
