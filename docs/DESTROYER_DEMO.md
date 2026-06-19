@@ -250,6 +250,16 @@ If asked whether this is Byzantine-robust: *"The eval-gate is the robust-aggrega
 
 ---
 
+## If asked — detection landscape
+
+> *"We use explainable z-score (per-channel σ) plus a sequence autoencoder; the approach is PyOD-benchmarkable against 60+ detectors. HalfSpaceTrees and attention-based methods are the cold-start frontier — we chose z-score deliberately: the edge decision-support use case requires the watch officer to see exactly which channel deviated and by how many σ. Explainability is the trade, not a limitation."*
+
+## If asked — DECK positioning
+
+> *"DECK (Applied Intuition, delivered to the Navy March 2026) is the data-collection engine for autonomy — it curates the training data. THESEUS is the onboard closed-loop plus accreditation layer that consumes that curated data at the edge. Complementary, not competing: DECK feeds the flywheel, Theseus runs the flywheel under DDIL and seals the record."*
+
+---
+
 ## Language discipline (carry into the room)
 - "Recommended intervention, human always in command" — never "the fleet updates itself"
 - "Improves safely — every update eval-gated, attested, and rollback-protected"

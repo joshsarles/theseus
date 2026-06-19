@@ -139,7 +139,10 @@ export function StrikeContactsMap({ contactsSeverity = "critical" }: StrikeConta
       (bounds.minY + bounds.maxY) / 2,
       0,
     ];
-    const zoom = Math.log2(Math.min(dims.w / w, dims.h / h));
+    // guard against a degenerate frame (dims not measured yet) producing a
+    // -Infinity / NaN zoom that flashes a blank/jumped plot on first paint
+    const fit = Math.min(dims.w / w, dims.h / h);
+    const zoom = Number.isFinite(fit) && fit > 0 ? Math.log2(fit) : 0;
     return { target, zoom };
   }, [bounds, dims]);
 
@@ -401,7 +404,12 @@ export function StrikeContactsMap({ contactsSeverity = "critical" }: StrikeConta
         </div>
 
         {/* legend — bottom-left */}
-        <Legend friendly={ownShips.length} neutral={neutral.length} flagged={flaggedN} />
+        <Legend
+          friendly={ownShips.length}
+          neutral={neutral.length}
+          flagged={flaggedN}
+          hot={flagged.some(isHot)}
+        />
 
         {/* hover readout — bottom-right */}
         {hover ? <HoverCard c={hover} /> : null}
@@ -466,11 +474,14 @@ function FeedBadge({ conn }: { conn: ContactsFeed["conn"] }) {
   );
 }
 
-function Legend({ friendly, neutral, flagged }: { friendly: number; neutral: number; flagged: number }) {
+function Legend({ friendly, neutral, flagged, hot }: { friendly: number; neutral: number; flagged: number; hot: boolean }) {
+  // flagged swatch is honest: red only when a hot beat (spoof/jump) is present,
+  // otherwise amber — matching the marker color actually drawn on the plot
+  const flaggedColor = flagged === 0 ? "var(--muted)" : hot ? "var(--critical)" : "var(--amber)";
   const rows: { glyph: string; color: string; label: string; n: number }[] = [
-    { glyph: "⌃", color: "var(--amber)", label: "FRIENDLY · OWN SHIP", n: friendly },
+    { glyph: "△", color: "var(--amber)", label: "FRIENDLY · OWN SHIP", n: friendly },
     { glyph: "○", color: "var(--ink-dim)", label: "NEUTRAL · AIS TRACK", n: neutral },
-    { glyph: "◉", color: "var(--critical)", label: "FLAGGED · ANOMALY", n: flagged },
+    { glyph: "◉", color: flaggedColor, label: "FLAGGED · ANOMALY", n: flagged },
   ];
   return (
     <div

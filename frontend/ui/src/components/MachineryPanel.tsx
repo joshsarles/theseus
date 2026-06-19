@@ -8,10 +8,16 @@ interface MachineryPanelProps {
 
 export function MachineryPanel({ machinery }: MachineryPanelProps) {
   if (!machinery) return <MachineryStandby />;
-  const { model, version, rmse, framework, status, promotions } = machinery;
+  const { model, version, rmse, framework, status, promotions, residual_history } = machinery;
 
-  // Deterministic decay-residual trend seeded by the model, converging to rmse.
-  const trend = useMemo(() => buildTrend(rmse, model), [rmse, model]);
+  // Prefer REAL held-out residuals sealed in the record. We plot their magnitude (|pred−truth|)
+  // so the sparkline reads as a residual/error trend. Fall back to the synthetic settling curve
+  // ONLY when no real history is present (older records). hasReal drives the eyebrow label.
+  const hasReal = Array.isArray(residual_history) && residual_history.length > 1;
+  const trend = useMemo(
+    () => (hasReal ? residual_history!.map((r) => Math.abs(r)) : buildTrend(rmse, model)),
+    [hasReal, residual_history, rmse, model],
+  );
   const nominal = (status ?? "nominal").toLowerCase() === "nominal";
   const color = nominal ? "var(--nominal)" : "var(--caution)";
 
@@ -66,7 +72,7 @@ export function MachineryPanel({ machinery }: MachineryPanelProps) {
       {/* residual trend — static draw, no loop */}
       <div style={{ padding: "8px 14px 16px" }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>
-          Residual Trend · last 48 fixes
+          Residual Trend · {hasReal ? `last ${trend.length} held-out` : "last 48 fixes"}
         </div>
         <Trend points={trend} color={color} />
       </div>

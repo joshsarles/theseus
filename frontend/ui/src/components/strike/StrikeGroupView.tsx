@@ -46,7 +46,9 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
   const contactsSeverity: Severity = useMemo(() => {
     const flagship = destroyer.destroyers.find((d) => d.flagship) ?? destroyer.destroyers[0];
     const c = flagship?.subsystems.find((s) => s.key === "contacts");
-    return c?.live ? c.severity : "warning";
+    // honest fallback: a contacts subsystem that isn't live reads standby (dim),
+    // never a fabricated "warning"
+    return c?.live ? c.severity : "standby";
   }, [destroyer]);
 
   return (
@@ -151,10 +153,13 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
                 style={{ border: "1px solid var(--critical)", background: "var(--critical-wash)", padding: "9px 11px", marginTop: 9 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                  <span className="display" style={{ fontSize: 12, fontWeight: 700, color: "var(--critical)", letterSpacing: "0.06em" }}>
+                  <span className="display" style={{ fontSize: 12, fontWeight: 700, color: "var(--critical)", letterSpacing: "0.06em", flexShrink: 0 }}>
                     ✕ REJECTED
                   </span>
-                  <span className="mono" style={{ fontSize: 9.5, color: "var(--ink)", marginLeft: "auto" }}>
+                  <span
+                    className="mono"
+                    style={{ fontSize: 9.5, color: "var(--ink)", marginLeft: "auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
                     {r.keyid}
                   </span>
                 </div>

@@ -164,8 +164,8 @@ export function StrikeGroupStage({ destroyer, conn }: StrikeGroupStageProps) {
       {/* flow labels */}
       <FlowLabel x={(hullX + gateX) / 2} y={50} text="① EACH HULL LEARNS LOCAL · DDIL" />
       <FlowLabel x={(hullX + gateX) / 2} y={66} text="signs a model delta ▸ never raw data" sub />
-      <FlowLabel x={gateX} y={H - 14} text="② PROVENANCE GATE ▸ FEDAVG ▸ EVAL GATE" />
-      <FlowLabel x={(gateX + brainX) / 2 + 30} y={H - 14} text="③ IMPROVED MODEL PUSHED BACK TO EVERY HULL" sub />
+      <FlowLabel x={gateX - 30} y={H - 14} text="② PROVENANCE GATE ▸ FEDAVG ▸ EVAL GATE" />
+      <FlowLabel x={(gateX + brainX) / 2 + 40} y={H - 14} text="③ IMPROVED MODEL PUSHED BACK TO EVERY HULL" sub />
 
       <text x={W - 12} y={H - 8} textAnchor="end" fill="#646b75" fontSize={9} fontFamily="JetBrains Mono, monospace" letterSpacing="1">
         {conn === "live" ? "◆ STRIKE-GROUP RECORD LIVE · /api/destroyer" : "◆ STRIKE-GROUP · SIM FIXTURE"}

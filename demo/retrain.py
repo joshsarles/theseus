@@ -130,6 +130,13 @@ def main() -> int:
         blob = json.dumps(artifact, sort_keys=True).encode()
 
     rmse = _rmse(pred, yte)
+    # REAL per-sample decay residuals on the held-out test set (pred − truth). These are the
+    # actual signed errors of the promoted model — not a synthetic settling curve. We surface
+    # the last N to the UI as the machinery residual trend (the sparkline). Captured here at
+    # scoring time (where pred/yte already exist) so no second inference pass is needed.
+    _N_RESIDUALS = 48
+    residuals = [round(p - t, 6) for p, t in zip(pred, yte)]
+    residual_history = residuals[-_N_RESIDUALS:]
     version = _next_version()
     vdir = REGISTRY / f"v{version}"
     vdir.mkdir(parents=True, exist_ok=True)
@@ -139,6 +146,7 @@ def main() -> int:
         "name": "theseus-cbm", "version": version, "framework": framework,
         "target": target, "features": feats, "rmse": round(rmse, 6),
         "n_train": len(Xtr), "n_test": len(Xte), "model_sha256": model_sha,
+        "residual_history": residual_history,   # last N real held-out residuals (signed) for the UI trend
         "trained_unix": time.time(),
     }
     (vdir / "meta.json").write_text(json.dumps(meta, indent=2))

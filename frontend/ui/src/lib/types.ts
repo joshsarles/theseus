@@ -25,6 +25,13 @@ export interface Machinery {
   framework: string;
   status?: string;
   promotions?: number;
+  /**
+   * Real held-out per-sample decay residuals (signed pred − truth) from the
+   * promoted CBM model, sealed into the model_promoted leaf at scoring time.
+   * The MachineryPanel sparkline renders these directly; absent on older
+   * records, in which case the panel falls back to a synthetic settling trend.
+   */
+  residual_history?: number[];
 }
 
 export interface Contact {

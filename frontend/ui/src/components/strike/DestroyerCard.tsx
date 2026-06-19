@@ -70,7 +70,9 @@ export function DestroyerCard({ ship, conn, selected, onSelect }: DestroyerCardP
       style={{
         textAlign: "left",
         background: "var(--panel)",
-        border: `1px solid ${selected ? "var(--amber)" : "var(--hair-lit)"}`,
+        // the flagship reads as the hero even when unselected: a standing amber
+        // border; sisters stay hairline. selection adds an inset amber ring.
+        border: `1px solid ${selected ? "var(--amber)" : ship.flagship ? "var(--amber-dim)" : "var(--hair-lit)"}`,
         boxShadow: selected ? "inset 0 0 0 1px var(--amber-dim)" : "none",
         padding: 0,
         cursor: "pointer",
@@ -150,12 +152,15 @@ export function DestroyerCard({ ship, conn, selected, onSelect }: DestroyerCardP
           value={`${ship.sync.delta > 0 ? "+" : ""}${ship.sync.delta.toFixed(5)}`}
           sub={ship.sync.signed && ship.sync.attested ? "Ed25519 · attested" : "unattested"}
           tone={ship.sync.delta < 0 ? "nominal" : "ink"}
+          subTone={ship.sync.signed && ship.sync.attested ? "nominal" : "critical"}
         />
         <Stat
           label="SUBSYSTEMS"
           value={`${live}/${ship.subsystems.length}`}
           sub={critical > 0 ? `${critical} critical` : "no critical"}
           tone={critical > 0 ? "critical" : "ink"}
+          subTone={critical > 0 ? "critical" : "muted"}
+          last
         />
       </div>
 
@@ -172,22 +177,28 @@ function Stat({
   value,
   sub,
   tone = "ink",
+  subTone = "muted",
+  last = false,
 }: {
   label: string;
   value: string;
   sub: string;
   tone?: "ink" | "nominal" | "critical";
+  subTone?: "muted" | "nominal" | "critical";
+  last?: boolean;
 }) {
   const color = tone === "critical" ? "var(--critical)" : tone === "nominal" ? "var(--nominal)" : "var(--ink)";
+  const subColor =
+    subTone === "critical" ? "var(--critical)" : subTone === "nominal" ? "var(--nominal)" : "var(--muted)";
   return (
-    <div style={{ padding: "8px 11px", borderRight: "1px solid var(--hair)", minWidth: 0 }}>
+    <div style={{ padding: "8px 11px", borderRight: last ? "none" : "1px solid var(--hair)", minWidth: 0 }}>
       <div className="eyebrow" style={{ fontSize: 8, letterSpacing: "0.1em" }}>
         {label}
       </div>
       <div className="num" style={{ fontSize: 14, fontWeight: 500, color, lineHeight: 1.2, marginTop: 3 }}>
         {value}
       </div>
-      <div className="mono" style={{ fontSize: 8, color: "var(--muted)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div className="mono" style={{ fontSize: 8, color: subColor, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {sub}
       </div>
     </div>

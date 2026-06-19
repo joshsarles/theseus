@@ -127,6 +127,12 @@ def build_state(record_dir: Path) -> dict:
     machinery = None
     if promo:
         d = promo[-1]["data"]
+        # REAL held-out residual history sealed at promotion time (retrain.py → update_model.py).
+        # Coerce to a clean list of floats; absent/old leaves (no field) yield [] so the UI's
+        # graceful fallback still applies. This is the actual model error per held-out sample,
+        # not a synthetic settling curve.
+        rh = d.get("residual_history") or []
+        residual_history = [float(x) for x in rh if isinstance(x, (int, float))]
         machinery = {
             "model": "theseus-cbm",
             "version": d.get("version"),
@@ -134,6 +140,7 @@ def build_state(record_dir: Path) -> dict:
             "framework": d.get("framework"),
             "status": "nominal",
             "promotions": len(promo),
+            "residual_history": residual_history,
         }
 
     ais = by_kind.get("ais_anomaly", [])

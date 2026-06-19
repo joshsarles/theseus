@@ -51,7 +51,10 @@ def main() -> int:
 
     seal(RECORD, "model_promoted", f"theseus-cbm:v{meta['version']}",
          {"version": meta["version"], "rmse": meta["rmse"],
-          "model_sha256": meta["model_sha256"], "framework": meta["framework"]})
+          "model_sha256": meta["model_sha256"], "framework": meta["framework"],
+          # carry the REAL held-out residual history into the promoted leaf so /api/state
+          # can serve machinery.residual_history (the sparkline) straight from the record.
+          "residual_history": meta.get("residual_history", [])})
     print("  sealed model_promoted")
 
     ok, bad, msg = verify(RECORD)
