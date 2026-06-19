@@ -88,9 +88,19 @@ domain and faster I/O. `brew install orbstack`, then the same compose works; rea
 by name and the Mac host as `host.orb.internal`. (OrbStack is commercial-paid for Force;
 Docker Desktop — already installed here — works fine via `host.docker.internal`.)
 
-## Known limitation (model quality, not emulation)
+## Detection quality
 
-`active_anomaly_score` currently compresses near 1.0 on the synthetic stream — the
-HalfSpaceTrees scores don't yet cleanly separate normal vs injected anomalies. This is a
-modeling-team tuning item (same behavior as on the real Pi), independent of the emulation,
-which faithfully reproduces the Pi runtime.
+`active_anomaly_score` cleanly separates normal vs anomaly: **normal ~0.2, anomaly ~0.9**
+on the live stream. The detector is a streaming per-feature running-z-score model
+(`RunningZScoreDetector` in `register_pickle_model.py`) — anomaly score = max |z| across
+the sensor channels, squashed to [0,1). It replaced HalfSpaceTrees, which gave near-zero
+separation here (AUC ~0.65; scores stuck at ~0.98 for normal *and* anomaly). Current
+registered-model eval:
+
+| Model | precision@k | F1 | false-alarm | ROC-AUC |
+|---|---|---|---|---|
+| `uuv1_anomaly_deploy` | 0.96 | 0.96 | 0.013 | 0.9995 |
+| `uuv2_anomaly_deploy` | 0.87 | 0.87 | 0.036 | 0.94 |
+
+Bonus for T&E / accreditation: the score is **explainable** — it points at the specific
+sensor channel that deviated and by how many σ, rather than an opaque tree-mass score.
