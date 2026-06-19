@@ -29,16 +29,16 @@ export function FleetStage({ fleet, acceptedShips, conn }: FleetStageProps) {
   // Honest hull roster: the accepted ships from the record, padded to a 3-hull
   // fleet picture (this ship + sisters). Each carries its real n_samples / rmse.
   const hulls = useMemo(() => {
-    const names = ["MACHINERY", "CONTACTS", "SISTER-03"];
+    const names = ["MACHINERY", "CONTACTS", "PROJECTED"];
     return names.map((nm, i) => {
       const found = acceptedShips.find((s) => s.id === nm);
       return {
         id: nm,
-        label: i === 2 ? "SISTER HULL" : nm,
+        label: i === 2 ? "PROJECTED HULL" : nm,
         n: found?.n_samples ?? null,
         rmse: found?.local_train_rmse ?? null,
-        accepted: !!found || i === 2,
-        projected: i === 2, // SISTER-03 is the projected next hull (honest: not in this run)
+        accepted: !!found, // only the real fleet-record ships are accepted; #3 is aspirational
+        projected: i === 2, // the projected next hull — honestly not in this fleet run
       };
     });
   }, [acceptedShips]);

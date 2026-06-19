@@ -138,7 +138,7 @@ const MOCK_DESTROYER: DestroyerState = {
     },
     {
       hull: "DDG-119",
-      name: "USS HALSEY-II",
+      name: "USS DAEDALUS",
       flagship: false,
       posture: "decision-support · human-in-command",
       station: { x: 0.2, y: 0.66 },
@@ -148,7 +148,7 @@ const MOCK_DESTROYER: DestroyerState = {
     },
     {
       hull: "DDG-120",
-      name: "USS DECATUR-III",
+      name: "USS ARIADNE",
       flagship: false,
       posture: "decision-support · human-in-command",
       station: { x: 0.8, y: 0.66 },
