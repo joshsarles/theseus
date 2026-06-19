@@ -1,0 +1,60 @@
+# THESEUS — emulate BOTH Raspberry Pi UUV nodes on the Mac (Node 3), no hardware.
+# =============================================================================
+# Mac (Apple silicon, arm64) == Pi 5 (arm64) ⇒ the EXACT Pi receiver image runs
+# NATIVELY (no QEMU cross-arch emulation). Both nodes load their registered model
+# from the Mac-host MLflow on :5050 via host.docker.internal — same 4-condition
+# recipe proven on the real Pis (see docs/setup/PI_NODES.md).
+#
+#   bash deploy/pi-emulation/up.sh        # bring both nodes up + verify
+#   docker compose -f deploy/pi-emulation/docker-compose.yml up -d
+#   docker compose -f deploy/pi-emulation/docker-compose.yml logs -f
+#   docker compose -f deploy/pi-emulation/docker-compose.yml down
+#
+# Image: `analytics:latest` (the byte-identical image streamed off pi2 via
+#   `ssh pi2 'podman save analytics:latest' | docker load`). To rebuild from
+#   source instead, see README.md.
+# =============================================================================
+name: theseus-pi-fleet
+
+x-node: &node
+  image: analytics:latest
+  platform: linux/arm64          # match Pi 5; stays native on Apple silicon
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"   # reach the Mac host (Node 3 / MLflow)
+  networks: [fleet]
+  # Pi-5 realism (4GB / ~4 cores) so latency isn't wildly optimistic. Uncomment
+  # to make the emulated nodes feel like the real hardware:
+  # mem_limit: 4g
+  # cpus: 4
+
+services:
+  uuv1-node:
+    <<: *node
+    container_name: uuv1-node
+    hostname: uuv1-node
+    ports:
+      - "54321:54321"            # host 127.0.0.1:54321 -> UUV-1
+    environment:
+      NODE_ID: uuv1-node
+      RECEIVER_CONFIG: /cfg/config.yml
+      MLFLOW_TRACKING_URI: "http://host.docker.internal:5050"   # condition #4: proxied-artifact download
+    volumes:
+      - ./config.uuv1.yml:/cfg/config.yml:ro
+
+  uuv2-node:
+    <<: *node
+    container_name: uuv2-node
+    hostname: uuv2-node
+    ports:
+      - "54322:54321"            # host 127.0.0.1:54322 -> UUV-2 (54321 taken by node 1)
+    environment:
+      NODE_ID: uuv2-node
+      RECEIVER_CONFIG: /cfg/config.yml
+      MLFLOW_TRACKING_URI: "http://host.docker.internal:5050"
+    volumes:
+      - ./config.uuv2.yml:/cfg/config.yml:ro
+
+networks:
+  fleet:
+    driver: bridge

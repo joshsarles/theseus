@@ -84,3 +84,6 @@ deploy/mlflow/.venv312/
 # River trainer outputs + uv lockfile (runtime)
 outputs/
 uv.lock
+
+# Emulated Pi fleet — background-feeder runtime artifacts (not source)
+deploy/pi-emulation/.feed*

@@ -35,6 +35,19 @@ kill_port
 # Bind 0.0.0.0 (all interfaces) so the UUV Pis on the LAN can reach Node-3 MLflow, not just
 # localhost. Override with MLFLOW_HOST=127.0.0.1 to keep it local-only.
 HOST="${MLFLOW_HOST:-0.0.0.0}"
+
+# MLflow 3.x ships DNS-rebinding protection: every non-health request's Host header is
+# validated against an allowlist (default = localhost + RFC-1918 private IP patterns).
+# The real Pis reach us by raw LAN IP (10.x → matches the default), but the locally
+# EMULATED Pi nodes (deploy/pi-emulation/) reach us as `host.docker.internal:5050` — a
+# HOSTNAME the defaults reject with "Invalid Host header - possible DNS rebinding attack".
+# Setting the env var REPLACES the defaults, so we re-list the localhost + private-IP
+# patterns (keep the LAN Pis working) and add the container-host names. Loopback/LAN-only
+# dev + accreditation-evidence registry — not internet-exposed.
+ALLOWED="localhost:*,127.0.0.1:*,0.0.0.0:*,host.docker.internal:*,host.orb.internal:*,*.orb.local,*.orb.local:*,10.*,192.168.*,fc00:*,fd00:*"
+for _oct in $(seq 16 31); do ALLOWED="$ALLOWED,172.$_oct.*"; done
+export MLFLOW_SERVER_ALLOWED_HOSTS="${MLFLOW_SERVER_ALLOWED_HOSTS:-$ALLOWED}"
+
 echo "  · launching MLflow on $HOST:$PORT (sqlite backend, artifacts under deploy/mlflow/mlruns)…"
 # --serve-artifacts + --artifacts-destination make the server PROXY artifact downloads
 # (artifact URIs become mlflow-artifacts:/ instead of a local file:// path), so remote

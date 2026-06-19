@@ -1,0 +1,12 @@
+# Emulated UUV-1 (MACHINERY) node — identical to pi1:~/analytics/config.yml
+# except mlflow.host points at the Mac host (Node 3) instead of the LAN IP.
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "host.docker.internal"   # the Mac host running MLflow :5050 (Node 3)
+  port: 5050
+  model: "uuv1_anomaly_deploy"
+  version: latest
+  experiment: "uuv1_anomaly_train"
