@@ -12,7 +12,11 @@ if [ -f "$HERE/.feed.pids" ]; then
 fi
 # Belt-and-suspenders: kill any stray local feeders aimed at the subsystem nodes.
 pkill -f "ship_feed.py stream" 2>/dev/null || true
+pkill -f "feed_ae.py" 2>/dev/null || true
 pkill -f "gen_synthetic_sensors.py --stream --interval .* --url http://127.0.0.1:5454" 2>/dev/null || true
+
+# The own-systems AE node (standalone container, not in the compose).
+docker rm -f theseus-own-systems >/dev/null 2>&1 && echo "  · own-systems AE node down" || true
 
 # Sister hulls (separate compose projects), if they were brought up with --fleet.
 for slug in ddg-119 ddg-120; do

@@ -93,3 +93,6 @@ deploy/ship-emulation/.feed*
 deploy/ship-emulation/.ship_feed.log
 deploy/ship-emulation/docker-compose.ddg-1*.yml   # generated per-hull composes (gen_hull.py)
 demo/.api.log
+
+# AE own-systems node runtime
+serve/ae-receiver/.feed.log

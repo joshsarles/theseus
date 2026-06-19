@@ -387,7 +387,7 @@ _DESTROYER_SUBSYSTEMS: list[dict] = [
     {"key": "sonar",       "label": "SONAR / WATER SENSORS",    "port": 54544, "model": "sonar_deploy"},
     {"key": "c2",          "label": "C2 / COMMS LINK",          "port": 54545, "model": "c2_deploy"},
     {"key": "navigation",  "label": "NAVIGATION / INS-DVL",     "port": 54546, "model": "nav_deploy"},
-    {"key": "own_systems", "label": "UUV OWN-SYSTEMS (AE)",     "port": None,  "model": "theseus-uuv"},
+    {"key": "own_systems", "label": "UUV OWN-SYSTEMS (AE)",     "port": 54547, "model": "theseus-uuv"},
     {"key": "contacts",    "label": "CONTACTS / TACTICAL",      "port": 54322, "model": "uuv2_anomaly_deploy"},
 ]
 
@@ -415,13 +415,17 @@ def _node_health(port: int) -> bool:
 
 
 def _node_latest_score(port: int) -> float | None:
-    """Most recent active_anomaly_score from the node's /history. None if unreachable/empty."""
+    """Smoothed recent anomaly score: the MAX over the last few /history records. A single noisy
+    sample can't flip the tile, and a real detection lights the tile then clears as it ages out —
+    so severities don't flicker chaotically poll-to-poll. None if unreachable/empty."""
     import urllib.request
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/history", timeout=3) as r:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/history", timeout=2) as r:
             hist = json.loads(r.read())
-        if hist:
-            return hist[-1].get("active_anomaly_score")
+        scores = [h.get("active_anomaly_score") for h in hist[-3:]
+                  if isinstance(h.get("active_anomaly_score"), (int, float))]
+        if scores:
+            return max(scores)
     except Exception:
         pass
     return None
@@ -482,11 +486,16 @@ def _build_destroyer_subsystems(*, port_offset: int = 0, live_contacts: bool = T
                 detail = (f"{model} v{version} @production standing by · AUC {auc:.4f}"
                           if auc is not None else f"{model} v{version} @production standing by")
 
+        sev = _severity_from_score(score) if live else "standby"
+        # Don't let a low-confidence model drive a 'critical' tile during the live walk — a model
+        # below 0.85 ROC-AUC (auxiliary 0.68, the AE 0.77) caps at 'warning', not 'critical'.
+        if sev == "critical" and auc is not None and auc < 0.85:
+            sev = "warning"
         out.append({
             "key": spec["key"],
             "label": spec["label"],
             "live": live,
-            "severity": _severity_from_score(score) if live else "standby",
+            "severity": sev,
             "score": score,
             "auc": auc,
             "model": model,

@@ -155,7 +155,7 @@ def main() -> int:
     sub.add_parser("features", help="write features.<key>.json for each subsystem (mounted into nodes)")
     s = sub.add_parser("stream", help="continuously feed every subsystem its real data")
     s.add_argument("--interval", type=float, default=2.0)
-    s.add_argument("--anom-rate", type=float, default=0.18, help="synthetic-fault rate for the CSV streams")
+    s.add_argument("--anom-rate", type=float, default=0.035, help="synthetic-fault rate for the CSV streams (calm ship; occasional dramatic anomaly)")
     a = ap.parse_args()
     return cmd_features() if a.cmd == "features" else cmd_stream(a.interval, a.anom_rate)
 

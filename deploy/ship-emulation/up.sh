@@ -75,6 +75,19 @@ if [ "$FLEET" = 1 ]; then
   done
 fi
 
+# 4c. The flagship's UUV OWN-SYSTEMS organ = the BlueROV2 sequence autoencoder (the 8th model),
+#     in its OWN container (uuv-ae:latest, :54547). Built from serve/ae-receiver/ if missing.
+if ! docker image inspect uuv-ae:latest >/dev/null 2>&1; then
+  echo "  · building uuv-ae:latest (AE own-systems node)…"
+  docker build -q -t uuv-ae:latest "$REPO/serve/ae-receiver" >/dev/null 2>&1 || echo "  ⚠ uuv-ae build failed — own_systems stays standby"
+fi
+if docker image inspect uuv-ae:latest >/dev/null 2>&1; then
+  docker rm -f theseus-own-systems >/dev/null 2>&1 || true
+  docker run -d --name theseus-own-systems -p 54547:54321 uuv-ae:latest >/dev/null 2>&1 \
+    && echo "  ✓ own-systems AE node up (:54547, theseus-uuv autoencoder)" \
+    || echo "  ✗ own-systems AE node failed"
+fi
+
 # 5. Optional: drive every subsystem with its OWN real data (correct feature set + clearly-
 #    labeled synthetic faults on the CSV streams) via ship_feed.py — one threaded process
 #    feeding all hulls' nodes (dark ports skipped). (--replay kept for compat.)
@@ -83,6 +96,15 @@ if [ "$FEED" = 1 ]; then
   nohup python3 "$HERE/ship_feed.py" stream --interval "$INTERVAL" > "$HERE/.ship_feed.log" 2>&1 </dev/null &
   echo "$!" > "$HERE/.feed.pids"
   echo "  ✓ feeding all subsystems their own data (1 rec / ${INTERVAL}s) — log: deploy/ship-emulation/.ship_feed.log"
+  # The AE own-systems node needs temporally-smooth telemetry (continuous, pure-normal AR(1);
+  # i.i.d. noise reconstructs poorly on a sequence AE). ~30s warm-up to fill the 64-sample window.
+  if docker ps --format '{{.Names}}' | grep -q theseus-own-systems; then
+    pkill -f "feed_ae.py" 2>/dev/null || true
+    nohup python3 "$REPO/serve/ae-receiver/feed_ae.py" --url http://127.0.0.1:54547/stream-item \
+      --interval 0.5 --n 0 --anomaly-every 0 > "$REPO/serve/ae-receiver/.feed.log" 2>&1 </dev/null &
+    echo "$!" >> "$HERE/.feed.pids"
+    echo "  ✓ feeding own-systems AE node (smooth normal telemetry, ~30s warm-up)"
+  fi
 fi
 
 cat <<EOF
