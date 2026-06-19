@@ -19,7 +19,7 @@
 #                                        the silent-mock trap; we REFUSE on it)
 #   4. UI         :5173  /           -> HTTP 200            (the projector view)
 #   5. UI points at :8501            -> the exact port-mismatch that fakes the feed
-#   6. Explainer  :8080  /health     -> status ok + a model loaded (NV063 narrator)
+#   6. Explainer  :8081  /health     -> status ok + a model loaded (NV063 narrator)
 #
 # PORT CONTRACT (must agree end-to-end or the feed is silently fake):
 #   demo/api.py --port 8501  ==  frontend/ui useShipState STATE_URL :8501
@@ -30,7 +30,7 @@
 #
 # RUN:   bash deploy/preflight.sh                 # check the live demo stack, then GO/NO-GO
 #        bash deploy/preflight.sh --quiet         # only print the final verdict line
-#        API_PORT=8501 UI_PORT=5173 EXPLAINER_PORT=8080 bash deploy/preflight.sh
+#        API_PORT=8501 UI_PORT=5173 EXPLAINER_PORT=8081 bash deploy/preflight.sh
 #        SKIP_EXPLAINER=1 bash deploy/preflight.sh   # if the LLM narrator is intentionally out
 #
 # SAFE: 100% read-only. curls + a localhost record verify. Touches NO live state,
@@ -46,7 +46,7 @@ PY="${PYTHON:-python3}"
 # --- config (env-overridable; defaults are the pinned demo contract) ----------
 API_PORT="${API_PORT:-8501}"          # MUST match frontend/ui useShipState :8501
 UI_PORT="${UI_PORT:-5173}"            # Vite dev server (the projector view)
-EXPLAINER_PORT="${EXPLAINER_PORT:-8080}"   # llama-server (qwen2.5-1.5b NV063 narrator)
+EXPLAINER_PORT="${EXPLAINER_PORT:-8081}"   # llama-server (qwen2.5-1.5b NV063 narrator) — 8081, NOT 8080 (8080 belongs to the UE/seahelm system)
 HOST="${HOST:-localhost}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-5}"
 SKIP_EXPLAINER="${SKIP_EXPLAINER:-0}"

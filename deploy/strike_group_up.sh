@@ -6,6 +6,8 @@
 #   bash deploy/strike_group_up.sh          # MLflow + models + 3 destroyers (18 containers)
 #                                           # + 2 UUV nodes + the API, all live-fed.
 #   bash deploy/strike_group_up.sh --fast   # skip model (re)registration if already @production
+#   bash deploy/strike_group_up.sh --no-pi  # skip the 2 UUV Pi-EMULATION containers
+#                                           # (use when the REAL Raspberry Pis are serving :54321/:54322)
 #
 # Tear it down with: bash deploy/strike_group_down.sh
 set -uo pipefail
@@ -13,7 +15,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 PY312="$REPO/deploy/mlflow/.venv312/bin/python"
 MLFLOW="http://localhost:5050"
-FAST=0; for a in "$@"; do [ "$a" = "--fast" ] && FAST=1; done
+FAST=0; NO_PI=0
+for a in "$@"; do
+  [ "$a" = "--fast" ] && FAST=1
+  [ "$a" = "--no-pi" ] && NO_PI=1
+done
 
 say() { printf '\n\033[1m▸ %s\033[0m\n' "$*"; }
 
@@ -38,8 +44,16 @@ for m in machinery_deploy propulsion_deploy auxiliary_deploy sonar_deploy c2_dep
 done
 
 # 3. The two UUV Pi-emulation nodes (sonar + contacts), live-fed.
-say "3/6  UUV edge nodes (pi-emulation) :54321/:54322"
-bash "$REPO/deploy/pi-emulation/up.sh" --feed --interval=3 2>&1 | sed 's/^/  /' | tail -4
+#    --no-pi skips these: use it when the REAL Raspberry Pis are serving :54321/:54322
+#    (the API + UI read those ports the same way whether a container or a real Pi answers).
+if [ "$NO_PI" = 1 ]; then
+  say "3/6  UUV edge nodes — SKIPPED (--no-pi; real Raspberry Pis serve :54321/:54322)"
+  curl -fsS http://127.0.0.1:54321/health >/dev/null 2>&1 && echo "  ✓ :54321 answering (real Pi or prior node)" || echo "  · :54321 not answering yet — bring the Pi up, then it appears live"
+  curl -fsS http://127.0.0.1:54322/health >/dev/null 2>&1 && echo "  ✓ :54322 answering (real Pi or prior node)" || echo "  · :54322 not answering yet — bring the Pi up, then it appears live"
+else
+  say "3/6  UUV edge nodes (pi-emulation) :54321/:54322"
+  bash "$REPO/deploy/pi-emulation/up.sh" --feed --interval=3 2>&1 | sed 's/^/  /' | tail -4
+fi
 
 # 4. The destroyer strike group — 3 hulls, 6 subsystem containers each (18 total), live-fed.
 say "4/6  Destroyer strike group (DDG-118/119/120, 18 containers)"

@@ -10,7 +10,7 @@
  *     count-up (which masks an otherwise-correct instant tick).
  *   - drives the API entirely via Playwright route interception, so "live" vs
  *     "mock" and the POST-count are deterministic — it NEVER touches a running
- *     :8501 / :5173 / :8080.
+ *     :8501 / :5173 / :8081.
  *
  * Asserts, against the REAL built bundle:
  *   1. MOCK   → giant "SIM FEED — NOT LIVE" banner present; header reads SIM FEED.

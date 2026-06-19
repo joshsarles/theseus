@@ -27,4 +27,4 @@ done
 echo "[demo_up] 4/4 preflight gate:"
 bash deploy/preflight.sh
 echo "[demo_up] UI: http://localhost:5173  (if down: cd frontend/ui && npm run preview -- --port 5173 --host)"
-echo "[demo_up] Explainer LLM: http://localhost:8080  (if down: llama-server -m <qwen2.5-1.5b gguf> --port 8080)"
+echo "[demo_up] Explainer LLM: http://localhost:8081  (if down: llama-server -m <qwen2.5-1.5b gguf> --port 8081)  # 8081 — 8080 is the UE/seahelm system"
