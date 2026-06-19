@@ -36,7 +36,9 @@ export function FleetFlywheel({ fleet, conn }: FleetFlywheelProps) {
         flex: 1,
         minHeight: 0,
         display: "grid",
-        gridTemplateRows: "auto minmax(0, 1fr) auto",
+        // header (auto) · the flywheel graphic gets the flexible space (1fr) · the instrument
+        // panels are CAPPED (so a tall panel like the 9-model registry can't crush the graphic).
+        gridTemplateRows: "auto minmax(0, 1fr) minmax(150px, 34vh)",
         background: "var(--base)",
       }}
     >
@@ -88,12 +90,23 @@ export function FleetFlywheel({ fleet, conn }: FleetFlywheelProps) {
           gridTemplateColumns: "1fr 1fr 1fr 1fr",
           borderTop: "1px solid var(--hair-lit)",
           background: "var(--panel)",
+          minHeight: 0,
+          overflow: "hidden",
         }}
       >
-        <ProvenanceGatePanel rejected={fleet.rejected} accepted={fleet.merge?.accepted_ships ?? []} />
-        <EvalGatePanel merge={fleet.merge} pass={fleet.eval_gate_pass} />
-        <AccreditationPanel record={fleet.record} />
-        <MlflowPanel />
+        {/* each panel scrolls inside the capped row so none can grow the strip */}
+        <div style={{ minHeight: 0, overflow: "auto" }}>
+          <ProvenanceGatePanel rejected={fleet.rejected} accepted={fleet.merge?.accepted_ships ?? []} />
+        </div>
+        <div style={{ minHeight: 0, overflow: "auto" }}>
+          <EvalGatePanel merge={fleet.merge} pass={fleet.eval_gate_pass} />
+        </div>
+        <div style={{ minHeight: 0, overflow: "auto" }}>
+          <AccreditationPanel record={fleet.record} />
+        </div>
+        <div style={{ minHeight: 0, overflow: "auto", borderLeft: "1px solid var(--hair-lit)" }}>
+          <MlflowPanel />
+        </div>
       </div>
     </div>
   );
