@@ -239,3 +239,75 @@ export interface DestroyerState {
 }
 
 export type SceneMode = "operations" | "fleet" | "strike-group";
+
+/* ====================================================================== */
+/*  LIVE POISON-REJECTION BEAT — POST /api/fleet/inject                    */
+/*  Injects a forged model delta and runs the REAL provenance/eval-gated   */
+/*  merge, re-sealing + re-verifying the tamper-evident fleet record.      */
+/*  The interactive "trustworthy AI" moment: the gate REJECTS the forgery  */
+/*  live, the attested deltas merge, the chain re-verifies on screen.      */
+/* ====================================================================== */
+
+export interface InjectRejection {
+  keyid: string | null;
+  reason: string | null;
+}
+
+export interface InjectResult {
+  ok: boolean;
+  prime: string;
+  poison_rejected: boolean;
+  rejected: InjectRejection[];
+  accepted_ships: string[];
+  deltas_submitted: number;
+  deltas_accepted: number;
+  deltas_rejected: number;
+  incumbent_rmse: number;
+  merged_rmse: number;
+  rmse_delta: number;
+  held_out_n: number;
+  eval_gate_passed: boolean;
+  outcome: string;
+  chain_verify: boolean;
+  chain_verify_msg: string;
+  leaf_count: number;
+}
+
+/* ====================================================================== */
+/*  OSCAL EVIDENCE — GET /api/oscal                                        */
+/*  The sealed record projected onto NIST SP 800-53 rev5 as OSCAL          */
+/*  assessment-results (deploy/lula/record_to_oscal.py): the evidence      */
+/*  package an Authorizing Official ingests. Read-only; never CERTIFIED.   */
+/* ====================================================================== */
+
+export interface OscalControl {
+  /** e.g. "CM-3" */
+  control: string;
+  /** e.g. "Configuration Change Control" */
+  title: string;
+  /** "satisfied" | "not-satisfied" */
+  state: string;
+  remark: string;
+}
+
+export interface OscalState {
+  /** e.g. "NIST OSCAL 1.1.3 · assessment-results" */
+  standard: string;
+  /** e.g. "NIST SP 800-53 rev5" */
+  framework: string;
+  title: string;
+  record_verified: boolean;
+  verify_message: string;
+  merkle_root: string;
+  chain_head: string;
+  leaf_count: number;
+  /** "56/56" */
+  signed_leaves: string;
+  attested_leaves: string;
+  /** always "EVIDENCE_LOGGED" — never asserts accreditation */
+  accreditation_status: string;
+  n_observations: number;
+  controls: OscalControl[];
+  controls_satisfied: number;
+  controls_total: number;
+}

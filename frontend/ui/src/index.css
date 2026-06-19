@@ -202,6 +202,13 @@ body {
   }
 }
 
+/* spinner — the poison-inject beat while the forged delta is in flight */
+@keyframes theseus-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* tiny live tick — used sparingly on the one live indicator */
 @keyframes live-pulse {
   0%,

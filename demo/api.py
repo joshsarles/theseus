@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib.util
 import json
 import os
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -663,17 +665,163 @@ def _destroyer_ui_shape(rich: dict) -> dict:
         "held_out_n": merge.get("held_out_n", 150),
         "eval_gate_pass": bool(shore_rich.get("eval_gate_pass", True)),
     }
-    rejected = [{"hull": "UNREG-04", "keyid": r.get("id") or r.get("keyid", "POISON_NODE"),
-                 "reason": r.get("reason", "unattested delta")}
-                for r in (shore_rich.get("rejected_deltas") or [])] or [
-        {"hull": "UNREG-04", "keyid": "POISON_NODE",
-         "reason": "unknown ship keyid (no .pub in trust registry) — forged/unattested delta refused by the provenance gate"}]
+    # Dedupe by keyid: the live poison-inject beat (POST /api/fleet/inject) appends a fresh
+    # rejection leaf each press, so the sealed record can hold many identical POISON_NODE
+    # rejections — collapse them to one card here (the live beat surfaces each press itself).
+    _seen_keyids: set = set()
+    rejected = []
+    for r in (shore_rich.get("rejected_deltas") or []):
+        kid = r.get("id") or r.get("keyid", "POISON_NODE")
+        if kid in _seen_keyids:
+            continue
+        _seen_keyids.add(kid)
+        rejected.append({"hull": "UNREG-04", "keyid": kid,
+                         "reason": r.get("reason", "unattested delta")})
+    if not rejected:
+        rejected = [{"hull": "UNREG-04", "keyid": "POISON_NODE",
+                     "reason": "unknown ship keyid (no .pub in trust registry) — forged/unattested delta refused by the provenance gate"}]
     rec = shore_rich.get("record") or {}
     record = {"verify_ok": bool(rec.get("verify_ok", True)),
               "message": rec.get("message", "PASS — fleet record sealed"),
               "leaf_count": rec.get("leaf_count", 0)}
     return {"posture": "strike group · each hull a self-contained city · fleet learning under DDIL · human-authorized",
             "destroyers": destroyers, "shore": shore, "rejected": rejected, "record": record}
+
+
+# --- POST /api/fleet/inject — the LIVE poison-rejection beat -------------------------------
+# The hero "trustworthy AI" moment, made interactive: a forged model delta (signed by a key
+# NOT in the trust registry) is injected and the REAL fleet brain runs its provenance gate +
+# eval-gated FedAvg merge over the primed fleet, re-sealing + re-verifying the tamper-evident
+# fleet record. Returns the actual gate decisions (no theater): the forged delta is REJECTED,
+# the attested deltas merge, the merged model must beat the pre-learning baseline, and the
+# chain re-verifies. Backed entirely by fleet/fleet_brain.py — the same code run_miniature.sh
+# exercises. Thread-locked (mutates the sealed record); incumbent is always the bootstrap
+# baseline so the beat is repeatable + honest (every press reproduces the same real story).
+_INJECT_LOCK = threading.Lock()
+
+
+def _ensure_fleet_primed() -> str:
+    """Ensure Ed25519 keys + both ship deltas exist so the merge has real attested deltas to
+    accept. Idempotent + cheap when already primed (the common case — strike_group_up.sh runs
+    fleet/run_miniature.sh). On a bare checkout, (re)generates a consistent key+delta set."""
+    sys.path.insert(0, str(HERE.parent))
+    from fleet import fleet_brain as fb
+    from fleet import ship_node as sn
+    keys_ok = all((fb.KEYS_DIR / f"{sid}.key").exists() for sid in fb.SHIP_IDS)
+    deltas_ok = all((fb.ship_out_dir(sid) / f"delta_{sid}.json").exists() for sid in fb.SHIP_IDS)
+    if keys_ok and deltas_ok:
+        return "already primed"
+    fb.keygen()
+    _, base_params = sn.build_base_model()
+    for sid in fb.SHIP_IDS:
+        out_dir = fb.ship_out_dir(sid)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        sn.train_ship(sid, base_params, fb.KEYS_DIR, out_dir, verbose=False)
+    return "primed (keygen + 2 ship deltas)"
+
+
+def run_live_poison_inject() -> dict:
+    """Inject a forged delta + run the real provenance/eval-gated merge. Returns a compact,
+    UI-ready report of the gate decisions. Never raises a bare exception to the caller."""
+    sys.path.insert(0, str(HERE.parent))
+    from fleet import fleet_brain as fb
+    with _INJECT_LOCK:
+        prime_msg = _ensure_fleet_primed()
+        poison_path = fb.inject_poison()                       # forged delta, unregistered key
+        delta_paths = [fb.ship_out_dir(sid) / f"delta_{sid}.json" for sid in fb.SHIP_IDS]
+        delta_paths.append(poison_path)
+        # Incumbent = pre-learning bootstrap baseline (incumbent=None) so the eval gate
+        # reproduces the same honest PASS every press — the merged fleet model beats the
+        # baseline it started from. The forged delta is rejected regardless.
+        _accepted, _merged, report = fb.run_merge(delta_paths, None, verbose=False)
+        try:
+            poison_path.unlink()                              # don't pollute a later CLI --merge
+        except Exception:
+            pass
+        rejected = report.get("rejected_details", [])
+        leaf_count = len(_leaves(fb.FLEET_RECORD_DIR))
+        return {
+            "ok": True,
+            "prime": prime_msg,
+            "poison_rejected": any("POISON" in str(r.get("ship_id", "")) for r in rejected),
+            "rejected": [{"keyid": r.get("ship_id"), "reason": r.get("reason")} for r in rejected],
+            "accepted_ships": report.get("accepted_ships", []),
+            "deltas_submitted": report.get("deltas_submitted"),
+            "deltas_accepted": report.get("deltas_accepted"),
+            "deltas_rejected": report.get("deltas_rejected"),
+            "incumbent_rmse": report.get("incumbent_rmse"),
+            "merged_rmse": report.get("merged_rmse"),
+            "rmse_delta": report.get("rmse_delta"),
+            "held_out_n": report.get("held_out_n"),
+            "eval_gate_passed": report.get("eval_gate_passed"),
+            "outcome": report.get("outcome"),
+            "chain_verify": report.get("chain_verify"),
+            "chain_verify_msg": report.get("chain_verify_msg"),
+            "leaf_count": leaf_count,
+        }
+
+
+# --- GET /api/oscal — the OSCAL evidence panel (the package an AO signs) --------------------
+# Projects the ACTUAL sealed record onto NIST SP 800-53 rev5 via deploy/lula/record_to_oscal.py
+# (read-only over the record) and summarizes it for the UI: verify status, crypto coverage,
+# and per-control satisfied/not findings. This is the feasibility/path-to-production win —
+# the runtime-decision evidence in the AO's own language (OSCAL). Never asserts accreditation.
+_OSCAL_MOD = None
+
+
+def _oscal_module():
+    """Load deploy/lula/record_to_oscal.py by path (it's not an importable package)."""
+    global _OSCAL_MOD
+    if _OSCAL_MOD is None:
+        path = HERE.parent / "deploy" / "lula" / "record_to_oscal.py"
+        spec = importlib.util.spec_from_file_location("theseus_record_to_oscal", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _OSCAL_MOD = mod
+    return _OSCAL_MOD
+
+
+def build_oscal_state(record_dir: Path) -> dict:
+    """Compact OSCAL assessment-results summary for the UI. Reads the real sealed record;
+    a control is `satisfied` only when the record cryptographically verifies AND its mapped
+    events are sealed + signed + in-toto attested (the emitter enforces this — no fabricated PASS)."""
+    r2o = _oscal_module()
+    doc = r2o.build_assessment_results(record_dir)
+    ar = doc["assessment-results"]
+    res = ar["results"][0]
+    props = {p["name"]: p["value"] for p in res.get("props", [])}
+    controls = []
+    for f in res.get("findings", []):
+        tgt = f.get("target", {})
+        st = tgt.get("status", {})
+        title = f.get("title", "")
+        # titles read "... Control: CM-3 (Configuration Change Control)" — pull the human name
+        nice = title.split("(")[-1].rstrip(")") if "(" in title else title
+        controls.append({
+            "control": str(tgt.get("target-id", "")).upper(),
+            "title": nice,
+            "state": st.get("state"),
+            "remark": st.get("remarks") or st.get("reason"),
+        })
+    controls.sort(key=lambda c: c["control"])
+    satisfied = sum(1 for c in controls if c["state"] == "satisfied")
+    return {
+        "standard": f"NIST OSCAL {ar['metadata']['oscal-version']} · assessment-results",
+        "framework": "NIST SP 800-53 rev5",
+        "title": res.get("title"),
+        "record_verified": props.get("record-verified") == "true",
+        "verify_message": props.get("record-verify-message"),
+        "merkle_root": props.get("merkle-root"),
+        "chain_head": props.get("chain-head"),
+        "leaf_count": int(props.get("leaf-count", "0") or 0),
+        "signed_leaves": props.get("ed25519-signed-leaves"),
+        "attested_leaves": props.get("in-toto-attested-leaves"),
+        "accreditation_status": props.get("accreditation-status"),
+        "n_observations": len(res.get("observations", [])),
+        "controls": controls,
+        "controls_satisfied": satisfied,
+        "controls_total": len(controls),
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -727,6 +875,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
             return
+        if path == "/api/oscal":                # OSCAL evidence — the record projected onto SP 800-53
+            try:
+                self._send(build_oscal_state(self.record_dir))
+            except Exception:
+                self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
+            return
         try:
             state = build_state(self.record_dir)
         except Exception as e:
@@ -739,7 +893,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/health":
             self._send({"ok": True, "record_verifies": state["record"]["verify_ok"], "leaves": state["record"]["leaf_count"]})
         else:
-            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health", "/api/fleet", "/api/mlflow", "/api/destroyer"]}, 404)
+            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health", "/api/fleet", "/api/mlflow", "/api/destroyer", "/api/oscal"]}, 404)
 
     def do_POST(self):
         """Seal a watch-officer decision into the tamper-evident record (the human-in-command beat)."""
@@ -814,9 +968,17 @@ class Handler(BaseHTTPRequestHandler):
             self._send({"ok": True, "registered": True, "sealed": "node_report",
                         "node_id": node_id, "system": system,
                         "received_unix": stored["received_unix"], "leaf_hash": leaf})
+        elif path == "/api/fleet/inject":
+            # The live poison-rejection beat: inject a forged delta + run the real
+            # provenance/eval-gated merge, re-sealing + re-verifying the fleet record.
+            try:
+                self._send(run_live_poison_inject())
+            except Exception:
+                self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
         else:
             self._send({"error": "not found",
-                        "routes": ["POST /api/decision", "POST /api/node-report"]}, 404)
+                        "routes": ["POST /api/decision", "POST /api/node-report",
+                                   "POST /api/fleet/inject"]}, 404)
 
     def log_message(self, *a):  # quiet
         pass

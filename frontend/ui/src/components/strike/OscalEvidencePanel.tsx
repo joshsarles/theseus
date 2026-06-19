@@ -1,0 +1,98 @@
+import type { OscalState } from "../../lib/types";
+
+/**
+ * OSCAL EVIDENCE — the accreditation package an Authorizing Official ingests.
+ *
+ * The sealed tamper-evident record, projected onto NIST SP 800-53 rev5 as OSCAL
+ * assessment-results (deploy/lula/record_to_oscal.py, GET /api/oscal). This is the
+ * path-to-production win: runtime decisions reported as control evidence in the AO's
+ * OWN language. A control reads `satisfied` ONLY when the record cryptographically
+ * verifies AND its events are sealed + signed + in-toto attested — never asserted,
+ * never CERTIFIED (the emitter enforces it; status stays EVIDENCE_LOGGED).
+ */
+export function OscalEvidencePanel({ oscal }: { oscal: OscalState }) {
+  const ok = oscal.record_verified;
+  return (
+    <div style={{ padding: "12px 15px", flex: 1, minHeight: 0, overflow: "auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Evidence · OSCAL</div>
+        <span
+          className="mono"
+          style={{ fontSize: 7.5, color: "var(--amber)", marginLeft: "auto", letterSpacing: "0.1em", border: "1px solid var(--amber-dim)", padding: "2px 6px" }}
+        >
+          {oscal.framework}
+        </span>
+      </div>
+
+      {/* verify status + crypto coverage */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+        <span style={{ width: 8, height: 8, background: ok ? "var(--nominal)" : "var(--critical)", flexShrink: 0 }} />
+        <span className="mono" style={{ fontSize: 10, color: ok ? "var(--nominal)" : "var(--critical)", letterSpacing: "0.03em" }}>
+          {ok ? "RECORD VERIFIES" : "VERIFY FAILED"}
+        </span>
+        <span className="mono" style={{ fontSize: 8.5, color: "var(--muted)", marginLeft: "auto" }}>
+          {oscal.controls_satisfied}/{oscal.controls_total} CONTROLS
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
+        <Stat label="LEAVES" value={String(oscal.leaf_count)} />
+        <Stat label="ED25519" value={oscal.signed_leaves} />
+        <Stat label="IN-TOTO" value={oscal.attested_leaves} />
+      </div>
+
+      {/* the SP 800-53 control chips */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 11 }}>
+        {oscal.controls.map((c) => {
+          const sat = c.state === "satisfied";
+          return (
+            <div
+              key={c.control}
+              title={c.remark}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                border: "1px solid var(--hair)",
+                borderLeft: `2px solid ${sat ? "var(--nominal)" : "var(--critical)"}`,
+                padding: "5px 9px",
+              }}
+            >
+              <span className="num" style={{ fontSize: 10, color: "var(--ink)", minWidth: 38, letterSpacing: "0.04em" }}>
+                {c.control}
+              </span>
+              <span className="mono" style={{ fontSize: 9, color: "var(--ink-dim)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {c.title}
+              </span>
+              <span
+                className="mono"
+                style={{ fontSize: 8, color: sat ? "var(--nominal)" : "var(--critical)", marginLeft: "auto", letterSpacing: "0.06em", flexShrink: 0 }}
+              >
+                {sat ? "SATISFIED" : "NOT SATISFIED"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* the honest footer — the AO line */}
+      <div className="mono" style={{ fontSize: 8.5, color: "var(--muted)", lineHeight: 1.55, marginTop: 10 }}>
+        {oscal.standard} · status{" "}
+        <span style={{ color: "var(--amber)" }}>{oscal.accreditation_status}</span> (never CERTIFIED).
+        Ed25519 · in-toto/DSSE → NIST OSCAL · the runtime-decision evidence an AO signs as cATO-for-AI.
+      </div>
+      <div className="mono" style={{ fontSize: 8, color: "var(--faint)", lineHeight: 1.5, marginTop: 6, wordBreak: "break-all" }}>
+        merkle {oscal.merkle_root.slice(0, 24)}… · head {oscal.chain_head.slice(0, 24)}…
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span className="eyebrow" style={{ fontSize: 7.5 }}>{label}</span>
+      <span className="num" style={{ fontSize: 12, color: "var(--ink)" }}>{value}</span>
+    </div>
+  );
+}

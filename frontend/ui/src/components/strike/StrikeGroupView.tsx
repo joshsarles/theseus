@@ -4,6 +4,9 @@ import type { DestroyerConn } from "../../hooks/useDestroyerState";
 import { DestroyerCard } from "./DestroyerCard";
 import { StrikeContactsMap } from "./StrikeContactsMap";
 import { StrikeGroupStage } from "./StrikeGroupStage";
+import { PoisonRejectionBeat } from "./PoisonRejectionBeat";
+import { OscalEvidencePanel } from "./OscalEvidencePanel";
+import { useOscalState } from "../../hooks/useOscalState";
 
 interface StrikeGroupViewProps {
   destroyer: DestroyerState;
@@ -26,6 +29,7 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
   const [selected, setSelected] = useState<string>(
     () => destroyer.destroyers.find((d) => d.flagship)?.hull ?? destroyer.destroyers[0]?.hull ?? "",
   );
+  const { oscal } = useOscalState();
 
   const totals = useMemo(() => {
     let critical = 0;
@@ -135,40 +139,8 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
 
         {/* gate readout column */}
         <div style={{ display: "flex", flexDirection: "column", background: "var(--panel)" }}>
-          {/* provenance gate */}
-          <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>
-            <div className="eyebrow" style={{ fontSize: 9 }}>Provenance Gate · poisoning defense</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9 }}>
-              <span style={{ width: 8, height: 8, background: "var(--nominal)" }} />
-              <span className="mono" style={{ fontSize: 10.5, color: "var(--ink)", letterSpacing: "0.04em" }}>
-                {shore.accepted_hulls.length} ATTESTED · ADMITTED
-              </span>
-              <span className="mono" style={{ fontSize: 9, color: "var(--muted)", marginLeft: "auto" }}>
-                {shore.accepted_hulls.join(" · ")}
-              </span>
-            </div>
-            {destroyer.rejected.map((r) => (
-              <div
-                key={r.keyid ?? "poison"}
-                style={{ border: "1px solid var(--critical)", background: "var(--critical-wash)", padding: "9px 11px", marginTop: 9 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                  <span className="display" style={{ fontSize: 12, fontWeight: 700, color: "var(--critical)", letterSpacing: "0.06em", flexShrink: 0 }}>
-                    ✕ REJECTED
-                  </span>
-                  <span
-                    className="mono"
-                    style={{ fontSize: 9.5, color: "var(--ink)", marginLeft: "auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  >
-                    {r.keyid}
-                  </span>
-                </div>
-                <div className="mono" style={{ fontSize: 9, color: "var(--ink-dim)", lineHeight: 1.5 }}>
-                  {r.reason}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* provenance gate — the LIVE interactive poison-rejection beat */}
+          <PoisonRejectionBeat conn={conn} />
 
           {/* eval gate */}
           <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>
@@ -201,25 +173,23 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
             </div>
           </div>
 
-          {/* accreditation footer */}
-          <div style={{ padding: "12px 15px", flex: 1 }}>
-            <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Record</div>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9 }}
-            >
-              <span style={{ width: 8, height: 8, background: destroyer.record.verify_ok ? "var(--nominal)" : "var(--critical)" }} />
-              <span className="mono" style={{ fontSize: 10, color: destroyer.record.verify_ok ? "var(--nominal)" : "var(--critical)", letterSpacing: "0.04em" }}>
-                {destroyer.record.verify_ok ? "VERIFY OK" : "VERIFY FAILED"} · {destroyer.record.leaf_count} LEAVES
-              </span>
+          {/* accreditation footer — the OSCAL evidence an AO ingests */}
+          {oscal ? (
+            <OscalEvidencePanel oscal={oscal} />
+          ) : (
+            <div style={{ padding: "12px 15px", flex: 1 }}>
+              <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Record</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9 }}>
+                <span style={{ width: 8, height: 8, background: destroyer.record.verify_ok ? "var(--nominal)" : "var(--critical)" }} />
+                <span className="mono" style={{ fontSize: 10, color: destroyer.record.verify_ok ? "var(--nominal)" : "var(--critical)", letterSpacing: "0.04em" }}>
+                  {destroyer.record.verify_ok ? "VERIFY OK" : "VERIFY FAILED"} · {destroyer.record.leaf_count} LEAVES
+                </span>
+              </div>
+              <div className="mono" style={{ fontSize: 8.5, color: "var(--muted)", lineHeight: 1.55, marginTop: 7 }}>
+                {destroyer.record.message}
+              </div>
             </div>
-            <div className="mono" style={{ fontSize: 8.5, color: "var(--muted)", lineHeight: 1.55, marginTop: 7 }}>
-              {destroyer.record.message}
-            </div>
-            <div className="mono" style={{ fontSize: 8.5, color: "var(--muted)", lineHeight: 1.55, marginTop: 9 }}>
-              Ed25519 · in-toto/DSSE → NIST OSCAL · cATO-for-AI. The fleet improves
-              only when measurably better; an unregistered keyid never touches FedAvg.
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
