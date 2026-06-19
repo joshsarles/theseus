@@ -100,6 +100,7 @@ if [ "$FEED" = 1 ]; then
   # i.i.d. noise reconstructs poorly on a sequence AE). ~30s warm-up to fill the 64-sample window.
   if docker ps --format '{{.Names}}' | grep -q theseus-own-systems; then
     pkill -f "feed_ae.py" 2>/dev/null || true
+    for _ in $(seq 1 20); do curl -fsS http://127.0.0.1:54547/health >/dev/null 2>&1 && break; sleep 1; done
     nohup python3 "$REPO/serve/ae-receiver/feed_ae.py" --url http://127.0.0.1:54547/stream-item \
       --interval 0.5 --n 0 --anomaly-every 0 > "$REPO/serve/ae-receiver/.feed.log" 2>&1 </dev/null &
     echo "$!" >> "$HERE/.feed.pids"

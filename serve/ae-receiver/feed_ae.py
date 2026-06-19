@@ -108,8 +108,10 @@ def main() -> None:
             ls   = resp.get("last_score")
             score_str = f"  score={ls:.6f}" if ls is not None else ""
             print(f"  rec {i:3d}  [{label}]  window_full={wf}{score_str}")
-        except urllib.error.URLError as exc:
-            print(f"  rec {i:3d}  [{label}]  POST failed: {exc}")
+        except Exception as exc:
+            # Resilient: a transient error (e.g. ConnectionResetError while the container is
+            # still booting) must NOT kill a continuous feed — log and keep streaming.
+            print(f"  rec {i:3d}  [{label}]  POST failed ({type(exc).__name__}): {exc}")
 
         time.sleep(a.interval)
 
