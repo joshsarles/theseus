@@ -796,6 +796,7 @@ def _oscal_degraded(record_dir: Path, msg: str) -> dict:
         "accreditation_status": "EVIDENCE_LOGGED",
         "n_observations": 0, "controls": [],
         "controls_satisfied": 0, "controls_total": 0,
+        "tampered": False,
     }
 
 
@@ -811,7 +812,12 @@ def build_oscal_state(record_dir: Path = FLEET_RECORD) -> dict:
     if not (record_dir / "chain.jsonl").exists() or not (record_dir / "bundle.json").exists():
         return _oscal_degraded(record_dir, "no fleet record sealed yet — run deploy/strike_group_up.sh")
     r2o = _oscal_module()
-    doc = r2o.build_assessment_results(record_dir)
+    return _oscal_summary(r2o.build_assessment_results(record_dir))
+
+
+def _oscal_summary(doc: dict, *, tampered: bool = False) -> dict:
+    """Map an OSCAL assessment-results doc to the compact UI shape (shared by the live panel
+    and the tamper-preview)."""
     ar = doc["assessment-results"]
     res = ar["results"][0]
     props = {p["name"]: p["value"] for p in res.get("props", [])}
@@ -846,7 +852,30 @@ def build_oscal_state(record_dir: Path = FLEET_RECORD) -> dict:
         "controls": controls,
         "controls_satisfied": satisfied,
         "controls_total": len(controls),
+        "tampered": tampered,
     }
+
+
+def build_oscal_tamper_preview(record_dir: Path = FLEET_RECORD) -> dict:
+    """The 'prove it snaps' beat: flip ONE byte in a throwaway COPY of the sealed record, re-run
+    the OSCAL projection, and return it — so the UI can show every control degrade to not-satisfied
+    and the verify message flip to FAIL. The canonical record is NEVER mutated (work on a tmp copy,
+    deleted in finally). Demonstrates that the OSCAL evidence is tamper-EVIDENT, not a static PDF."""
+    import shutil
+    import tempfile
+    if not (record_dir / "chain.jsonl").exists() or not (record_dir / "bundle.json").exists():
+        return _oscal_degraded(record_dir, "no fleet record to tamper-test yet — run deploy/strike_group_up.sh")
+    r2o = _oscal_module()
+    sys.path.insert(0, str(HERE.parent))
+    from referee.chain import tamper
+    tmp = Path(tempfile.mkdtemp(prefix="theseus-oscal-tamper-"))
+    try:
+        dst = tmp / "record"
+        shutil.copytree(record_dir, dst)
+        tamper(dst, 0)                       # flip leaf 0 on the COPY — canonical record untouched
+        return _oscal_summary(r2o.build_assessment_results(dst), tampered=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -905,6 +934,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(build_oscal_state())   # defaults to durable FLEET_RECORD; degrades, never 500s
             except Exception:
                 self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
+            return
+        if path == "/api/oscal/tamper-preview":  # 'prove it snaps' — OSCAL on a tampered COPY (real record untouched)
+            try:
+                self._send(build_oscal_tamper_preview())
+            except Exception:
+                self._send({"error": "internal error"}, 500)
             return
         try:
             state = build_state(self.record_dir)

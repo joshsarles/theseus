@@ -1,5 +1,6 @@
+import { useCallback, useRef, useState } from "react";
 import type { OscalState } from "../../lib/types";
-import type { OscalConn } from "../../hooks/useOscalState";
+import { type OscalConn, OSCAL_TAMPER_URL } from "../../hooks/useOscalState";
 
 /**
  * OSCAL EVIDENCE — the accreditation package an Authorizing Official ingests.
@@ -12,17 +13,55 @@ import type { OscalConn } from "../../hooks/useOscalState";
  * never CERTIFIED (the emitter enforces it; status stays EVIDENCE_LOGGED).
  */
 export function OscalEvidencePanel({ oscal, conn = "live" }: { oscal: OscalState; conn?: OscalConn }) {
-  const ok = oscal.record_verified;
+  // "Prove it snaps": fetch the OSCAL projection of a TAMPERED copy of the record (the real
+  // record is never touched — the backend tampers a throwaway copy) and show every control
+  // degrade to not-satisfied for a few seconds, then revert to the live evidence.
+  const [preview, setPreview] = useState<OscalState | null>(null);
+  const [snapping, setSnapping] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const proveItSnaps = useCallback(async () => {
+    if (snapping) return;
+    setSnapping(true);
+    try {
+      const res = await fetch(OSCAL_TAMPER_URL);
+      if (res.ok) {
+        const t = (await res.json()) as OscalState;
+        setPreview(t);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => setPreview(null), 6000); // auto-revert to live
+      }
+    } catch {
+      /* offline — leave the live view */
+    } finally {
+      setSnapping(false);
+    }
+  }, [snapping]);
+
+  // What we render: the tampered projection while previewing, else the live evidence.
+  const view = preview ?? oscal;
+  const ok = view.record_verified;
+  const tampering = !!preview;
   // Honesty: if the endpoint isn't truly live, this panel may be showing the offline fixture or
   // a stale snapshot — never let a fixture read as real cryptographic evidence (mirror the
   // PoisonRejectionBeat's conn treatment).
   const notLive = conn !== "live";
   const connLabel = conn === "mock" ? "OFFLINE FIXTURE" : conn === "stale" ? "STALE" : conn === "connecting" ? "LINKING…" : "";
   return (
-    <div style={{ padding: "12px 15px", flex: 1, minHeight: 0, overflow: "auto" }}>
+    <div
+      style={{
+        padding: "12px 15px",
+        flex: 1,
+        minHeight: 0,
+        overflow: "auto",
+        // a faint red wash while the tamper demo is on-screen, so the SNAP reads at a glance
+        background: tampering ? "var(--critical-wash)" : undefined,
+        transition: "background 0.25s ease",
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Evidence · OSCAL</div>
-        {notLive && connLabel && (
+        {notLive && connLabel && !tampering && (
           <span
             className="mono"
             style={{ fontSize: 7.5, color: "var(--critical)", letterSpacing: "0.1em", border: "1px solid var(--critical)", padding: "2px 6px" }}
@@ -30,11 +69,19 @@ export function OscalEvidencePanel({ oscal, conn = "live" }: { oscal: OscalState
             {connLabel}
           </span>
         )}
+        {tampering && (
+          <span
+            className="mono"
+            style={{ fontSize: 7.5, color: "var(--critical)", letterSpacing: "0.1em", border: "1px solid var(--critical)", padding: "2px 6px" }}
+          >
+            TAMPER DEMO · 1 BYTE FLIPPED (live record untouched)
+          </span>
+        )}
         <span
           className="mono"
           style={{ fontSize: 7.5, color: "var(--amber)", marginLeft: "auto", letterSpacing: "0.1em", border: "1px solid var(--amber-dim)", padding: "2px 6px" }}
         >
-          {oscal.framework}
+          {view.framework}
         </span>
       </div>
 
@@ -42,22 +89,22 @@ export function OscalEvidencePanel({ oscal, conn = "live" }: { oscal: OscalState
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
         <span style={{ width: 8, height: 8, background: ok ? "var(--nominal)" : "var(--critical)", flexShrink: 0 }} />
         <span className="mono" style={{ fontSize: 10, color: ok ? "var(--nominal)" : "var(--critical)", letterSpacing: "0.03em" }}>
-          {ok ? "RECORD VERIFIES" : "VERIFY FAILED"}
+          {ok ? "RECORD VERIFIES" : tampering ? "CHAIN SNAPPED" : "VERIFY FAILED"}
         </span>
         <span className="mono" style={{ fontSize: 8.5, color: "var(--muted)", marginLeft: "auto" }}>
-          {oscal.controls_satisfied}/{oscal.controls_total} CONTROLS
+          {view.controls_satisfied}/{view.controls_total} CONTROLS
         </span>
       </div>
 
       <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
-        <Stat label="LEAVES" value={String(oscal.leaf_count)} />
-        <Stat label="ED25519" value={oscal.signed_leaves} />
-        <Stat label="IN-TOTO" value={oscal.attested_leaves} />
+        <Stat label="LEAVES" value={String(view.leaf_count)} />
+        <Stat label="ED25519" value={view.signed_leaves} />
+        <Stat label="IN-TOTO" value={view.attested_leaves} />
       </div>
 
       {/* the SP 800-53 control chips */}
       <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 11 }}>
-        {oscal.controls.map((c) => {
+        {view.controls.map((c) => {
           const sat = c.state === "satisfied";
           return (
             <div
@@ -89,14 +136,39 @@ export function OscalEvidencePanel({ oscal, conn = "live" }: { oscal: OscalState
         })}
       </div>
 
+      {/* prove-it-snaps control — the tamper-evidence made visceral */}
+      <button
+        type="button"
+        onClick={proveItSnaps}
+        disabled={snapping || tampering}
+        style={{
+          width: "100%",
+          marginTop: 10,
+          padding: "6px 10px",
+          background: "transparent",
+          border: `1px solid ${tampering ? "var(--critical)" : "var(--hair-lit)"}`,
+          color: tampering ? "var(--critical)" : "var(--ink-dim)",
+          cursor: snapping || tampering ? "default" : "pointer",
+          font: "inherit",
+          fontSize: 9,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+        }}
+        className="display"
+      >
+        {tampering ? "⚡ chain snapped — reverting to live…" : snapping ? "tampering a copy…" : "⚡ Prove it snaps"}
+      </button>
+
       {/* the honest footer — the AO line */}
       <div className="mono" style={{ fontSize: 8.5, color: "var(--muted)", lineHeight: 1.55, marginTop: 10 }}>
-        {oscal.standard} · status{" "}
-        <span style={{ color: "var(--amber)" }}>{oscal.accreditation_status}</span> (never CERTIFIED).
+        {view.standard} · status{" "}
+        <span style={{ color: "var(--amber)" }}>{view.accreditation_status}</span> (never CERTIFIED).
         Ed25519 · in-toto/DSSE → NIST OSCAL · the runtime-decision evidence an AO signs as cATO-for-AI.
       </div>
       <div className="mono" style={{ fontSize: 8, color: "var(--faint)", lineHeight: 1.5, marginTop: 6, wordBreak: "break-all" }}>
-        merkle {oscal.merkle_root.slice(0, 24)}… · head {oscal.chain_head.slice(0, 24)}…
+        {tampering
+          ? view.verify_message
+          : `merkle ${view.merkle_root.slice(0, 24)}… · head ${view.chain_head.slice(0, 24)}…`}
       </div>
     </div>
   );

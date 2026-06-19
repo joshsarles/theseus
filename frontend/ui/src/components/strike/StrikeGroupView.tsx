@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import type { DestroyerState, Severity } from "../../lib/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DestroyerState, InjectResult, Severity } from "../../lib/types";
 import type { DestroyerConn } from "../../hooks/useDestroyerState";
 import { DestroyerCard } from "./DestroyerCard";
 import { StrikeContactsMap } from "./StrikeContactsMap";
@@ -30,6 +30,21 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
     () => destroyer.destroyers.find((d) => d.flagship)?.hull ?? destroyer.destroyers[0]?.hull ?? "",
   );
   const { oscal, conn: oscalConn, refetch: refetchOscal } = useOscalState();
+
+  // the cross-panel "unforgettable moment": when the operator fires a forged delta, flash a
+  // strike-group-wide banner with the live gate result and re-verify the OSCAL panel in lockstep.
+  const [flash, setFlash] = useState<InjectResult | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onInject = useCallback(
+    (result: InjectResult) => {
+      refetchOscal();
+      setFlash(result);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setFlash(null), 6000);
+    },
+    [refetchOscal],
+  );
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   const totals = useMemo(() => {
     let critical = 0;
@@ -66,6 +81,43 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
         overflow: "auto",
       }}
     >
+      {/* the cross-panel MOMENT — a forged delta was fired and the fleet refused it, live */}
+      {flash && (
+        <div
+          key={flash.leaf_count}
+          style={{
+            position: "fixed",
+            top: 78,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 60,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "10px 20px",
+            background: "var(--panel)",
+            border: "1px solid var(--critical)",
+            borderLeft: "3px solid var(--critical)",
+            boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
+            animation: "theseus-flash-in 0.32s ease-out",
+            maxWidth: "min(92vw, 760px)",
+          }}
+        >
+          <span className="display" style={{ fontSize: 13, fontWeight: 700, color: "var(--critical)", letterSpacing: "0.06em", flexShrink: 0 }}>
+            ✕ FORGED DELTA REJECTED
+          </span>
+          <span className="mono" style={{ fontSize: 10, color: "var(--ink-dim)", letterSpacing: "0.02em" }}>
+            {flash.deltas_accepted} attested merged · eval gate {flash.eval_gate_passed ? "PASS" : "HOLD"} (Δ {flash.rmse_delta > 0 ? "+" : ""}{flash.rmse_delta.toFixed(6)})
+          </span>
+          <span
+            className="display"
+            style={{ fontSize: 12, fontWeight: 700, color: flash.chain_verify ? "var(--nominal)" : "var(--critical)", letterSpacing: "0.05em", marginLeft: "auto", flexShrink: 0 }}
+          >
+            {flash.chain_verify ? `✓ CHAIN RE-VERIFIED · ${flash.leaf_count} LEAVES` : "✕ CHAIN BROKEN"}
+          </span>
+        </div>
+      )}
+
       {/* doctrine strip */}
       <div
         style={{
@@ -142,7 +194,7 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
           {/* provenance gate — the LIVE interactive poison-rejection beat.
               onComplete re-pulls the OSCAL panel so the sealed leaves + controls
               tick up in lockstep the instant the gate decides (one witnessed beat). */}
-          <PoisonRejectionBeat conn={conn} onComplete={refetchOscal} />
+          <PoisonRejectionBeat conn={conn} onComplete={onInject} />
 
           {/* eval gate */}
           <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>

@@ -6,6 +6,7 @@ const API_BASE =
   "http://localhost:8501";
 
 export const OSCAL_URL = `${API_BASE}/api/oscal`;
+export const OSCAL_TAMPER_URL = `${API_BASE}/api/oscal/tamper-preview`;
 
 const POLL_MS = 8000;
 const FETCH_TIMEOUT_MS = 6000;

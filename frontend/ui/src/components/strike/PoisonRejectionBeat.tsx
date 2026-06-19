@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useFleetInject } from "../../hooks/useFleetInject";
 import type { DestroyerConn } from "../../hooks/useDestroyerState";
+import type { InjectResult } from "../../lib/types";
 
 /**
  * PROVENANCE GATE — the live, interactive poison-rejection beat.
@@ -18,16 +19,17 @@ export function PoisonRejectionBeat({
   onComplete,
 }: {
   conn: DestroyerConn;
-  /** fired when the gate decides, so a sibling panel (OSCAL) can re-pull the now-grown record */
-  onComplete?: () => void;
+  /** fired with the gate's report when it decides — lets the scene re-pull OSCAL + flash the moment */
+  onComplete?: (result: InjectResult) => void;
 }) {
   const { phase, result, inject, reset } = useFleetInject();
   const busy = phase === "injecting";
 
-  // when the live merge seals (phase → done), nudge the OSCAL panel to re-verify in lockstep
+  // when the live merge seals (phase → done), hand the result up so the scene can re-verify
+  // OSCAL in lockstep and flash the cross-panel "forged delta rejected" moment
   useEffect(() => {
-    if (phase === "done" && onComplete) onComplete();
-  }, [phase, onComplete]);
+    if (phase === "done" && result && onComplete) onComplete(result);
+  }, [phase, result, onComplete]);
 
   return (
     <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>

@@ -310,4 +310,6 @@ export interface OscalState {
   controls: OscalControl[];
   controls_satisfied: number;
   controls_total: number;
+  /** true only for the tamper-preview projection (GET /api/oscal/tamper-preview) */
+  tampered?: boolean;
 }

@@ -209,6 +209,18 @@ body {
   }
 }
 
+/* the cross-panel moment — banner drops in when a forged delta is refused */
+@keyframes theseus-flash-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* tiny live tick — used sparingly on the one live indicator */
 @keyframes live-pulse {
   0%,
