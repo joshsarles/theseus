@@ -357,10 +357,13 @@ export function StrikeContactsMap({ contactsSeverity = "critical" }: StrikeConta
         style={{ position: "relative", height: 460, minHeight: 0, background: "var(--base)" }}
       >
         <DeckGL
-          key={`${dims.w}x${dims.h}-${contacts.length}-${ownShips.length}`}
           views={new OrthographicView({ id: "sc-ortho", flipY: false })}
-          initialViewState={viewState}
-          controller={{ doubleClickZoom: false }}
+          // CONTROLLED view locked to the computed fit-to-bounds: the plot always stays
+          // centered on the operating area and can't be knocked off-center by a stray
+          // scroll/drag over the canvas (the prior initialViewState + live controller let
+          // an accidental pan/zoom drift the entities off the graph and persist).
+          viewState={viewState}
+          controller={false}
           layers={layers}
           width={dims.w}
           height={dims.h}
