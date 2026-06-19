@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useFleetInject } from "../../hooks/useFleetInject";
 import type { DestroyerConn } from "../../hooks/useDestroyerState";
 
@@ -12,9 +13,21 @@ import type { DestroyerConn } from "../../hooks/useDestroyerState";
  *
  * This is the visceral "trustworthy AI" moment — the moat witnessed, not described.
  */
-export function PoisonRejectionBeat({ conn }: { conn: DestroyerConn }) {
+export function PoisonRejectionBeat({
+  conn,
+  onComplete,
+}: {
+  conn: DestroyerConn;
+  /** fired when the gate decides, so a sibling panel (OSCAL) can re-pull the now-grown record */
+  onComplete?: () => void;
+}) {
   const { phase, result, inject, reset } = useFleetInject();
   const busy = phase === "injecting";
+
+  // when the live merge seals (phase → done), nudge the OSCAL panel to re-verify in lockstep
+  useEffect(() => {
+    if (phase === "done" && onComplete) onComplete();
+  }, [phase, onComplete]);
 
   return (
     <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>

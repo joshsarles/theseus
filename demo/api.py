@@ -781,10 +781,35 @@ def _oscal_module():
     return _OSCAL_MOD
 
 
-def build_oscal_state(record_dir: Path) -> dict:
+def _oscal_degraded(record_dir: Path, msg: str) -> dict:
+    """Honest empty-state OSCAL summary when no record is staged yet. Returns a verifying:false
+    payload (HTTP 200) so the UI shows the truth — never a fabricated PASS, never a 500 that
+    would let the offline fixture masquerade as live."""
+    return {
+        "standard": "NIST OSCAL 1.1.3 · assessment-results",
+        "framework": "NIST SP 800-53 rev5",
+        "title": "THESEUS Runtime Decision Record — OSCAL Assessment Results",
+        "record_verified": False,
+        "verify_message": msg,
+        "merkle_root": "", "chain_head": "", "leaf_count": 0,
+        "signed_leaves": "0/0", "attested_leaves": "0/0",
+        "accreditation_status": "EVIDENCE_LOGGED",
+        "n_observations": 0, "controls": [],
+        "controls_satisfied": 0, "controls_total": 0,
+    }
+
+
+def build_oscal_state(record_dir: Path = FLEET_RECORD) -> dict:
     """Compact OSCAL assessment-results summary for the UI. Reads the real sealed record;
     a control is `satisfied` only when the record cryptographically verifies AND its mapped
-    events are sealed + signed + in-toto attested (the emitter enforces this — no fabricated PASS)."""
+    events are sealed + signed + in-toto attested (the emitter enforces this — no fabricated PASS).
+
+    Defaults to the durable FLEET_RECORD — the SAME chain the live poison-rejection beat
+    (POST /api/fleet/inject) seals into, so this panel reflects the very gate decisions a judge
+    just witnessed and cannot 500 on a wiped gitignored demo/out runtime dir. A missing record
+    degrades to an honest verifying:false payload (HTTP 200), never an error or a fixture."""
+    if not (record_dir / "chain.jsonl").exists() or not (record_dir / "bundle.json").exists():
+        return _oscal_degraded(record_dir, "no fleet record sealed yet — run deploy/strike_group_up.sh")
     r2o = _oscal_module()
     doc = r2o.build_assessment_results(record_dir)
     ar = doc["assessment-results"]
@@ -875,9 +900,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
             return
-        if path == "/api/oscal":                # OSCAL evidence — the record projected onto SP 800-53
+        if path == "/api/oscal":                # OSCAL evidence — the FLEET record projected onto SP 800-53
             try:
-                self._send(build_oscal_state(self.record_dir))
+                self._send(build_oscal_state())   # defaults to durable FLEET_RECORD; degrades, never 500s
             except Exception:
                 self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
             return

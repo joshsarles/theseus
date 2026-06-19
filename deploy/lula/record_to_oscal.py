@@ -77,6 +77,21 @@ KIND_TO_CONTROL = {
                        "reference, binding authority-of-record to a human (decision-support, not autonomy)."),
     "observation":    ("au-2", "Audit Events",
                        "Every observed vendor decision is chain-appended at ingest as an audit event."),
+    # Fleet-learning leaf kinds (fleet/out/fleet_record) — the provenance-gated, eval-gated
+    # FedAvg merge the live poison-rejection beat (POST /api/fleet/inject) seals.
+    "fleet_delta_accepted":  ("ca-7", "Continuous Monitoring",
+                              "Each ship's locally-trained model delta is provenance-verified, "
+                              "evaluated, and sealed on receipt — continuous monitoring of fleet-wide "
+                              "model evolution under DDIL."),
+    "fleet_merge_accepted":  ("cm-3", "Configuration Change Control",
+                              "Every accepted FedAvg merge (a model promotion) is sealed with the "
+                              "contributing ships + before/after held-out RMSE + the eval-gate verdict "
+                              "— a model configuration change that is recorded and provable."),
+    "fleet_merge_rejected":  ("si-7", "Software, Firmware, and Information Integrity",
+                              "A model-update delta that fails the provenance gate (forged/unattested "
+                              "keyid not in the trust registry, or a weight-hash mismatch) or the eval "
+                              "gate (regression) is REJECTED and sealed — integrity verification detects "
+                              "and refuses an unauthorized/poisoned model change before it can merge."),
 }
 
 # AU-9 is satisfied by the chain mechanism itself (covers ALL leaves), evaluated from verify_dir.

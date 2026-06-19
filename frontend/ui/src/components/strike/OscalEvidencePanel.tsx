@@ -1,4 +1,5 @@
 import type { OscalState } from "../../lib/types";
+import type { OscalConn } from "../../hooks/useOscalState";
 
 /**
  * OSCAL EVIDENCE — the accreditation package an Authorizing Official ingests.
@@ -10,12 +11,25 @@ import type { OscalState } from "../../lib/types";
  * verifies AND its events are sealed + signed + in-toto attested — never asserted,
  * never CERTIFIED (the emitter enforces it; status stays EVIDENCE_LOGGED).
  */
-export function OscalEvidencePanel({ oscal }: { oscal: OscalState }) {
+export function OscalEvidencePanel({ oscal, conn = "live" }: { oscal: OscalState; conn?: OscalConn }) {
   const ok = oscal.record_verified;
+  // Honesty: if the endpoint isn't truly live, this panel may be showing the offline fixture or
+  // a stale snapshot — never let a fixture read as real cryptographic evidence (mirror the
+  // PoisonRejectionBeat's conn treatment).
+  const notLive = conn !== "live";
+  const connLabel = conn === "mock" ? "OFFLINE FIXTURE" : conn === "stale" ? "STALE" : conn === "connecting" ? "LINKING…" : "";
   return (
     <div style={{ padding: "12px 15px", flex: 1, minHeight: 0, overflow: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Evidence · OSCAL</div>
+        {notLive && connLabel && (
+          <span
+            className="mono"
+            style={{ fontSize: 7.5, color: "var(--critical)", letterSpacing: "0.1em", border: "1px solid var(--critical)", padding: "2px 6px" }}
+          >
+            {connLabel}
+          </span>
+        )}
         <span
           className="mono"
           style={{ fontSize: 7.5, color: "var(--amber)", marginLeft: "auto", letterSpacing: "0.1em", border: "1px solid var(--amber-dim)", padding: "2px 6px" }}

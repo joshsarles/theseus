@@ -7,7 +7,9 @@ const API_BASE =
 
 export const INJECT_URL = `${API_BASE}/api/fleet/inject`;
 
-const INJECT_TIMEOUT_MS = 15000;
+// 30s: the first press on a cold box self-primes (keygen + train 2 ships) inside the merge;
+// Ridge training is fast (<2s) but the margin keeps a fresh-box rehearsal off the error state.
+const INJECT_TIMEOUT_MS = 30000;
 
 /**
  * Phases of the live poison-rejection beat:

@@ -2,13 +2,164 @@ assessment-results:
   import-ap:
     href: ""
   metadata:
-    last-modified: 2026-06-16T12:57:16.987454-07:00
+    last-modified: 2026-06-19T00:15:00.780444-07:00
     oscal-version: 1.1.3
     published: 2026-06-12T03:08:40.483196-07:00
     remarks: Assessment Results generated from Lula
     title: '[System Name] Security Assessment Results (SAR)'
     version: 0.0.1
   results:
+    - description: Assessment results for performing Validations with Lula version unset
+      findings:
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: cbdfb785-3f14-4e31-a2ee-ab22b5246f3a
+            Read-only surfaces; ingest socket isolated. In the Zarf deploy the smoke runs as non-root (runAsUser 65534, no privilege escalation, all capabilities dropped), source mounts read-only; UDS/Pepr policies apply at deploy when bundled over uds-core.
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: ac-6
+            type: objective-id
+          title: 'Validation Result - Control: ac-6'
+          uuid: 47c7b0fb-15cb-4a7f-8f9a-8d12f2b667d1
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: a95b002f-a77c-438d-a238-650f9c929cde
+            Production ledger signs each leaf (Ed25519, Force OS audit_ledger — arrives via retained-IP wheels at the event); the reference chain in this repo demonstrates the same append/verify seam without signatures. Mapped row until event wiring.
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: au-10
+            type: objective-id
+          title: 'Validation Result - Control: au-10'
+          uuid: 1f52188f-e6e9-43eb-a425-c678d8264200
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: 444eb60b-7800-4866-8f02-1d7cf83a99c7
+            All vendor-emitted decisions and gate violations are chain-appended at ingest (referee/intake.py -> referee/chain.py). Smoke fixture: 25 observations + 8 violation leaves = 33 chain leaves, asserted by `make smoke`.
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: au-2
+            type: objective-id
+          title: 'Validation Result - Control: au-2'
+          uuid: 8cdde818-72ab-4bfa-a528-7bac284de4ce
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: 927f368c-8ec1-453c-8299-3678e230acad
+            Each chain leaf carries idx, timestamp, kind (observation|violation|scorecard), obs_id, the full base64 record, and prev_hash (referee/chain.py Leaf). Violation leaves additionally stamp policy_id+version and the tripped rule.
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: au-3
+            type: objective-id
+          title: 'Validation Result - Control: au-3'
+          uuid: 1235fddd-ca45-4ba6-b75b-1a1c68eeb029
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: ba0d6d36-2289-410f-9a6c-06fee4057361
+            Hash-chain integrity: SHA-256 prev-hash chain + Merkle root over all leaves. Live Lula validation asserts the emitted proof bundle carries a well-formed 64-hex chain head + Merkle root and the tamper-evident honesty flag. Full re-hash walk is the offline verifier (`python -m referee.demo --verify`; forceai-verify at the event) — tamper flips one byte, chain SNAPS at that leaf.
+          related-observations:
+            - observation-uuid: 5345a92d-feb7-4c8a-8273-3c936e4899eb
+          target:
+            status:
+              reason: pass
+              state: satisfied
+            target-id: au-9
+            type: objective-id
+          title: 'Validation Result - Control: au-9'
+          uuid: d4216731-aa9c-483b-afc1-f8b38ff47aaa
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: 7a5b6196-cc95-4ee5-8334-759e4faf9876
+            Scorecard/drift evaluation runs over the live feed; accreditation_status never exceeds EVIDENCE_LOGGED (honesty register: building to CMMC L2, audit pending; never CERTIFIED).
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: ca-7
+            type: objective-id
+          title: 'Validation Result - Control: ca-7'
+          uuid: ee9da4a4-2a2f-44dc-ba1f-8371504d478b
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: ec8f7bd9-ee8a-401b-9cec-5593d4665ff1
+            Authorized-parameters policy is a versioned fixture (policy_id + version + explicit fail_mode); policy_id+version stamped on every violation leaf (referee/policy.py). Live Lula validation asserts the policy fixture is versioned and identified.
+          related-observations:
+            - observation-uuid: 835079dc-f93f-4915-a5f2-38f5a0ad088c
+          target:
+            status:
+              reason: pass
+              state: satisfied
+            target-id: cm-3
+            type: objective-id
+          title: 'Validation Result - Control: cm-3'
+          uuid: c9efba0c-67e3-4e50-a006-1d917fda0ae5
+        - description: |
+            Control Implementation: e682308a-93b6-4ccf-8ff9-9a6c941523d6 / Implemented Requirement: 61b4854a-62ad-4892-a4d8-e7d0661ae059
+            Merkle root binds the session record; RFC-3161 timestamp field present in the proof bundle (null in reference spine; flips live for demo day). Verify is offline and third-party-buildable.
+          target:
+            status:
+              reason: other
+              remarks: No Lula validations were defined for this control
+              state: not-satisfied
+            target-id: si-7
+            type: objective-id
+          title: 'Validation Result - Control: si-7'
+          uuid: 42a6ecdb-d7c5-487b-9261-97ba692a498c
+      observations:
+        - collected: 2026-06-19T00:15:00.766123-07:00
+          description: |
+            [TEST]: 563aa341-5013-421c-9daf-ba8b5cb22e1b - cm3-policy-versioned
+          methods:
+            - TEST
+          props:
+            - name: validation
+              ns: https://docs.lula.dev/oscal/ns
+              value: '#563aa341-5013-421c-9daf-ba8b5cb22e1b'
+          relevant-evidence:
+            - description: |
+                Result: satisfied
+          uuid: 835079dc-f93f-4915-a5f2-38f5a0ad088c
+        - collected: 2026-06-19T00:15:00.766934-07:00
+          description: |
+            [TEST]: 297ebac2-fc55-4939-b1d0-674585f36c89 - au9-proof-bundle-integrity
+          methods:
+            - TEST
+          props:
+            - name: validation
+              ns: https://docs.lula.dev/oscal/ns
+              value: '#297ebac2-fc55-4939-b1d0-674585f36c89'
+          relevant-evidence:
+            - description: |
+                Result: satisfied
+          uuid: 5345a92d-feb7-4c8a-8273-3c936e4899eb
+      props:
+        - name: threshold
+          ns: https://docs.lula.dev/oscal/ns
+          value: "false"
+        - name: target
+          ns: https://docs.lula.dev/oscal/ns
+          value: https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json
+      reviewed-controls:
+        control-selections:
+          - description: Controls Assessed by Lula
+            include-controls:
+              - control-id: ac-6
+              - control-id: au-10
+              - control-id: au-2
+              - control-id: au-3
+              - control-id: au-9
+              - control-id: ca-7
+              - control-id: cm-3
+              - control-id: si-7
+        description: Controls validated
+        remarks: Validation performed may indicate full or partial satisfaction
+      start: 2026-06-19T00:15:00.768188-07:00
+      title: Lula Validation Result
+      uuid: 4e3fbde0-b2d2-41b4-8d8c-edc0e72971b0
     - description: Assessment results for performing Validations with Lula version unset
       findings:
         - description: |
@@ -311,4 +462,4 @@ assessment-results:
       start: 2026-06-12T03:08:40.483193-07:00
       title: Lula Validation Result
       uuid: bd0dd592-d4c3-4a45-b4b1-2df23a92c41e
-  uuid: 72aea11e-3362-415d-98af-e0ff06211636
+  uuid: b9ae5de9-184d-4dbe-b1c5-645c25c97c34

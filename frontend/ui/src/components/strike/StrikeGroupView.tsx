@@ -29,7 +29,7 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
   const [selected, setSelected] = useState<string>(
     () => destroyer.destroyers.find((d) => d.flagship)?.hull ?? destroyer.destroyers[0]?.hull ?? "",
   );
-  const { oscal } = useOscalState();
+  const { oscal, conn: oscalConn, refetch: refetchOscal } = useOscalState();
 
   const totals = useMemo(() => {
     let critical = 0;
@@ -139,8 +139,10 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
 
         {/* gate readout column */}
         <div style={{ display: "flex", flexDirection: "column", background: "var(--panel)" }}>
-          {/* provenance gate — the LIVE interactive poison-rejection beat */}
-          <PoisonRejectionBeat conn={conn} />
+          {/* provenance gate — the LIVE interactive poison-rejection beat.
+              onComplete re-pulls the OSCAL panel so the sealed leaves + controls
+              tick up in lockstep the instant the gate decides (one witnessed beat). */}
+          <PoisonRejectionBeat conn={conn} onComplete={refetchOscal} />
 
           {/* eval gate */}
           <div style={{ padding: "12px 15px", borderBottom: "1px solid var(--hair)" }}>
@@ -175,7 +177,7 @@ export function StrikeGroupView({ destroyer, conn }: StrikeGroupViewProps) {
 
           {/* accreditation footer — the OSCAL evidence an AO ingests */}
           {oscal ? (
-            <OscalEvidencePanel oscal={oscal} />
+            <OscalEvidencePanel oscal={oscal} conn={oscalConn} />
           ) : (
             <div style={{ padding: "12px 15px", flex: 1 }}>
               <div className="eyebrow" style={{ fontSize: 9 }}>Accreditation Record</div>

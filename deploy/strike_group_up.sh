@@ -45,7 +45,15 @@ bash "$REPO/deploy/pi-emulation/up.sh" --feed --interval=3 2>&1 | sed 's/^/  /' 
 say "4/6  Destroyer strike group (DDG-118/119/120, 18 containers)"
 bash "$REPO/deploy/ship-emulation/up.sh" --fleet --feed --interval=2 2>&1 | sed 's/^/  /' | tail -14
 
-# 5. The demo API on :8501 (serves /api/destroyer, /api/state, /api/mlflow, /api/fleet).
+# 4b. Seal a clean fleet-learning baseline so /api/fleet + /api/oscal serve a verifying record
+#     from boot, and the live poison-rejection beat (POST /api/fleet/inject) starts warm
+#     (keys + ship deltas primed). Without this the OSCAL panel + inject open cold.
+say "4b/6  Fleet brain baseline (fleet record + primed deltas)"
+bash "$REPO/fleet/run_miniature.sh" >/dev/null 2>&1 \
+  && echo "  ✓ fleet record sealed + verifies (poison-inject beat warm)" \
+  || echo "  ⚠ fleet baseline had issues — inject self-primes on first press"
+
+# 5. The demo API on :8501 (serves /api/destroyer, /api/state, /api/mlflow, /api/fleet, /api/oscal).
 say "5/6  Demo API :8501"
 pkill -f "demo/api.py" 2>/dev/null; (lsof -tiTCP:8501 -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null) || true; sleep 1
 nohup python3 "$REPO/demo/api.py" > "$REPO/demo/.api.log" 2>&1 </dev/null &
