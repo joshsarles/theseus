@@ -1,0 +1,12 @@
+# USS Theseus (DDG-118) — NAV subsystem node (inertial nav, GPS, gyro/heading,
+# rudder/steering, speed-over-ground).
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "host.docker.internal"   # Mac host running MLflow :5050
+  port: 5050
+  model: "nav_deploy"
+  version: latest
+  experiment: "nav_anomaly_train"

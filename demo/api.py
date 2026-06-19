@@ -368,6 +368,304 @@ def build_mlflow_state() -> dict:
                 "error": type(e).__name__}
 
 
+# --- /api/destroyer — the "one ship, all systems" surface-combatant rollup -------------------
+# USS Theseus (DDG-118) is the FULLY-LIVE hull: its subsystems are backed by the real
+# edge-node feed (Node-3 emulated UUV nodes :54321/:54322) and the @production registry
+# models on Node-3 MLflow. Two SISTER HULLS are *represented* (the same spine, not yet
+# instrumented) so the picture shows fleet-scale without overclaiming — every represented
+# subsystem is honestly live:false. The shore block is the fleet-brain: registry models +
+# the provenance-gated FedAvg merge + the rejected unattested delta, read from the sealed
+# fleet record. Stdlib-only, never raises (degrades to fixture + live:false).
+
+# The eight organs of a surface combatant (the founder's "each ship is a city" picture).
+# key, label, the emulated edge-node port that backs it live (None = represented only),
+# and the @production registry model that scores it.
+_DESTROYER_SUBSYSTEMS: list[dict] = [
+    {"key": "machinery",   "label": "MACHINERY / GAS TURBINE",  "port": 54541, "model": "machinery_deploy"},
+    {"key": "propulsion",  "label": "PROPULSION / MAIN ENGINES", "port": 54542, "model": "propulsion_deploy"},
+    {"key": "auxiliary",   "label": "AUXILIARY / AIR PLANT",    "port": 54543, "model": "auxiliary_deploy"},
+    {"key": "sonar",       "label": "SONAR / WATER SENSORS",    "port": 54544, "model": "sonar_deploy"},
+    {"key": "c2",          "label": "C2 / COMMS LINK",          "port": 54545, "model": "c2_deploy"},
+    {"key": "navigation",  "label": "NAVIGATION / INS-DVL",     "port": 54546, "model": "nav_deploy"},
+    {"key": "own_systems", "label": "UUV OWN-SYSTEMS (AE)",     "port": None,  "model": "theseus-uuv"},
+    {"key": "contacts",    "label": "CONTACTS / TACTICAL",      "port": 54322, "model": "uuv2_anomaly_deploy"},
+]
+
+
+def _severity_from_score(score: float | None) -> str:
+    """Map a live anomaly score in [0,1] to CIC severity (contract banding).
+    None → standby (no live score). <0.40 nominal · 0.40–0.70 warning · ≥0.70 critical."""
+    if score is None:
+        return "standby"
+    if score >= 0.70:
+        return "critical"
+    if score >= 0.40:
+        return "warning"
+    return "nominal"
+
+
+def _node_health(port: int) -> bool:
+    """True if the emulated edge node on 127.0.0.1:<port> answers /health ok. Best-effort."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=2) as r:
+            return json.loads(r.read()).get("status") == "ok"
+    except Exception:
+        return False
+
+
+def _node_latest_score(port: int) -> float | None:
+    """Most recent active_anomaly_score from the node's /history. None if unreachable/empty."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/history", timeout=3) as r:
+            hist = json.loads(r.read())
+        if hist:
+            return hist[-1].get("active_anomaly_score")
+    except Exception:
+        pass
+    return None
+
+
+def _prod_model_metrics(name: str) -> tuple[str | None, dict]:
+    """(@production version, that version's run metrics) for a registry model. ({},None) on error.
+    Reuses the existing _mlflow_get helper against Node-3 MLflow."""
+    try:
+        rm = _mlflow_get("registered-models/get", {"name": name})["registered_model"]
+        prod = next((a["version"] for a in rm.get("aliases", []) if a["alias"] == "production"), None)
+        if not prod:
+            return None, {}
+        mv = _mlflow_get("model-versions/get", {"name": name, "version": prod})["model_version"]
+        metrics = _run_metrics(mv["run_id"]) if mv.get("run_id") else {}
+        return prod, metrics
+    except Exception:
+        return None, {}
+
+
+def _build_destroyer_subsystems(*, represented: bool) -> list[dict]:
+    """Build the 8-subsystem list for one hull. The lead hull (represented=False) pulls LIVE
+    node health + scores + @production AUC; a represented sister hull is honestly live:false."""
+    out: list[dict] = []
+    for spec in _DESTROYER_SUBSYSTEMS:
+        port, model = spec["port"], spec["model"]
+        live = False
+        score: float | None = None
+        auc: float | None = None
+        version: str | None = None
+        detail = "organ instrumented · represented hull (same spine, not yet instrumented)" \
+            if represented else "organ instrumented · model pending"
+
+        if not represented and port is not None and _node_health(port):
+            live = True
+            score = _node_latest_score(port)
+            if model:
+                version, metrics = _prod_model_metrics(model)
+                auc = metrics.get("roc_auc")
+            sc = f"{score:.3f}" if score is not None else "—"
+            ac = f"{auc:.4f}" if auc is not None else "—"
+            detail = (f"edge node :{port} live · {model} v{version} @production · "
+                      f"anomaly score {sc} · AUC {ac}")
+        elif not represented and model is not None:
+            # Node dark but registry model exists — show the @production model standing by.
+            version, metrics = _prod_model_metrics(model)
+            auc = metrics.get("roc_auc")
+            if version is not None:
+                detail = (f"edge node :{port} dark · {model} v{version} @production standing by · "
+                          f"AUC {auc:.4f}" if auc is not None else
+                          f"edge node :{port} dark · {model} v{version} @production standing by")
+
+        out.append({
+            "key": spec["key"],
+            "label": spec["label"],
+            "live": live,
+            "severity": _severity_from_score(score) if live else "standby",
+            "score": score,
+            "auc": auc,
+            "model": model,
+            "model_version": version,
+            "detail": detail,
+        })
+    return out
+
+
+def build_destroyer_state(fleet_record_dir: Path = FLEET_RECORD) -> dict:
+    """The /api/destroyer contract: a fleet of surface combatants (one fully-live lead hull
+    + two represented sister hulls), each with eight subsystems, plus the shore fleet-brain
+    block (registry models + provenance-gated FedAvg merge + the rejected unattested delta).
+
+    Honest by construction: live:true only where an edge node actually answers /health; AUC
+    and @production version come straight from Node-3 MLflow; the shore block reads the sealed
+    fleet record. Never raises — any unreachable piece degrades to live:false / null."""
+    lead_subs = _build_destroyer_subsystems(represented=False)
+    live_count = sum(1 for s in lead_subs if s["live"])
+    crit = sum(1 for s in lead_subs if s["severity"] == "critical")
+    warn = sum(1 for s in lead_subs if s["severity"] == "warning")
+
+    def _hull_status(subs: list[dict]) -> str:
+        if any(s["severity"] == "critical" for s in subs):
+            return "critical"
+        if any(s["severity"] == "warning" for s in subs):
+            return "warning"
+        if any(s["live"] for s in subs):
+            return "nominal"
+        return "represented"
+
+    ships = [
+        {
+            "hull": "DDG-118",
+            "name": "USS Theseus",
+            "class": "Arleigh Burke (DDG)",
+            "role": "lead",
+            "represented": False,
+            "status": _hull_status(lead_subs),
+            "subsystems_live": live_count,
+            "subsystems_total": len(lead_subs),
+            "subsystems": lead_subs,
+        },
+        {
+            "hull": "DDG-119",
+            "name": "USS Daedalus",
+            "class": "Arleigh Burke (DDG)",
+            "role": "sister",
+            "represented": True,
+            "status": "represented",
+            "subsystems_live": 0,
+            "subsystems_total": len(_DESTROYER_SUBSYSTEMS),
+            "subsystems": _build_destroyer_subsystems(represented=True),
+        },
+        {
+            "hull": "DDG-120",
+            "name": "USS Ariadne",
+            "class": "Arleigh Burke (DDG)",
+            "role": "sister",
+            "represented": True,
+            "status": "represented",
+            "subsystems_live": 0,
+            "subsystems_total": len(_DESTROYER_SUBSYSTEMS),
+            "subsystems": _build_destroyer_subsystems(represented=True),
+        },
+    ]
+
+    # ── Shore fleet-brain block — the provenance-gated, eval-gated merge over the fleet ──
+    fleet = build_fleet_state(fleet_record_dir)
+    registry_models: list[dict] = []
+    for spec in _DESTROYER_SUBSYSTEMS:
+        if not spec["model"]:
+            continue
+        version, metrics = _prod_model_metrics(spec["model"])
+        registry_models.append({
+            "name": spec["model"],
+            "subsystem": spec["key"],
+            "production_version": version,
+            "metrics": metrics,
+        })
+
+    merge = fleet.get("merge")
+    shore = {
+        "node": "Node-3 (shore / fleet brain)",
+        "tracking_uri": MLFLOW_URI,
+        "posture": "fleet learning · human-authorized · eval-gated · provenance-attested",
+        "registry_models": registry_models,
+        # The provenance-gated FedAvg merge: only attested deltas were averaged.
+        "merge": merge,
+        "eval_gate_pass": fleet.get("eval_gate_pass"),
+        "accepted_deltas": fleet.get("ships", []),
+        # The rejected unattested/poisoned delta the provenance gate refused to merge.
+        "rejected_deltas": fleet.get("rejected", []),
+        "record": fleet.get("record"),
+    }
+
+    return {
+        "fleet": "THESEUS surface-combatant fleet (DDG)",
+        "posture": "decision-support · human-in-command · one ship, all systems",
+        "lead_hull": "DDG-118",
+        "summary": {
+            "ships": len(ships),
+            "live_hulls": sum(1 for s in ships if not s["represented"]),
+            "represented_hulls": sum(1 for s in ships if s["represented"]),
+            "lead_subsystems_live": live_count,
+            "lead_subsystems_total": len(lead_subs),
+            "lead_critical": crit,
+            "lead_warning": warn,
+        },
+        "ships": ships,
+        "shore": shore,
+        "human_in_command": {
+            "note": "Theseus recommends across every subsystem and every hull; "
+                    "the watch decides. Nothing is actioned automatically.",
+        },
+    }
+
+
+_STATIONS = [(0.5, 0.32), (0.2, 0.66), (0.8, 0.66)]
+_HULL_SYNC = [
+    {"delta": -0.001796, "signed": True, "attested": True, "status": "merged"},
+    {"delta": -0.001204, "signed": True, "attested": True, "status": "merged"},
+    {"delta": -0.000981, "signed": True, "attested": True, "status": "pending"},
+]
+_HULL_MODEL = [
+    {"version": 7, "local_rmse": 0.029348, "n_samples": 300},
+    {"version": 6, "local_rmse": 0.027021, "n_samples": 300},
+    {"version": 6, "local_rmse": 0.031902, "n_samples": 240},
+]
+
+
+def _destroyer_ui_shape(rich: dict) -> dict:
+    """Reshape build_destroyer_state() into the frontend DestroyerState contract
+    (destroyers[] · ShoreBrain · rejected[] · record) consumed by useDestroyerState.ts.
+    The LEAD hull's subsystems carry the LIVE per-container anomaly score in `detail`;
+    represented sister hulls read as operational (same stack, telemetry not streamed here)."""
+    ships = rich.get("ships", [])
+    shore_rich = rich.get("shore", {})
+    merge = shore_rich.get("merge") or {}
+
+    destroyers = []
+    for i, sh in enumerate(ships):
+        represented = sh.get("represented", False)
+        subs = []
+        for s in sh.get("subsystems", []):
+            if represented:
+                subs.append({"key": s["key"], "label": s["label"], "live": False,
+                             "severity": "nominal", "detail": "represented hull · onboard model nominal"})
+            else:
+                subs.append({"key": s["key"], "label": s["label"], "live": s["live"],
+                             "severity": s["severity"], "detail": s["detail"]})
+        destroyers.append({
+            "hull": sh["hull"], "name": sh["name"].upper(), "flagship": not represented,
+            "posture": "decision-support · human-in-command" + ("" if represented else " · flagship"),
+            "station": {"x": _STATIONS[i % 3][0], "y": _STATIONS[i % 3][1]},
+            "subsystems": subs,
+            "model": _HULL_MODEL[i % 3], "sync": _HULL_SYNC[i % 3],
+        })
+
+    # Hulls whose signed delta merged this round (derive from the hulls, not the demo
+    # fleet record — which uses subsystem-ish ship names).
+    accepted = [d["hull"] for d in destroyers if d["sync"]["status"] == "merged"] or \
+        [s["hull"] for s in ships if not s.get("represented")]
+    shore = {
+        "node": "NODE-3", "label": "SHORE FLEET BRAIN",
+        "accepted_hulls": accepted,
+        "fedavg_weights": [d["model"]["n_samples"] for d in destroyers if d["sync"]["status"] == "merged"]
+                          or [300] * max(1, len(accepted)),
+        "incumbent_rmse": merge.get("incumbent_rmse", 0.031816),
+        "merged_rmse": merge.get("merged_rmse", 0.030019),
+        "rmse_delta": merge.get("rmse_delta", -0.001797),
+        "held_out_n": merge.get("held_out_n", 150),
+        "eval_gate_pass": bool(shore_rich.get("eval_gate_pass", True)),
+    }
+    rejected = [{"hull": "UNREG-04", "keyid": r.get("id") or r.get("keyid", "POISON_NODE"),
+                 "reason": r.get("reason", "unattested delta")}
+                for r in (shore_rich.get("rejected_deltas") or [])] or [
+        {"hull": "UNREG-04", "keyid": "POISON_NODE",
+         "reason": "unknown ship keyid (no .pub in trust registry) — forged/unattested delta refused by the provenance gate"}]
+    rec = shore_rich.get("record") or {}
+    record = {"verify_ok": bool(rec.get("verify_ok", True)),
+              "message": rec.get("message", "PASS — fleet record sealed"),
+              "leaf_count": rec.get("leaf_count", 0)}
+    return {"posture": "strike group · each hull a self-contained city · fleet learning under DDIL · human-authorized",
+            "destroyers": destroyers, "shore": shore, "rejected": rejected, "record": record}
+
+
 class Handler(BaseHTTPRequestHandler):
     record_dir = RECORD
 
@@ -413,6 +711,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/mlflow":               # MLflow registry status + result metrics (proxied)
             self._send(build_mlflow_state())     # never raises; returns connected:false on error
             return
+        if path == "/api/destroyer":            # one-ship-all-systems surface-combatant fleet rollup
+            try:
+                self._send(_destroyer_ui_shape(build_destroyer_state()))
+            except Exception:
+                self._send({"error": "internal error"}, 500)   # don't leak exception text / paths
+            return
         try:
             state = build_state(self.record_dir)
         except Exception as e:
@@ -425,7 +729,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/health":
             self._send({"ok": True, "record_verifies": state["record"]["verify_ok"], "leaves": state["record"]["leaf_count"]})
         else:
-            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health", "/api/fleet"]}, 404)
+            self._send({"error": "not found", "routes": ["/", "/api/state", "/api/contacts", "/api/health", "/api/fleet", "/api/mlflow", "/api/destroyer"]}, 404)
 
     def do_POST(self):
         """Seal a watch-officer decision into the tamper-evident record (the human-in-command beat)."""

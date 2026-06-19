@@ -1,0 +1,12 @@
+# USS Theseus (DDG-118) — AUXILIARY subsystem node (electrical generation/distribution,
+# chilled water, fuel, HVAC).
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "host.docker.internal"   # Mac host running MLflow :5050
+  port: 5050
+  model: "auxiliary_deploy"
+  version: latest
+  experiment: "auxiliary_anomaly_train"

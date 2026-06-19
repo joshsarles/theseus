@@ -7,6 +7,7 @@ interface SceneToggleProps {
 
 const TABS: { id: SceneMode; label: string; sub: string }[] = [
   { id: "operations", label: "OPERATIONS", sub: "one ship · live" },
+  { id: "strike-group", label: "STRIKE GROUP", sub: "the whole picture" },
   { id: "fleet", label: "FLEET LEARNING", sub: "the flywheel" },
 ];
 

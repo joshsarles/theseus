@@ -1,0 +1,12 @@
+# USS Theseus (DDG-118) — PROPULSION subsystem node (LM2500 gas turbines, reduction
+# gears, shaft RPM/torque, exhaust temps).
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "host.docker.internal"   # Mac host running MLflow :5050
+  port: 5050
+  model: "propulsion_deploy"
+  version: latest
+  experiment: "propulsion_anomaly_train"

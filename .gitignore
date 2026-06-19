@@ -87,3 +87,8 @@ uv.lock
 
 # Emulated Pi fleet — background-feeder runtime artifacts (not source)
 deploy/pi-emulation/.feed*
+
+# Emulated ship fleet + demo API — runtime artifacts (features.*.json ARE committed)
+deploy/ship-emulation/.feed*
+deploy/ship-emulation/.ship_feed.log
+demo/.api.log

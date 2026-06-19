@@ -1,0 +1,42 @@
+{
+  "sensors": [
+    "lever_position",
+    "ship_speed",
+    "gt_shaft_torque",
+    "gt_rpm",
+    "gas_gen_rpm",
+    "stbd_prop_torque",
+    "port_prop_torque",
+    "hp_turbine_exit_temp",
+    "compressor_inlet_temp",
+    "compressor_outlet_temp",
+    "hp_turbine_exit_press",
+    "compressor_inlet_press",
+    "compressor_outlet_press",
+    "exhaust_gas_press",
+    "turbine_injection_ctrl",
+    "fuel_flow",
+    "gt_turbine_decay",
+    "gt_compressor_decay"
+  ],
+  "all": [
+    "lever_position",
+    "ship_speed",
+    "gt_shaft_torque",
+    "gt_rpm",
+    "gas_gen_rpm",
+    "stbd_prop_torque",
+    "port_prop_torque",
+    "hp_turbine_exit_temp",
+    "compressor_inlet_temp",
+    "compressor_outlet_temp",
+    "hp_turbine_exit_press",
+    "compressor_inlet_press",
+    "compressor_outlet_press",
+    "exhaust_gas_press",
+    "turbine_injection_ctrl",
+    "fuel_flow",
+    "gt_turbine_decay",
+    "gt_compressor_decay"
+  ]
+}

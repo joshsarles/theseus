@@ -1,0 +1,20 @@
+{
+  "sensors": [
+    "water_temp_c",
+    "salinity_ppt",
+    "turbidity_ntu",
+    "sonar_range_m",
+    "sonar_bearing_deg",
+    "sonar_return_db",
+    "pressure_bar"
+  ],
+  "all": [
+    "water_temp_c",
+    "salinity_ppt",
+    "turbidity_ntu",
+    "sonar_range_m",
+    "sonar_bearing_deg",
+    "sonar_return_db",
+    "pressure_bar"
+  ]
+}

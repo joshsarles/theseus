@@ -1,0 +1,26 @@
+{
+  "sensors": [
+    "latitude_deg",
+    "longitude_deg",
+    "speed_knots",
+    "heading_deg",
+    "depth_m",
+    "roll_deg",
+    "pitch_deg",
+    "battery_pct",
+    "signal_strength_dbm",
+    "hdop"
+  ],
+  "all": [
+    "latitude_deg",
+    "longitude_deg",
+    "speed_knots",
+    "heading_deg",
+    "depth_m",
+    "roll_deg",
+    "pitch_deg",
+    "battery_pct",
+    "signal_strength_dbm",
+    "hdop"
+  ]
+}

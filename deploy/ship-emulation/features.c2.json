@@ -1,0 +1,12 @@
+{
+  "sensors": [
+    "payload_bytes",
+    "integrity_check_passed",
+    "latency_ms"
+  ],
+  "all": [
+    "payload_bytes",
+    "integrity_check_passed",
+    "latency_ms"
+  ]
+}

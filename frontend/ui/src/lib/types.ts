@@ -161,4 +161,74 @@ export interface MlflowState {
   error?: string;
 }
 
-export type SceneMode = "operations" | "fleet";
+/* ====================================================================== */
+/*  STRIKE GROUP — GET /api/destroyer                                      */
+/*  the "self-contained city × fleet learning" picture: MULTIPLE hulls,    */
+/*  each a city of 8 subsystems, syncing signed model-deltas to a shore-   */
+/*  side fleet brain (Node 3) under an eval-gated, provenance-attested      */
+/*  FedAvg merge.                                                           */
+/* ====================================================================== */
+
+/** One of a hull's 8 instrumented subsystems, lit by severity. */
+export interface DestroyerSubsystem {
+  key: string;
+  label: string;
+  live: boolean;
+  severity: Severity;
+  detail: string;
+}
+
+/** A single destroyer in the strike group. */
+export interface Destroyer {
+  /** hull number e.g. "DDG-118" */
+  hull: string;
+  /** ship name e.g. "USS THESEUS" */
+  name: string;
+  /** the live flagship (wired to /api/state) vs a sister hull */
+  flagship: boolean;
+  posture: string;
+  /** rough station-keeping position, normalised 0..1 in the formation box */
+  station: { x: number; y: number };
+  subsystems: DestroyerSubsystem[];
+  /** local CBM model version + held-out RMSE this hull last trained */
+  model: { version: number; local_rmse: number | null; n_samples: number | null };
+  /** the signed delta this hull last synced to shore */
+  sync: {
+    /** signed magnitude of the model-weight delta pushed to shore */
+    delta: number;
+    signed: boolean;
+    /** keyid is in the shore trust registry */
+    attested: boolean;
+    status: "merged" | "pending" | "rejected";
+  };
+}
+
+/** A delta the shore provenance gate refused (poisoned / unattested). */
+export interface DestroyerRejection {
+  hull: string | null;
+  keyid: string | null;
+  reason: string;
+}
+
+/** The shore-side fleet brain — Node 3 — and its eval-gated FedAvg merge. */
+export interface ShoreBrain {
+  node: string;
+  label: string;
+  accepted_hulls: string[];
+  fedavg_weights: number[];
+  incumbent_rmse: number;
+  merged_rmse: number;
+  rmse_delta: number;
+  held_out_n: number;
+  eval_gate_pass: boolean;
+}
+
+export interface DestroyerState {
+  posture: string;
+  destroyers: Destroyer[];
+  shore: ShoreBrain;
+  rejected: DestroyerRejection[];
+  record: FleetRecord;
+}
+
+export type SceneMode = "operations" | "fleet" | "strike-group";

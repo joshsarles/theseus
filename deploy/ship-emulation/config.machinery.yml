@@ -1,0 +1,13 @@
+# USS Theseus (DDG-118) — MACHINERY subsystem node (HM&E plant: pumps, bearings,
+# vibration, lube-oil). Same shape as the Pi receiver config; mlflow.host points
+# at the Mac host running MLflow :5050.
+stream:
+  topic: "sensors"
+  batch_size: 25
+  history_size: 100
+mlflow:
+  host: "host.docker.internal"   # Mac host running MLflow :5050
+  port: 5050
+  model: "machinery_deploy"
+  version: latest
+  experiment: "machinery_anomaly_train"

@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
 import { useShipState } from "./hooks/useShipState";
 import { useFleetState } from "./hooks/useFleetState";
+import { useDestroyerState } from "./hooks/useDestroyerState";
 import { CommandHeader } from "./components/CommandHeader";
 import { SimFeedBanner } from "./components/SimFeedBanner";
 import { OperationsView } from "./components/OperationsView";
 import { FleetFlywheel } from "./components/fleet/FleetFlywheel";
+import { StrikeGroupView } from "./components/strike/StrikeGroupView";
 import { mintDecisionLeaf, parseRecordMessage } from "./lib/format";
 import type { Leaf, SceneMode, Verdict } from "./lib/types";
 
 export function App() {
   const { state, conn, refetch } = useShipState();
   const { fleet, conn: fleetConn } = useFleetState();
+  const { destroyer, conn: destroyerConn } = useDestroyerState();
   const [mode, setMode] = useState<SceneMode>("operations");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [localLeaves, setLocalLeaves] = useState<Leaf[]>([]);
@@ -38,7 +41,8 @@ export function App() {
 
   // Risk #1: a giant red SIM-FEED bar shows whenever the link is not truly live.
   // In FLEET mode the banner tracks the fleet endpoint's connection instead.
-  const activeConn = mode === "fleet" ? fleetConn : conn;
+  const activeConn =
+    mode === "fleet" ? fleetConn : mode === "strike-group" ? destroyerConn : conn;
   const simBannerActive = activeConn !== "live";
 
   return (
@@ -69,6 +73,12 @@ export function App() {
               localLeaves={localLeaves}
               onDecision={onDecision}
             />
+          ) : mode === "strike-group" ? (
+            destroyer ? (
+              <StrikeGroupView destroyer={destroyer} conn={destroyerConn} />
+            ) : (
+              <Booting label="LINKING TO STRIKE GROUP …" />
+            )
           ) : fleet ? (
             <FleetFlywheel fleet={fleet} conn={fleetConn} />
           ) : (
