@@ -1,0 +1,15 @@
+{
+  "name": "theseus-uuv",
+  "model": "Conv1d sequence autoencoder",
+  "framework": "pytorch",
+  "kind": "sequence-autoencoder-anomaly",
+  "channels": 23,
+  "window": 64,
+  "latent": 64,
+  "arch": "Conv1d(23,32,16)->Linear(->64->)->Conv1d(16,32,23)",
+  "epochs": 200,
+  "n_train_windows": 2948,
+  "seed": 316,
+  "model_sha256": "98f0af2c253cf5f34a14795bca953301564f5922622c660c2b84f110e42a1874",
+  "trained_unix": 1781824687.179251
+}

@@ -1,0 +1,327 @@
+{
+  "model": "models/onnx/uuv_seq_ae.onnx",
+  "precision": "fp32",
+  "test_recordings": [
+    "limited/7m",
+    "limited/14m",
+    "unlimited/serpentine"
+  ],
+  "n_nominal_windows_total": 467,
+  "consistency_onnx_vs_torch": {
+    "recon_err_max_abs_diff": 2.9331677042776505e-07,
+    "recon_err_corr": 0.9999999999999739
+  },
+  "nominal": {
+    "mean_all": 0.2058,
+    "shipped_threshold": 0.41755759716033936,
+    "per_recording": {
+      "limited/7m": {
+        "n": 97,
+        "mean": 0.1616,
+        "p98": 0.2944
+      },
+      "limited/14m": {
+        "n": 133,
+        "mean": 0.5016,
+        "p98": 0.7271
+      },
+      "unlimited/serpentine": {
+        "n": 237,
+        "mean": 0.0579,
+        "p98": 0.1776
+      }
+    },
+    "scale_spread_ratio": 8.7
+  },
+  "severity_sweep": {
+    "scales": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "by_fault": {
+      "thruster_dropout": {
+        "x0.25": {
+          "auc": 0.531,
+          "recall_insitu": 0.187
+        },
+        "x0.5": {
+          "auc": 0.601,
+          "recall_insitu": 0.37
+        },
+        "x1.0": {
+          "auc": 0.745,
+          "recall_insitu": 0.672
+        },
+        "x2.0": {
+          "auc": 0.969,
+          "recall_insitu": 0.898
+        },
+        "x4.0": {
+          "auc": 1.0,
+          "recall_insitu": 0.996
+        }
+      },
+      "thruster_stuck": {
+        "x0.25": {
+          "auc": 0.549,
+          "recall_insitu": 0.238
+        },
+        "x0.5": {
+          "auc": 0.647,
+          "recall_insitu": 0.464
+        },
+        "x1.0": {
+          "auc": 0.839,
+          "recall_insitu": 0.821
+        },
+        "x2.0": {
+          "auc": 0.983,
+          "recall_insitu": 0.97
+        },
+        "x4.0": {
+          "auc": 1.0,
+          "recall_insitu": 1.0
+        }
+      },
+      "battery_sag": {
+        "x0.25": {
+          "auc": 0.528,
+          "recall_insitu": 0.23
+        },
+        "x0.5": {
+          "auc": 0.608,
+          "recall_insitu": 0.374
+        },
+        "x1.0": {
+          "auc": 0.777,
+          "recall_insitu": 0.728
+        },
+        "x2.0": {
+          "auc": 0.969,
+          "recall_insitu": 0.996
+        },
+        "x4.0": {
+          "auc": 1.0,
+          "recall_insitu": 1.0
+        }
+      },
+      "attitude_drift": {
+        "x0.25": {
+          "auc": 0.547,
+          "recall_insitu": 0.217
+        },
+        "x0.5": {
+          "auc": 0.64,
+          "recall_insitu": 0.494
+        },
+        "x1.0": {
+          "auc": 0.79,
+          "recall_insitu": 0.681
+        },
+        "x2.0": {
+          "auc": 1.0,
+          "recall_insitu": 0.991
+        },
+        "x4.0": {
+          "auc": 1.0,
+          "recall_insitu": 1.0
+        }
+      },
+      "imu_spike": {
+        "x0.25": {
+          "auc": 0.517,
+          "recall_insitu": 0.187
+        },
+        "x0.5": {
+          "auc": 0.557,
+          "recall_insitu": 0.234
+        },
+        "x1.0": {
+          "auc": 0.656,
+          "recall_insitu": 0.532
+        },
+        "x2.0": {
+          "auc": 0.827,
+          "recall_insitu": 0.736
+        },
+        "x4.0": {
+          "auc": 0.999,
+          "recall_insitu": 1.0
+        }
+      },
+      "pressure_leak": {
+        "x0.25": {
+          "auc": 0.542,
+          "recall_insitu": 0.277
+        },
+        "x0.5": {
+          "auc": 0.66,
+          "recall_insitu": 0.443
+        },
+        "x1.0": {
+          "auc": 0.815,
+          "recall_insitu": 0.783
+        },
+        "x2.0": {
+          "auc": 0.998,
+          "recall_insitu": 1.0
+        },
+        "x4.0": {
+          "auc": 1.0,
+          "recall_insitu": 1.0
+        }
+      }
+    }
+  },
+  "separability": {
+    "per_recording_auc": {
+      "limited/7m": 0.951,
+      "limited/14m": 0.876,
+      "unlimited/serpentine": 0.953
+    },
+    "per_recording_auc_median": 0.951,
+    "per_recording_auc_range": [
+      0.876,
+      0.953
+    ],
+    "pooled_auc": 0.7703,
+    "trivial_baseline_pooled_auc": 0.6576,
+    "model_lift_over_trivial": 0.1127
+  },
+  "localization": {
+    "note": "SANITY CHECK ONLY \u2014 an AE's largest residual is trivially on the perturbed channel; this is not diagnosis. Thruster faults hit a RANDOM thruster per window, so thruster localization is bank-level, not unit-level. raw_top3 is dominated by the worst-reconstructed channel (temp_int); normalized_top3 divides by each channel's nominal error.",
+    "nominal_per_channel_mse": {
+      "att_roll": 0.056,
+      "att_pitch": 0.0721,
+      "att_yaw": 0.1796,
+      "att_roll_speed": 0.1671,
+      "att_pitch_speed": 0.1072,
+      "att_yaw_speed": 0.0873,
+      "imu_xacc": 0.0929,
+      "imu_yacc": 0.0958,
+      "imu_zacc": 0.2999,
+      "imu_xgyro": 0.1956,
+      "imu_ygyro": 0.1104,
+      "imu_zgyro": 0.0903,
+      "batt_voltage": 0.1851,
+      "thr1": 0.1608,
+      "thr2": 0.1695,
+      "thr3": 0.1321,
+      "thr4": 0.1404,
+      "thr5": 0.3221,
+      "thr6": 0.3133,
+      "press_int": 0.0529,
+      "temp_int": 1.7041,
+      "press_ext": 0.3423,
+      "temp_ext": 0.5308
+    },
+    "by_fault": {
+      "thruster_dropout": {
+        "raw_top3": [
+          "thr3",
+          "thr1",
+          "thr2"
+        ],
+        "normalized_top3": [
+          "thr3",
+          "thr1",
+          "thr2"
+        ]
+      },
+      "thruster_stuck": {
+        "raw_top3": [
+          "thr1",
+          "thr2",
+          "thr3"
+        ],
+        "normalized_top3": [
+          "thr3",
+          "thr1",
+          "thr2"
+        ]
+      },
+      "battery_sag": {
+        "raw_top3": [
+          "temp_int",
+          "batt_voltage",
+          "att_pitch"
+        ],
+        "normalized_top3": [
+          "batt_voltage",
+          "temp_int",
+          "att_pitch"
+        ]
+      },
+      "attitude_drift": {
+        "raw_top3": [
+          "att_roll",
+          "att_pitch",
+          "temp_int"
+        ],
+        "normalized_top3": [
+          "att_roll",
+          "att_pitch",
+          "imu_yacc"
+        ]
+      },
+      "imu_spike": {
+        "raw_top3": [
+          "imu_zacc",
+          "imu_yacc",
+          "imu_xgyro"
+        ],
+        "normalized_top3": [
+          "imu_yacc",
+          "imu_xacc",
+          "imu_ygyro"
+        ]
+      },
+      "pressure_leak": {
+        "raw_top3": [
+          "temp_int",
+          "press_int",
+          "batt_voltage"
+        ],
+        "normalized_top3": [
+          "press_int",
+          "batt_voltage",
+          "att_pitch"
+        ]
+      }
+    }
+  },
+  "operating": {
+    "global_threshold_auc": 0.7703,
+    "n_nominal_eval": 235,
+    "n_fault_eval": 1410,
+    "points": [
+      {
+        "nominal_quantile": 0.9,
+        "threshold": 0.4943,
+        "far": 0.102,
+        "recall": 0.374
+      },
+      {
+        "nominal_quantile": 0.95,
+        "threshold": 0.5755,
+        "far": 0.051,
+        "recall": 0.288
+      },
+      {
+        "nominal_quantile": 0.98,
+        "threshold": 0.6355,
+        "far": 0.021,
+        "recall": 0.233
+      },
+      {
+        "nominal_quantile": 0.99,
+        "threshold": 0.6698,
+        "far": 0.013,
+        "recall": 0.195
+      }
+    ]
+  }
+}

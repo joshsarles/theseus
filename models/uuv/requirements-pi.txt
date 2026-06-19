@@ -1,0 +1,17 @@
+# theseus-uuv — Raspberry Pi 5 EDGE INFERENCE dependencies (4 GB or 8 GB).
+#
+# Inference (models/uuv/infer.py + pi_bench.py) needs ONLY these two — no torch / sklearn /
+# pandas. Both ship aarch64 manylinux wheels, so on 64-bit Raspberry Pi OS this is just:
+#     python3 -m pip install -r models/uuv/requirements-pi.txt
+#
+# PREREQUISITE: 64-bit Raspberry Pi OS (aarch64). The 32-bit ARMHF default OS has no aarch64
+# wheels and won't work. Verify with `uname -m` -> should print `aarch64`.
+#
+# Footprint at runtime: int8 ONNX ~154 KB, ~52 MB RSS, sub-ms/window single-thread — fits the
+# 4 GB Pi with huge margin (8 GB only adds headroom; RAM is not the constraint).
+#
+# Tested with numpy 2.4.6 + onnxruntime 1.27.0 (Python 3.13). Minimums below cover aarch64
+# wheels + int8 dynamic-quant + the CPU execution provider.
+
+numpy>=1.24
+onnxruntime>=1.17

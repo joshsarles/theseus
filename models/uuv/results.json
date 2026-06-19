@@ -1,0 +1,156 @@
+{
+  "dataset": "BlueROV2 ROV tether dataset (Zenodo 10.5281/zenodo.17360027, CC BY 4.0) \u2014 REAL ArduSub onboard telemetry; ONBOARD channels only (mocap/pose/tension excluded).",
+  "framing": "B \u2014 the UUV's OWN subsystems (battery/thrusters/attitude/IMU/pressure). Real underwater-vehicle data, NOT a gas-turbine/turbofan proxy.",
+  "channels": [
+    "att_roll",
+    "att_pitch",
+    "att_yaw",
+    "att_roll_speed",
+    "att_pitch_speed",
+    "att_yaw_speed",
+    "imu_xacc",
+    "imu_yacc",
+    "imu_zacc",
+    "imu_xgyro",
+    "imu_ygyro",
+    "imu_zgyro",
+    "batt_voltage",
+    "thr1",
+    "thr2",
+    "thr3",
+    "thr4",
+    "thr5",
+    "thr6",
+    "press_int",
+    "temp_int",
+    "press_ext",
+    "temp_ext"
+  ],
+  "n_channels": 23,
+  "window": 64,
+  "rate_hz": 10,
+  "split": {
+    "train_recordings": [
+      "limited/6m",
+      "unlimited/circle",
+      "limited/10m",
+      "limited/13m",
+      "limited/12m",
+      "limited/5m",
+      "limited/9m",
+      "unlimited/random",
+      "limited/8m"
+    ],
+    "val_recordings": [
+      "limited/11m",
+      "limited/15m"
+    ],
+    "test_recordings": [
+      "limited/7m",
+      "limited/14m",
+      "unlimited/serpentine"
+    ]
+  },
+  "n_train_windows": 2948,
+  "n_val_windows": 235,
+  "n_test_nominal_windows": 235,
+  "shipped_default_threshold": 0.417558,
+  "insitu_threshold_mean": 0.42273,
+  "target_far": 0.02,
+  "fit_seconds": 221.37,
+  "eval_method": "per-recording IN-SITU threshold (calibrate on first half of each held-out test recording's nominal windows, evaluate on second half + synthetic faults) \u2014 mirrors cold-start deployment. AUC pooled across recordings (threshold-free).",
+  "eval_per_synthetic_fault": {
+    "thruster_dropout": {
+      "precision": 0.7917,
+      "recall": 0.6468,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.7119,
+      "roc_auc": 0.7537,
+      "tp": 152,
+      "fp": 40,
+      "fn": 83,
+      "tn": 195
+    },
+    "thruster_stuck": {
+      "precision": 0.8246,
+      "recall": 0.8,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.8121,
+      "roc_auc": 0.8334,
+      "tp": 188,
+      "fp": 40,
+      "fn": 47,
+      "tn": 195
+    },
+    "battery_sag": {
+      "precision": 0.8104,
+      "recall": 0.7277,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.7668,
+      "roc_auc": 0.7766,
+      "tp": 171,
+      "fp": 40,
+      "fn": 64,
+      "tn": 195
+    },
+    "attitude_drift": {
+      "precision": 0.8,
+      "recall": 0.6809,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.7356,
+      "roc_auc": 0.7905,
+      "tp": 160,
+      "fp": 40,
+      "fn": 75,
+      "tn": 195
+    },
+    "imu_spike": {
+      "precision": 0.7633,
+      "recall": 0.5489,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.6386,
+      "roc_auc": 0.6578,
+      "tp": 129,
+      "fp": 40,
+      "fn": 106,
+      "tn": 195
+    },
+    "pressure_leak": {
+      "precision": 0.8214,
+      "recall": 0.783,
+      "false_alarm_rate": 0.1702,
+      "f1": 0.8017,
+      "roc_auc": 0.8149,
+      "tp": 184,
+      "fp": 40,
+      "fn": 51,
+      "tn": 195
+    }
+  },
+  "eval_overall_synthetic": {
+    "precision": 0.8039,
+    "recall": 0.6979,
+    "false_alarm_rate": 0.1702,
+    "f1": 0.7472,
+    "roc_auc": 0.7711,
+    "tp": 984,
+    "fp": 240,
+    "fn": 426,
+    "tn": 1170
+  },
+  "edge": {
+    "onnx": {
+      "fp32_path": "models/onnx/uuv_seq_ae.onnx",
+      "fp32_kb": 567.3,
+      "torch_vs_onnx_recon_max_abs": 5.25e-06,
+      "torch_vs_onnx_recon_err_max_abs": 5.96e-07,
+      "single_window_latency_ms_1thread": 0.0303,
+      "training_process_peak_rss_mb": 650.0,
+      "rss_note": "full TRAINING process RSS (torch+numpy+onnxruntime); honest inference-only footprint is in models/uuv/pi_bench.json.",
+      "int8_path": "models/onnx/uuv_seq_ae_int8.onnx",
+      "int8_kb": 153.5,
+      "int8_note": "dynamic quant targets MatMul/Gemm -> shrinks the Linear bottleneck (the bulk of params); Conv1d stays fp32 under dynamic quant (static quant would cover it). Unlike NV063's tree ensemble, int8 gives a real size reduction here."
+    }
+  },
+  "caveats": "Data is REAL but ALL NOMINAL (no public fault-labeled BlueROV2 set). Anomaly eval uses SYNTHETIC fault injection on held-out nominal windows (thruster dropout/stuck, battery sag, attitude drift, IMU spike, internal-pressure leak) \u2014 SYNTHETIC perturbations for separability illustration + in-situ threshold calibration, NOT real failures. ROC-AUC is threshold-free separability; P/R/FAR/F1 at the per-recording in-situ operating point. n is illustrative. Validate on self-captured BlueROV2 fault runs before any claim of fielded detection performance."
+}

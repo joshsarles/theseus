@@ -1,0 +1,14 @@
+{
+  "model": "models/onnx/uuv_seq_ae_int8.onnx",
+  "model_kb": 153.5,
+  "precision": "int8",
+  "onnxruntime_version": "1.27.0",
+  "threads": 1,
+  "channels": 23,
+  "window": 64,
+  "threshold": 0.41755759716033936,
+  "latency_ms_per_window_single": 0.154,
+  "windows_per_sec": 6492.3,
+  "inference_process_peak_rss_mb": 52.1,
+  "note": "Inference-only process (numpy + onnxruntime). Pi 5 / 4GB headroom is ample: model 153.5 KB, RSS well under 4 GB, and at 10 Hz telemetry a window arrives every 100 ms while inference is sub-ms \u2014 real-time on one core with vast margin."
+}
